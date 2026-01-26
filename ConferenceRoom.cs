@@ -15,6 +15,16 @@ namespace ConferenceRoomBooking
                 Availability = availability;
             }
 
+            public void MarkUnavailable()
+            {
+                Availability = RoomAvailability.Unavailable;
+            }
+
+            public void MarkAvailable()
+            {
+                Availability = RoomAvailability.Available;
+            }
+
         
     }
 }
