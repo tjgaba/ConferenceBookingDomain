@@ -1,35 +1,58 @@
 using System;
 
-namespace ConferenceRoomBooking
+public class Booking
 {
-    public class Booking
+    public int Id { get; }
+    public ConferenceRoom Room { get; }
+    public string RequestedBy { get; }
+    public DateTime StartTime { get; }
+    public DateTime EndTime { get; }
+    public BookingStatus Status { get; private set; }
+
+    public Booking(
+        int id,
+        ConferenceRoom room,
+        string requestedBy,
+        DateTime startTime,
+        DateTime endTime)
     {
-        public int Id { get; }
-        public ConferenceRoom Room { get; }
-        public string RequestedBy { get; }
-        public BookingStatus Status { get; private set; }
+        // FAIL-FAST DOMAIN VALIDATION
+        Room = room ?? throw new ArgumentNullException(nameof(room));
 
-        public Booking(int id, ConferenceRoom room, string requestedBy)
-        {
-            Id = id;
-            Room = room;
-            RequestedBy = requestedBy;
-            Status = BookingStatus.Pending;
-        }
+        RequestedBy = string.IsNullOrWhiteSpace(requestedBy)
+            ? throw new ArgumentException("RequestedBy cannot be empty")
+            : requestedBy;
 
-        public void Confirm()
-        {
-            if (Room.Availability == RoomAvailability.Unavailable)
-                throw new InvalidOperationException("Cannot confirm booking. Room is unavailable.");
+        if (endTime <= startTime)
+            throw new ArgumentException("End time must be after start time");
 
-            Status = BookingStatus.Confirmed;
-            Room.MarkUnavailable();
-        }
+        Id = id;
+        StartTime = startTime;
+        EndTime = endTime;
 
-        public void Cancel()
-        {
-            Status = BookingStatus.Cancelled;
-            Room.MarkAvailable();
-        }
+        // INITIAL VALID STATE
+        Status = BookingStatus.Pending;
+    }
+
+    public void Confirm()
+    {
+        // VALID STATE TRANSITION
+        if (Status != BookingStatus.Pending)
+            throw new InvalidOperationException(
+                "Only pending bookings can be confirmed."
+            );
+
+        Status = BookingStatus.Confirmed;
+    }
+
+    public void Cancel()
+    {
+        // VALID STATE TRANSITION
+        if (Status == BookingStatus.Cancelled)
+            throw new InvalidOperationException(
+                "Booking is already cancelled."
+            );
+
+        Status = BookingStatus.Cancelled;
     }
 }
