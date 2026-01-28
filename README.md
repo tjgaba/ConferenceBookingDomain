@@ -80,7 +80,7 @@ Handles user interaction and application flow.
 ---
 
 ## 🗂 Repository Structure
-
+```
 ├── Program.cs
 │ Console application entry point and orchestration
 │
@@ -106,9 +106,7 @@ Handles user interaction and application flow.
 │
 └── LICENSE
 Project licensing information
-
-yaml
-Copy code
+```
 
 ---
 
