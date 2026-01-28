@@ -1,8 +1,5 @@
-namespace ConferenceRoomBooking
+public enum RoomAvailability
 {
-    public enum RoomAvailability
-    {
-        Available,
-        Unavailable
-    }
+    Available = 1,
+    Unavailable = 2
 }

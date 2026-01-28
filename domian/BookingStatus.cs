@@ -1,9 +1,6 @@
-namespace ConferenceRoomBooking
+public enum BookingStatus
 {
-    public enum BookingStatus
-    {
-        Pending,
-        Confirmed,
-        Cancelled
-    }
+    Pending = 1,
+    Confirmed = 2,
+    Cancelled = 3
 }
