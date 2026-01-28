@@ -78,7 +78,7 @@ Handles user interaction and application flow.
 **Business logic is avoided in the`Program.cs`according to the instruction on the assignment**
 
 ---
-
+```
 ## 🗂 Repository Structure
 
 ├── Program.cs
@@ -106,10 +106,7 @@ Handles user interaction and application flow.
 │
 └── LICENSE
 Project licensing information
-
-yaml
-Copy code
-
+```
 ---
 
 ## ⚙️ Installation & Running the Project
