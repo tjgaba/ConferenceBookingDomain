@@ -1,136 +1,168 @@
-# 🏢 Conference Room Booking Domain Model
+# 🏢 Conference Room Booking System
 
 ## 📑 Table of Contents
 
-* [📌 Purpose of This Repository](#-purpose-of-this-repository)
-* [🚀 What the Project Does](#-what-the-project-does)
-* [🗂 Repository Contents](#-repository-contents)
-* [⚙️ Installation](#️-installation)
-* [🤝 Contributing](#-contributing)
-* [🧩 Domain Context](#-domain-context)
-* [📚 Project Scope](#-project-scope)
-* [📄 License](#-license)
-* [✍️ Author](#️-author)
+- [📌 Project Purpose](#-project-purpose)
+- [🚀 What the Project Does](#-what-the-project-does)
+- [🧠 Architectural Overview](#-architectural-overview)
+- [🗂 Repository Structure](#-repository-structure)
+- [⚙️ Installation & Running the Project](#️-installation--running-the-project)
+- [🧩 Domain & Business Rules](#-domain--business-rules)
+- [📚 Project Scope](#-project-scope)
+- [📄 License](#-license)
+- [✍️ Author](#️-author)
 
 ---
 
-## 📌 Purpose of This Repository
+## 📌 Project Purpose
 
-This repository contains the **core domain model** for the *Conference Room Booking System*.
+This repository contains a **working Conference Room Booking System** implemented as a **console application**, with a strong emphasis on:
 
-The project has **not** been fully built yet, but the design and express of the *core business concepts, rules, and constraints* of the domain are to be attended on a later stage of the project.
+- Clear domain modelling
+- Explicit business rules
+- Separation of concerns
+- Intentional use of collections and LINQ
 
-This codebase is intended to be reused later when building:
-
-* Web APIs
-* Persistence layers (databases)
-* Frontend or client applications
+The project has evolved from a static domain model into a system that **accepts booking requests, evaluates them against existing data, and enforces real-world booking constraints at runtime**.
 
 ---
 
 ## 🚀 What the Project Does
 
-The **Conference Room Booking Domain Model** represents the fundamental building blocks required to support conference room bookings system.
+The Conference Room Booking System allows users to:
 
-At this stage, the project focuses on modelling:
+- Book a conference room
+- View room availability
+- Cancel existing bookings
 
-* Conference rooms
-* Availability
-* Booking requests
-* Booking states
-* And business rules
+The system enforces business rules such as:
+
+- A room cannot be double-booked for overlapping time slots
+- A booking must reference an existing conference room
+- Bookings must move through valid states only
+- Invalid booking requests are rejected early (fail-fast)
+
+All interactions are driven through a console-based menu.
 
 ---
 
-## 🗂 Repository Contents
+## 🧠 Architectural Overview
 
-The repository is organised as follows:
 
-```
+### 🟦 Domain Models
+Responsible for representing core business concepts and enforcing valid state transitions.
+
+- `Booking`
+- `ConferenceRoom`
+- `BookingStatus`
+- `RoomAvailability`
+
+### 🟨 Business Logic
+Encapsulates rules that operate across collections of domain objects.
+
+- `BookingService`
+  - Prevents overlapping bookings
+  - Determines room availability at a given time
+  - Validates booking requests
+  - Creates and manages bookings
+
+### 🟩 Program Orchestration
+Handles user interaction and application flow.
+
+- `Program.cs`
+  - Displays menus
+  - Captures user input
+  - Delegates some functionalities to `BookingService`
+  - Outputs results to the console
+
+**Business logic is avoided in the`Program.cs`according to the instruction on the assignment**
+
+---
+
+## 🗂 Repository Structure
+
 ├── Program.cs
-│   Entry point used only to exercise and demonstrate the domain model
+│ Console application entry point and orchestration
 │
-├── ConferenceRoom.cs
-│   Represents a physical conference room and its constraints
+├── Domain/
+│ ├── Booking.cs
+│ │ Booking entity with state validation
+│ │
+│ ├── ConferenceRoom.cs
+│ │ Represents a physical conference room
+│ │
+│ ├── BookingStatus.cs
+│ │ Enum defining booking lifecycle states
+│ │
+│ └── RoomAvailability.cs
+│ Enum used for availability representation
 │
-├── Booking.cs
-│   Represents a booking request and enforces booking rules
-│
-├── BookingStatus.cs
-│   Enum defining the lifecycle states of a booking
-│
-├── RoomAvailability.cs
-│   Enum defining room availability rules
+├── Services/
+│ └── BookingService.cs
+│ Business logic operating across collections
 │
 ├── README.md
-│   Project overview and domain explanation
+│ Project overview and architectural explanation
 │
 └── LICENSE
-    Project licensing information
-```
+Project licensing information
+
+yaml
+Copy code
 
 ---
 
-## ⚙️ Installation
+## ⚙️ Installation & Running the Project
 
-**Prerequisites**
+### Prerequisites
 
-To work with this project locally, ensure you have:
+- .NET SDK 8.x
+- Visual Studio or Visual Studio Code
 
-* .NET SDK (8.0.147 )
-* Visual Studio or Visual Studio Code
+### Steps
 
-**Steps**
-
-1. Clone or copy the repository to your local machine
-2. Open the project folder in your IDE
-3. Build the project
+1. Clone or copy the repository locally
+2. Open the project in your IDE
+3. Build the solution
 4. Run the project
+5. Interact with the console menu to:
+   - Book rooms
+   - View availability
+   - Cancel bookings
 
 ---
 
-## 🤝 Contributing
+## 🧩 Domain & Business Rules
 
-Contributions at this stage are withholded, because it is currently a solo project. But Pull Requests from branches are adviced whenever making changes with the code/files. The purpose therefore is to:
+The system enforces the following rules:
 
-* Improve clarity of the domain model structure
-* State business rules
-* Impliment documentation and git commits
+- A conference room cannot be double-booked for overlapping time slots
+- All bookings reference existing rooms
+- Booking state transitions are validated inside the domain
+- Availability is derived dynamically based on current bookings
+- Invalid requests fail fast and do not mutate system state
 
-Contributions should:
-
-* Be focus on domain logic
-* Be submitted via Pull Requests
-
----
-
-## 🧩 Domain Context
-
-The Conference Room Booking domain is concerned with:
-
-* Managing meeting spaces
-* Availability 
-* Tracking booking states
-* Preventing inconsistent system states
+Time slots are automatically captured using the system clock, with a fixed booking duration.
 
 ---
 
 ## 📚 Project Scope
 
-**In scope**:
+### In Scope
 
-* Core domain entities
-* Domain enums representing business rules
-* Explicit state transitions
-* Intentional modelling of real-world concepts
+- Domain-driven design principles
+- Explicit business rules
+- Collection-based logic using LINQ
+- Separation of domain, business logic, and orchestration
+- Console-based interaction
 
-**Out of scope (for now)**:
+### Out of Scope (for now)
 
-* Databases
-* Web APIs
-* Authentication and authorization
-* User interfaces
-* Auto Scheduling
+- Databases or persistence
+- Web APIs
+- Authentication and authorization
+- Graphical user interfaces
+- Advanced scheduling (recurring bookings, variable durations)
 
 ---
 
@@ -142,5 +174,5 @@ This project is licensed under the MIT License.
 
 ## ✍️ Author
 
-Name            :**TJ Gaba**
-Email           :**tjgaba@outlook.com**
+**Name**  : TJ Gaba  
+**Email** : tjgaba@outlook.com
