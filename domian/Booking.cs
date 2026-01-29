@@ -5,54 +5,41 @@ public class Booking
     public int Id { get; }
     public ConferenceRoom Room { get; }
     public string RequestedBy { get; }
-    public DateTime StartTime { get; }
-    public DateTime EndTime { get; }
+    public DateTimeOffset StartTime { get; }
+    public DateTimeOffset EndTime { get; }
     public BookingStatus Status { get; private set; }
 
     public Booking(
         int id,
         ConferenceRoom room,
         string requestedBy,
-        DateTime startTime,
-        DateTime endTime)
+        DateTimeOffset startTime,
+        TimeSpan duration)
     {
-        // FAIL-FAST DOMAIN VALIDATION
         Room = room ?? throw new ArgumentNullException(nameof(room));
-
-        RequestedBy = string.IsNullOrWhiteSpace(requestedBy)
-            ? throw new ArgumentException("RequestedBy cannot be empty")
-            : requestedBy;
-
-        if (endTime <= startTime)
-            throw new ArgumentException("End time must be after start time");
+        if (string.IsNullOrWhiteSpace(requestedBy))
+            throw new ArgumentException("RequestedBy cannot be empty.");
+        if (duration <= TimeSpan.Zero)
+            throw new ArgumentException("Duration must be greater than zero.");
 
         Id = id;
+        RequestedBy = requestedBy;
         StartTime = startTime;
-        EndTime = endTime;
-
-        // INITIAL VALID STATE
+        EndTime = startTime.Add(duration);
         Status = BookingStatus.Pending;
     }
 
     public void Confirm()
     {
-        // VALID STATE TRANSITION
         if (Status != BookingStatus.Pending)
-            throw new InvalidOperationException(
-                "Only pending bookings can be confirmed."
-            );
-
+            throw new InvalidOperationException();
         Status = BookingStatus.Confirmed;
     }
 
     public void Cancel()
     {
-        // VALID STATE TRANSITION
         if (Status == BookingStatus.Cancelled)
-            throw new InvalidOperationException(
-                "Booking is already cancelled."
-            );
-
+            throw new InvalidOperationException();
         Status = BookingStatus.Cancelled;
     }
 }

@@ -4,26 +4,18 @@ using System.Linq;
 
 public class BookingService
 {
-    // ORDERED COLLECTION:
-    // Stores all bookings created in the system
     private readonly List<Booking> _bookings;
-
-    // DICTIONARY FOR FAST LOOKUP:
-    // Key = Room Id, Value = ConferenceRoom
     private readonly Dictionary<int, ConferenceRoom> _roomsById;
 
     public BookingService(
         List<ConferenceRoom> rooms,
         List<Booking> bookings)
     {
-        // Convert rooms list to dictionary for fast lookup
         _roomsById = rooms.ToDictionary(r => r.Id);
         _bookings = bookings;
     }
 
-    // BUSINESS LOGIC:
-    // Returns rooms that are available at a specific time
-    public IEnumerable<ConferenceRoom> GetAvailableRooms(DateTime atTime)
+    public IEnumerable<ConferenceRoom> GetAvailableRooms(DateTimeOffset atTime)
     {
         return _roomsById.Values.Where(room =>
             !_bookings.Any(b =>
@@ -35,36 +27,53 @@ public class BookingService
         );
     }
 
-    // BUSINESS RULE:
-    // Determines whether a room can be booked for a time slot
-    public bool CanBookRoom(
+    public Booking? GetActiveBookingForRoom(
         int roomId,
-        DateTime startTime,
-        DateTime endTime)
+        DateTimeOffset atTime)
     {
-        return !_bookings.Any(b =>
+        return _bookings.FirstOrDefault(b =>
+            b.Room.Id == roomId &&
+            b.Status == BookingStatus.Confirmed &&
+            b.StartTime <= atTime &&
+            atTime < b.EndTime
+        );
+    }
+
+    // ✅ FIXED HERE: >= instead of >
+    public Booking? GetNextBookingForRoom(
+        int roomId,
+        DateTimeOffset fromTime)
+    {
+        return _bookings
+            .Where(b =>
+                b.Room.Id == roomId &&
+                b.Status == BookingStatus.Confirmed &&
+                b.StartTime >= fromTime
+            )
+            .OrderBy(b => b.StartTime)
+            .FirstOrDefault();
+    }
+
+    public Booking CreateBooking(
+        int bookingId,
+        int roomId,
+        string requestedBy,
+        DateTimeOffset startTime,
+        TimeSpan duration)
+    {
+        if (!_roomsById.TryGetValue(roomId, out var room))
+            throw new InvalidOperationException("Conference room does not exist.");
+
+        var endTime = startTime.Add(duration);
+
+        var hasOverlap = _bookings.Any(b =>
             b.Room.Id == roomId &&
             b.Status == BookingStatus.Confirmed &&
             startTime < b.EndTime &&
             b.StartTime < endTime
         );
-    }
 
-    // CORE USE CASE:
-    // Creates and confirms a booking if business rules allow it
-    public Booking CreateBooking(
-        int bookingId,
-        int roomId,
-        string requestedBy,
-        DateTime startTime,
-        DateTime endTime)
-    {
-        // FAIL-FAST: room must exist
-        if (!_roomsById.TryGetValue(roomId, out var room))
-            throw new InvalidOperationException("Conference room does not exist.");
-
-        // FAIL-FAST: room must be available
-        if (!CanBookRoom(roomId, startTime, endTime))
+        if (hasOverlap)
             throw new InvalidOperationException(
                 "Room is already booked for the selected time slot."
             );
@@ -74,7 +83,7 @@ public class BookingService
             room,
             requestedBy,
             startTime,
-            endTime
+            duration
         );
 
         booking.Confirm();
@@ -83,8 +92,6 @@ public class BookingService
         return booking;
     }
 
-    // BUSINESS QUERY:
-    // Returns only active (confirmed) bookings
     public IEnumerable<Booking> GetActiveBookings()
     {
         return _bookings.Where(b => b.Status == BookingStatus.Confirmed);

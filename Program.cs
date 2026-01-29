@@ -4,173 +4,184 @@ using System.Linq;
 
 class Program
 {
-    // ORDERED COLLECTION:
-    // Used for display and initialization
-    private static readonly List<ConferenceRoom> Rooms = new()
-    {
-        new ConferenceRoom(1, "Room 1", 5),
-        new ConferenceRoom(2, "Room 2", 10),
-        new ConferenceRoom(3, "Room 3", 15),
-        new ConferenceRoom(4, "Room 4", 20),
-        new ConferenceRoom(5, "Room 5", 25),
-    };
-
-    // ORDERED COLLECTION:
-    // Stores all bookings created during runtime
-    private static readonly List<Booking> Bookings = new();
-
     private static int _bookingIdCounter = 1;
 
     static void Main(string[] args)
     {
-        // BUSINESS LOGIC IS CENTRALIZED HERE
-        var bookingService = new BookingService(Rooms, Bookings);
+        var rooms = ConferenceRoomRepository.GetRooms();
+        var bookings = new List<Booking>();
+        var bookingService = new BookingService(rooms, bookings);
 
         while (true)
         {
             Console.Clear();
             Console.WriteLine("=== Conference Room Booking System ===");
-            Console.WriteLine("Select an option: ");
             Console.WriteLine("1. Book a room");
             Console.WriteLine("2. View room availability");
             Console.WriteLine("3. Cancel a booking");
             Console.WriteLine("0. Exit");
-            
+            Console.Write("Select an option: ");
 
             var choice = Console.ReadLine();
 
             switch (choice)
             {
                 case "1":
-                    BookRoom(bookingService);
+                    BookRoom(bookingService, rooms);
                     break;
-
                 case "2":
-                    ViewAvailability(bookingService);
+                    ViewAvailability(bookingService, rooms);
                     break;
-
                 case "3":
                     CancelBooking(bookingService);
                     break;
-
                 case "0":
                     return;
-
                 default:
                     Console.WriteLine("Invalid option.");
-                    Console.WriteLine("Press ENTER to exit");
                     Console.ReadKey();
                     break;
             }
         }
     }
 
-    private static void BookRoom(BookingService bookingService)
+    // ---------------- BOOK ROOM ----------------
+
+    private static void BookRoom(
+        BookingService bookingService,
+        List<ConferenceRoom> rooms)
     {
         Console.Clear();
 
         Console.Write("Enter your name: ");
         var requestedBy = Console.ReadLine();
 
-        var now = DateTime.Now;
-
-        // DELEGATION:
-        // Program.cs does not decide availability
-        var availableRooms = bookingService
-            .GetAvailableRooms(now)
-            .ToList();
-
-        if (!availableRooms.Any())
-        {
-            Console.WriteLine("No rooms available.");
-            Console.WriteLine("Press ENTER to exit");
-            Console.ReadKey();
-            return;
-        }
-
         Console.WriteLine("\nAvailable Rooms:");
-        foreach (var room in availableRooms)
-        {
+        foreach (var room in rooms)
             Console.WriteLine($"{room.Id}. {room.Name} (Capacity: {room.Capacity})");
-        }
 
-        Console.Write("\nSelect room number: ");
+        Console.Write("\nSelect Room ID: ");
         if (!int.TryParse(Console.ReadLine(), out var roomId))
-        {
-            Console.WriteLine("Invalid input.");
-            Console.WriteLine("Press ENTER to exit");
-            Console.ReadKey();
             return;
-        }
+
+        Console.WriteLine("\nEnter meeting start date & time:");
+        if (!TryReadDateTimeOffset(out var startTime))
+            return;
+
+        Console.Write("Enter meeting duration (minutes): ");
+        if (!int.TryParse(Console.ReadLine(), out var minutes) || minutes <= 0)
+            return;
 
         try
         {
-            // AUTOMATIC TIME CAPTURE
-            var startTime = now;
-            var endTime = startTime.AddHours(1);
-
-            // BUSINESS DECISION DELEGATED TO SERVICE
             var booking = bookingService.CreateBooking(
                 _bookingIdCounter++,
                 roomId,
                 requestedBy,
                 startTime,
-                endTime
+                TimeSpan.FromMinutes(minutes)
             );
 
-            Console.WriteLine(
-                $"Booking confirmed!\n" +
-                $"Room: {booking.Room.Name}\n" +
-                $"Time: {booking.StartTime:t} - {booking.EndTime:t}\n" +
-                $"Booking ID: {booking.Id}"
-            );
+            Console.WriteLine("\nBooking confirmed!");
+            Console.WriteLine($"Room: {booking.Room.Name}");
+            Console.WriteLine($"Start: {booking.StartTime}");
+            Console.WriteLine($"End:   {booking.EndTime}");
+            Console.WriteLine($"Booking ID: {booking.Id}");
         }
         catch (Exception ex)
         {
-            // USER FEEDBACK ONLY — NOT BUSINESS LOGIC
             Console.WriteLine(ex.Message);
         }
-        Console.WriteLine("Press ENTER to exit");
 
         Console.ReadKey();
     }
 
-    private static void ViewAvailability(BookingService bookingService)
+    // ---------------- VIEW AVAILABILITY ----------------
+
+    private static void ViewAvailability(
+        BookingService bookingService,
+        List<ConferenceRoom> rooms)
     {
         Console.Clear();
-        Console.WriteLine("Room Availability:\n");
 
-        var now = DateTime.Now;
-        var availableRooms = bookingService
-            .GetAvailableRooms(now)
-            .Select(r => r.Id)
-            .ToHashSet();
+        // Default view: availability right now
+        ShowAvailabilityTable(bookingService, rooms, DateTimeOffset.Now);
 
-        foreach (var room in Rooms)
+        Console.WriteLine();
+        Console.Write("Do you want to check availability for a specific date and time? (yes/no): ");
+        var answer = Console.ReadLine()?.Trim().ToLower();
+
+        if (answer == "yes" || answer == "y")
         {
-            Console.WriteLine(
-                $"{room.Name} | Capacity: {room.Capacity} | " +
-                $"Status: {(availableRooms.Contains(room.Id) ? "Available" : "Unavailable")}"
-            );
+            Console.WriteLine("\nEnter date & time:");
+            if (!TryReadDateTimeOffset(out var selectedTime))
+                return;
+
+            Console.Clear();
+            ShowAvailabilityTable(bookingService, rooms, selectedTime);
         }
-        Console.WriteLine("Press ENTER to exit");
 
         Console.ReadKey();
     }
+
+    private static void ShowAvailabilityTable(
+        BookingService bookingService,
+        List<ConferenceRoom> rooms,
+        DateTimeOffset atTime)
+    {
+        Console.WriteLine($"Room Availability at {atTime}");
+        Console.WriteLine("------------------------------------------------------------------------------------");
+        Console.WriteLine("Room    | Capacity | Status       | Booking / Availability");
+        Console.WriteLine("------------------------------------------------------------------------------------");
+
+        foreach (var room in rooms)
+        {
+            var activeBooking =
+                bookingService.GetActiveBookingForRoom(room.Id, atTime);
+
+            if (activeBooking != null)
+            {
+                var duration = activeBooking.EndTime - activeBooking.StartTime;
+
+                Console.WriteLine(
+                    $"{room.Name,-7} | {room.Capacity,8} | Unavailable  | " +
+                    $"{activeBooking.StartTime:t} → {activeBooking.EndTime:t} " +
+                    $"({duration.TotalMinutes} mins)"
+                );
+            }
+            else
+            {
+                var nextBooking =
+                    bookingService.GetNextBookingForRoom(room.Id, atTime);
+
+                if (nextBooking == null)
+                {
+                    Console.WriteLine(
+                        $"{room.Name,-7} | {room.Capacity,8} | Available    | " +
+                        "Available (no upcoming bookings)"
+                    );
+                }
+                else
+                {
+                    Console.WriteLine(
+                        $"{room.Name,-7} | {room.Capacity,8} | Available    | " +
+                        $"Available until {nextBooking.StartTime:t}"
+                    );
+                }
+            }
+        }
+    }
+
+    // ---------------- CANCEL BOOKING ----------------
 
     private static void CancelBooking(BookingService bookingService)
     {
         Console.Clear();
 
-        // BUSINESS QUERY DELEGATED TO SERVICE
-        var activeBookings = bookingService
-            .GetActiveBookings()
-            .ToList();
-
+        var activeBookings = bookingService.GetActiveBookings().ToList();
         if (!activeBookings.Any())
         {
-            Console.WriteLine("There are no active bookings to cancel.");
-            Console.WriteLine("Press ENTER to exit");
+            Console.WriteLine("No active bookings to cancel.");
             Console.ReadKey();
             return;
         }
@@ -179,35 +190,57 @@ class Program
         foreach (var booking in activeBookings)
         {
             Console.WriteLine(
-                $"ID: {booking.Id} | " +
-                $"Room: {booking.Room.Name} | " +
-                $"Time: {booking.StartTime:t} - {booking.EndTime:t} | " +
-                $"Requested By: {booking.RequestedBy}"
+                $"ID: {booking.Id} | Room: {booking.Room.Name} | " +
+                $"Time: {booking.StartTime} - {booking.EndTime}"
             );
         }
 
         Console.Write("\nEnter Booking ID to cancel: ");
         if (!int.TryParse(Console.ReadLine(), out var bookingId))
-        {
-            Console.WriteLine("Invalid input.");
-            Console.WriteLine("Press ENTER to exit");
-            Console.ReadKey();
             return;
-        }
 
         var bookingToCancel = activeBookings.FirstOrDefault(b => b.Id == bookingId);
         if (bookingToCancel == null)
-        {
-            Console.WriteLine("Booking not found.");
-            Console.WriteLine("Press ENTER to exit");
-            Console.ReadKey();
             return;
-        }
 
-        // DOMAIN STATE CHANGE
         bookingToCancel.Cancel();
         Console.WriteLine("Booking cancelled successfully.");
-        Console.WriteLine("Press ENTER to exit");
         Console.ReadKey();
+    }
+
+    // ---------------- HELPER ----------------
+
+    private static bool TryReadDateTimeOffset(out DateTimeOffset result)
+    {
+        result = default;
+
+        Console.Write("Year: ");
+        if (!int.TryParse(Console.ReadLine(), out var year)) return false;
+
+        Console.Write("Month (1-12): ");
+        if (!int.TryParse(Console.ReadLine(), out var month)) return false;
+
+        Console.Write("Day: ");
+        if (!int.TryParse(Console.ReadLine(), out var day)) return false;
+
+        Console.Write("Hour (0-23): ");
+        if (!int.TryParse(Console.ReadLine(), out var hour)) return false;
+
+        Console.Write("Minute (0-59): ");
+        if (!int.TryParse(Console.ReadLine(), out var minute)) return false;
+
+        try
+        {
+            var local = new DateTime(year, month, day, hour, minute, 0);
+            result = new DateTimeOffset(
+                local,
+                TimeZoneInfo.Local.GetUtcOffset(local)
+            );
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
     }
 }
