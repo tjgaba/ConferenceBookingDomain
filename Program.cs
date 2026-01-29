@@ -1,213 +1,227 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 class Program
 {
-    // ORDERED COLLECTION:
-    // Used for display and initialization
-    private static readonly List<ConferenceRoom> Rooms = new()
-    {
-        new ConferenceRoom(1, "Room 1", 5),
-        new ConferenceRoom(2, "Room 2", 10),
-        new ConferenceRoom(3, "Room 3", 15),
-        new ConferenceRoom(4, "Room 4", 20),
-        new ConferenceRoom(5, "Room 5", 25),
-    };
-
-    // ORDERED COLLECTION:
-    // Stores all bookings created during runtime
-    private static readonly List<Booking> Bookings = new();
-
     private static int _bookingIdCounter = 1;
 
-    static void Main(string[] args)
+    static async Task Main(string[] args)
     {
-        // BUSINESS LOGIC IS CENTRALIZED HERE
-        var bookingService = new BookingService(Rooms, Bookings);
+        var rooms = ConferenceRoomRepository.GetRooms();
+        var roomsById = rooms.ToDictionary(r => r.Id);
 
+        List<Booking> bookings;
+
+        // ----------- ASYNC LOAD WITH FAILURE HANDLING -----------
+        try
+        {
+            bookings = await BookingFileStore.LoadAsync(roomsById);
+            Console.WriteLine("Bookings loaded successfully.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Load failed: {ex.Message}");
+            bookings = new List<Booking>();
+        }
+
+        // Ensure booking IDs continue correctly
+        if (bookings.Any())
+            _bookingIdCounter = bookings.Max(b => b.Id) + 1;
+
+        var bookingService = new BookingService(rooms, bookings);
+
+        // ---------------- INTERACTIVE MENU LOOP ----------------
         while (true)
         {
-            Console.Clear();
+            Console.WriteLine();
             Console.WriteLine("=== Conference Room Booking System ===");
-            Console.WriteLine("Select an option: ");
             Console.WriteLine("1. Book a room");
             Console.WriteLine("2. View room availability");
             Console.WriteLine("3. Cancel a booking");
             Console.WriteLine("0. Exit");
-            
+            Console.Write("Select an option: ");
 
             var choice = Console.ReadLine();
 
-            switch (choice)
+            try
             {
-                case "1":
-                    BookRoom(bookingService);
-                    break;
+                switch (choice)
+                {
+                    case "1":
+                        BookRoom(bookingService, rooms);
+                        break;
 
-                case "2":
-                    ViewAvailability(bookingService);
-                    break;
+                    case "2":
+                        ViewAvailability(bookingService, rooms);
+                        break;
 
-                case "3":
-                    CancelBooking(bookingService);
-                    break;
+                    case "3":
+                        CancelBooking(bookingService);
+                        break;
 
-                case "0":
-                    return;
+                    case "0":
+                        await SaveAndExit(bookings);
+                        return;
 
-                default:
-                    Console.WriteLine("Invalid option.");
-                    Console.WriteLine("Press ENTER to exit");
-                    Console.ReadKey();
-                    break;
+                    default:
+                        Console.WriteLine("Invalid option.");
+                        break;
+                }
+            }
+            catch (InvalidBookingException ex)
+            {
+                // Business rule failure (expected)
+                Console.WriteLine($"Booking error: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                // Unexpected failure
+                Console.WriteLine($"Unexpected error: {ex.Message}");
             }
         }
     }
 
-    private static void BookRoom(BookingService bookingService)
-    {
-        Console.Clear();
+    // ---------------- BOOK ROOM ----------------
 
+    private static void BookRoom(
+        BookingService bookingService,
+        List<ConferenceRoom> rooms)
+    {
         Console.Write("Enter your name: ");
         var requestedBy = Console.ReadLine();
 
-        var now = DateTime.Now;
-
-        // DELEGATION:
-        // Program.cs does not decide availability
-        var availableRooms = bookingService
-            .GetAvailableRooms(now)
-            .ToList();
-
-        if (!availableRooms.Any())
-        {
-            Console.WriteLine("No rooms available.");
-            Console.WriteLine("Press ENTER to exit");
-            Console.ReadKey();
-            return;
-        }
-
         Console.WriteLine("\nAvailable Rooms:");
-        foreach (var room in availableRooms)
-        {
+        foreach (var room in rooms)
             Console.WriteLine($"{room.Id}. {room.Name} (Capacity: {room.Capacity})");
-        }
 
-        Console.Write("\nSelect room number: ");
+        Console.Write("Select Room ID: ");
         if (!int.TryParse(Console.ReadLine(), out var roomId))
-        {
-            Console.WriteLine("Invalid input.");
-            Console.WriteLine("Press ENTER to exit");
-            Console.ReadKey();
-            return;
-        }
+            throw new InvalidBookingException("Invalid room ID.");
 
-        try
-        {
-            // AUTOMATIC TIME CAPTURE
-            var startTime = now;
-            var endTime = startTime.AddHours(1);
+        Console.WriteLine("Enter meeting start date & time:");
+        if (!TryReadDateTimeOffset(out var startTime))
+            throw new InvalidBookingException("Invalid date/time.");
 
-            // BUSINESS DECISION DELEGATED TO SERVICE
-            var booking = bookingService.CreateBooking(
-                _bookingIdCounter++,
-                roomId,
-                requestedBy,
-                startTime,
-                endTime
-            );
+        Console.Write("Enter duration (minutes): ");
+        if (!int.TryParse(Console.ReadLine(), out var minutes) || minutes <= 0)
+            throw new InvalidBookingException("Invalid duration.");
 
-            Console.WriteLine(
-                $"Booking confirmed!\n" +
-                $"Room: {booking.Room.Name}\n" +
-                $"Time: {booking.StartTime:t} - {booking.EndTime:t}\n" +
-                $"Booking ID: {booking.Id}"
-            );
-        }
-        catch (Exception ex)
-        {
-            // USER FEEDBACK ONLY — NOT BUSINESS LOGIC
-            Console.WriteLine(ex.Message);
-        }
-        Console.WriteLine("Press ENTER to exit");
+        bookingService.CreateBooking(
+            _bookingIdCounter++,
+            roomId,
+            requestedBy,
+            startTime,
+            TimeSpan.FromMinutes(minutes));
 
-        Console.ReadKey();
+        Console.WriteLine("Booking created successfully.");
     }
 
-    private static void ViewAvailability(BookingService bookingService)
+    // ---------------- VIEW AVAILABILITY ----------------
+
+    private static void ViewAvailability(
+        BookingService bookingService,
+        List<ConferenceRoom> rooms)
     {
-        Console.Clear();
-        Console.WriteLine("Room Availability:\n");
+        var now = DateTimeOffset.Now;
 
-        var now = DateTime.Now;
-        var availableRooms = bookingService
-            .GetAvailableRooms(now)
-            .Select(r => r.Id)
-            .ToHashSet();
+        Console.WriteLine();
+        Console.WriteLine($"Availability (Now: {now})");
+        Console.WriteLine("-------------------------------------------");
 
-        foreach (var room in Rooms)
+        foreach (var room in rooms)
         {
-            Console.WriteLine(
-                $"{room.Name} | Capacity: {room.Capacity} | " +
-                $"Status: {(availableRooms.Contains(room.Id) ? "Available" : "Unavailable")}"
-            );
+            var booking = bookingService.GetActiveBookingForRoom(room.Id, now);
+            var status = booking == null ? "Available" : "Unavailable";
+            Console.WriteLine($"{room.Name} | {status}");
         }
-        Console.WriteLine("Press ENTER to exit");
-
-        Console.ReadKey();
     }
+
+    // ---------------- CANCEL BOOKING ----------------
 
     private static void CancelBooking(BookingService bookingService)
     {
-        Console.Clear();
-
-        // BUSINESS QUERY DELEGATED TO SERVICE
-        var activeBookings = bookingService
-            .GetActiveBookings()
-            .ToList();
+        var activeBookings = bookingService.GetActiveBookings().ToList();
 
         if (!activeBookings.Any())
         {
-            Console.WriteLine("There are no active bookings to cancel.");
-            Console.WriteLine("Press ENTER to exit");
-            Console.ReadKey();
+            Console.WriteLine("No active bookings to cancel.");
             return;
         }
 
-        Console.WriteLine("Active Bookings:\n");
+        Console.WriteLine("\nActive Bookings:");
         foreach (var booking in activeBookings)
         {
             Console.WriteLine(
-                $"ID: {booking.Id} | " +
-                $"Room: {booking.Room.Name} | " +
-                $"Time: {booking.StartTime:t} - {booking.EndTime:t} | " +
-                $"Requested By: {booking.RequestedBy}"
+                $"ID: {booking.Id} | Room: {booking.Room.Name} | " +
+                $"{booking.StartTime} - {booking.EndTime}"
             );
         }
 
-        Console.Write("\nEnter Booking ID to cancel: ");
+        Console.Write("Enter Booking ID to cancel: ");
         if (!int.TryParse(Console.ReadLine(), out var bookingId))
-        {
-            Console.WriteLine("Invalid input.");
-            Console.WriteLine("Press ENTER to exit");
-            Console.ReadKey();
-            return;
-        }
+            throw new InvalidBookingException("Invalid booking ID.");
 
-        var bookingToCancel = activeBookings.FirstOrDefault(b => b.Id == bookingId);
+        var bookingToCancel =
+            activeBookings.FirstOrDefault(b => b.Id == bookingId);
+
         if (bookingToCancel == null)
+            throw new InvalidBookingException("Booking not found.");
+
+        bookingToCancel.Cancel();
+        Console.WriteLine("Booking cancelled.");
+    }
+
+    // ---------------- SAVE & EXIT ----------------
+
+    private static async Task SaveAndExit(List<Booking> bookings)
+    {
+        try
         {
-            Console.WriteLine("Booking not found.");
-            Console.WriteLine("Press ENTER to exit");
-            Console.ReadKey();
-            return;
+            await BookingFileStore.SaveAsync(bookings);
+            Console.WriteLine("Bookings saved successfully.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Save failed: {ex.Message}");
         }
 
-        // DOMAIN STATE CHANGE
-        bookingToCancel.Cancel();
-        Console.WriteLine("Booking cancelled successfully.");
-        Console.WriteLine("Press ENTER to exit");
-        Console.ReadKey();
+        Console.WriteLine("Goodbye!");
+    }
+
+    // ---------------- HELPER ----------------
+
+    private static bool TryReadDateTimeOffset(out DateTimeOffset result)
+    {
+        result = default;
+
+        Console.Write("Year: ");
+        if (!int.TryParse(Console.ReadLine(), out var year)) return false;
+
+        Console.Write("Month: ");
+        if (!int.TryParse(Console.ReadLine(), out var month)) return false;
+
+        Console.Write("Day: ");
+        if (!int.TryParse(Console.ReadLine(), out var day)) return false;
+
+        Console.Write("Hour: ");
+        if (!int.TryParse(Console.ReadLine(), out var hour)) return false;
+
+        Console.Write("Minute: ");
+        if (!int.TryParse(Console.ReadLine(), out var minute)) return false;
+
+        try
+        {
+            var local = new DateTime(year, month, day, hour, minute, 0);
+            result = new DateTimeOffset(
+                local,
+                TimeZoneInfo.Local.GetUtcOffset(local));
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
     }
 }
