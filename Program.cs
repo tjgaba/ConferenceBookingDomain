@@ -1,16 +1,22 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 class Program
 {
     private static int _bookingIdCounter = 1;
 
-    static void Main(string[] args)
+    static async Task Main(string[] args)
     {
         var rooms = ConferenceRoomRepository.GetRooms();
         var bookings = new List<Booking>();
         var bookingService = new BookingService(rooms, bookings);
+
+        const string bookingsFilePath = "Data/bookings.json";
+
+        // Load bookings on startup
+        await bookingService.LoadBookingsAsync(bookingsFilePath);
 
         while (true)
         {
@@ -36,6 +42,8 @@ class Program
                     CancelBooking(bookingService);
                     break;
                 case "0":
+                    // Save bookings on exit
+                    await bookingService.SaveBookingsAsync(bookingsFilePath);
                     return;
                 default:
                     Console.WriteLine("Invalid option.");

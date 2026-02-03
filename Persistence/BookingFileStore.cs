@@ -74,7 +74,8 @@ namespace ConferenceBooking.Persistence
                         room,
                         record.RequestedBy,
                         record.StartTime,
-                        record.EndTime - record.StartTime
+                        record.EndTime,
+                        record.Status
                     );
 
                     switch (record.Status)

@@ -1,1 +1,1 @@
-[]
+[{"Id":1,"Room":{"Id":2,"Name":"Room 2","Capacity":10},"RequestedBy":"tj","StartTime":"2026-02-06T06:06:00+02:00","EndTime":"2026-02-06T06:12:00+02:00","Status":3}]

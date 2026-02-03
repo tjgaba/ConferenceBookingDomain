@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.IO;
+using System.Text.Json;
+using System.Threading.Tasks;
 
 public class BookingService
 {
@@ -84,7 +87,8 @@ public class BookingService
             room,
             requestedBy,
             startTime,
-            duration
+            endTime,
+            BookingStatus.Pending
         );
 
         booking.Confirm();
@@ -96,5 +100,92 @@ public class BookingService
     public IEnumerable<Booking> GetActiveBookings()
     {
         return _bookings.Where(b => b.Status == BookingStatus.Confirmed);
+    }
+
+    public async Task SaveBookingsAsync(string filePath)
+    {
+        try
+        {
+            var json = JsonSerializer.Serialize(_bookings);
+            await File.WriteAllTextAsync(filePath, json);
+        }
+        catch (IOException ex)
+        {
+            Console.WriteLine($"Error saving bookings: {ex.Message}");
+        }
+    }
+
+    public async Task LoadBookingsAsync(string filePath)
+    {
+        try
+        {
+            if (File.Exists(filePath))
+            {
+                var options = new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                };
+
+                var json = await File.ReadAllTextAsync(filePath);
+                var bookings = JsonSerializer.Deserialize<List<Booking>>(json, options);
+                if (bookings != null)
+                {
+                    _bookings.Clear();
+                    _bookings.AddRange(bookings);
+                }
+            }
+        }
+        catch (JsonException ex)
+        {
+            Console.WriteLine($"Error: Invalid JSON in {filePath}. {ex.Message}");
+        }
+        catch (IOException ex)
+        {
+            Console.WriteLine($"Error loading bookings: {ex.Message}");
+        }
+    }
+
+    public async Task DeleteBookingAsync(int bookingId, string filePath)
+    {
+        try
+        {
+            if (File.Exists(filePath))
+            {
+                var options = new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                };
+
+                var json = await File.ReadAllTextAsync(filePath);
+                var bookings = JsonSerializer.Deserialize<List<Booking>>(json, options) ?? new List<Booking>();
+
+                var bookingToDelete = bookings.FirstOrDefault(b => b.Id == bookingId);
+                if (bookingToDelete != null)
+                {
+                    bookings.Remove(bookingToDelete);
+
+                    var updatedJson = JsonSerializer.Serialize(bookings, options);
+                    await File.WriteAllTextAsync(filePath, updatedJson);
+
+                    Console.WriteLine($"Booking with ID {bookingId} deleted successfully.");
+                }
+                else
+                {
+                    Console.WriteLine($"Booking with ID {bookingId} not found.");
+                }
+            }
+            else
+            {
+                Console.WriteLine("Error: Bookings file not found.");
+            }
+        }
+        catch (JsonException ex)
+        {
+            Console.WriteLine($"Error: Invalid JSON in {filePath}. {ex.Message}");
+        }
+        catch (IOException ex)
+        {
+            Console.WriteLine($"Error deleting booking: {ex.Message}");
+        }
     }
 }

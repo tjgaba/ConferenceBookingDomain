@@ -1,32 +1,30 @@
 using System;
+using System.Text.Json.Serialization;
 
 public class Booking
 {
-    public int Id { get; }
-    public ConferenceRoom Room { get; }
-    public string RequestedBy { get; }
-    public DateTimeOffset StartTime { get; }
-    public DateTimeOffset EndTime { get; }
-    public BookingStatus Status { get; private set; }
+    public int Id { get; set; }
+    public ConferenceRoom Room { get; set; }
+    public string RequestedBy { get; set; }
+    public DateTimeOffset StartTime { get; set; }
+    public DateTimeOffset EndTime { get; set; }
+    public BookingStatus Status { get; set; }
 
+    [JsonConstructor]
     public Booking(
         int id,
         ConferenceRoom room,
         string requestedBy,
         DateTimeOffset startTime,
-        TimeSpan duration)
+        DateTimeOffset endTime,
+        BookingStatus status)
     {
-        Room = room ?? throw new ArgumentNullException(nameof(room));
-        if (string.IsNullOrWhiteSpace(requestedBy))
-            throw new ArgumentException("RequestedBy cannot be empty.");
-        if (duration <= TimeSpan.Zero)
-            throw new ArgumentException("Duration must be greater than zero.");
-
         Id = id;
+        Room = room;
         RequestedBy = requestedBy;
         StartTime = startTime;
-        EndTime = startTime.Add(duration);
-        Status = BookingStatus.Pending;
+        EndTime = endTime;
+        Status = status;
     }
 
     public void Confirm()
