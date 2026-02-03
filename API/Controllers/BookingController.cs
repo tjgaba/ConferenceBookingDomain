@@ -43,30 +43,15 @@ public class BookingController : ControllerBase
     [HttpDelete("cancel/{id}")]
     public IActionResult CancelBooking(int id)
     {
-        var activeBookings = _bookingService.GetActiveBookings();
-        var booking = activeBookings.FirstOrDefault(b => b.Id == id);
-
-        if (booking == null)
+        try
         {
-            return NotFound("Booking not found.");
+            _bookingService.CancelBooking(id);
+            return NoContent();
         }
-
-        booking.Cancel();
-        return Ok("Booking canceled successfully.");
-    }
-
-    [HttpDelete("delete/{id}")]
-    public async Task<IActionResult> DeleteBooking(int id, [FromQuery] string filePath)
-    {
-        await _bookingService.DeleteBookingAsync(id, filePath);
-        return Ok("Booking deleted successfully.");
-    }
-
-    [HttpDelete("clear")]
-    public async Task<IActionResult> ClearAllBookings([FromQuery] string filePath)
-    {
-        await _bookingService.ClearAllBookingsAsync(filePath);
-        return Ok("All bookings cleared successfully.");
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
+        }
     }
 }
 

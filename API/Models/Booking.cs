@@ -38,6 +38,3 @@ public class Booking
     {
         if (Status == BookingStatus.Cancelled)
             throw new InvalidOperationException();
-        Status = BookingStatus.Cancelled;
-    }
-}
