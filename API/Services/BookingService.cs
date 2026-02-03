@@ -117,4 +117,24 @@ public class BookingService
         var json = JsonSerializer.Serialize(records);
         await File.WriteAllTextAsync(filePath, json);
     }
+
+    public void CancelBooking(int bookingId)
+    {
+        var booking = _bookings.FirstOrDefault(b => b.Id == bookingId);
+        if (booking == null)
+            throw new ArgumentException("Booking not found.");
+
+        if (booking.Status == BookingStatus.Cancelled)
+            throw new InvalidOperationException("Booking is already cancelled.");
+
+        booking.Status = BookingStatus.Cancelled;
+    }
+
+    public Booking? GetNextBookingForRoom(int roomId, DateTimeOffset afterTime)
+    {
+        return _bookings
+            .Where(b => b.Room.Id == roomId && b.Status == BookingStatus.Confirmed && b.StartTime > afterTime)
+            .OrderBy(b => b.StartTime)
+            .FirstOrDefault();
+    }
 }

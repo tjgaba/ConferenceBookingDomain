@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
 
-class Program
+partial class Program
 {
     private static int _bookingIdCounter = 1;
 

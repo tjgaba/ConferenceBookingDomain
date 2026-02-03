@@ -37,4 +37,8 @@ public class Booking
     public void Cancel()
     {
         if (Status == BookingStatus.Cancelled)
-            throw new InvalidOperationException();
+            throw new InvalidOperationException("Booking is already cancelled.");
+
+        Status = BookingStatus.Cancelled;
+    }
+}

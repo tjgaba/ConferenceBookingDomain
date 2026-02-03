@@ -11,8 +11,16 @@
     <PackageReference Include="Microsoft.AspNetCore.App" Version="2.2.8" />
   </ItemGroup>
 
+  
+
   <ItemGroup>
-    <Compile Remove="Program.cs" />
+    <!-- Exclude files from embedded API project folders so they are not compiled into this root project -->
+    <Compile Remove="API\**\*.cs" />
+    <Compile Remove="API\WorkingSpace\**\*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="API\API.csproj" />
   </ItemGroup>
 
 </Project>

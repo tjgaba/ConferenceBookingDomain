@@ -2,7 +2,7 @@ using System;
 
 namespace ConferenceBooking.Persistence
 {
-    internal sealed class BookingRecord
+    public sealed class BookingRecord
     {
         public int Id { get; set; }
         public int RoomId { get; set; }
