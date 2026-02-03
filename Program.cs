@@ -53,6 +53,14 @@ class Program
     {
         Console.Clear();
 
+        // Check if there are any rooms available before proceeding
+        if (!rooms.Any())
+        {
+            Console.WriteLine("Error: No rooms available.");
+            Console.ReadKey();
+            return;
+        }
+
         Console.Write("Enter your name: ");
         var requestedBy = Console.ReadLine();
 
@@ -121,6 +129,14 @@ class Program
     {
         Console.Clear();
 
+        // Check if there are any rooms available before showing availability
+        if (!rooms.Any())
+        {
+            Console.WriteLine("Error: No rooms available.");
+            Console.ReadKey();
+            return;
+        }
+
         // Default view: availability right now
         ShowAvailabilityTable(bookingService, rooms, DateTimeOffset.Now);
 
@@ -153,6 +169,7 @@ class Program
 
         foreach (var room in rooms)
         {
+            // Check for active bookings for the room at the given time
             var activeBooking =
                 bookingService.GetActiveBookingForRoom(room.Id, atTime);
 
@@ -168,6 +185,7 @@ class Program
             }
             else
             {
+                // Check for the next booking for the room
                 var nextBooking =
                     bookingService.GetNextBookingForRoom(room.Id, atTime);
 
@@ -195,7 +213,10 @@ class Program
     {
         Console.Clear();
 
+        // Get the list of active bookings
         var activeBookings = bookingService.GetActiveBookings().ToList();
+
+        // Check if there are any active bookings to cancel
         if (!activeBookings.Any())
         {
             Console.WriteLine("No active bookings to cancel.");
@@ -231,33 +252,69 @@ class Program
     {
         result = default;
 
-        Console.Write("Year: ");
-        if (!int.TryParse(Console.ReadLine(), out var year)) return false;
-
-        Console.Write("Month (1-12): ");
-        if (!int.TryParse(Console.ReadLine(), out var month)) return false;
-
-        Console.Write("Day: ");
-        if (!int.TryParse(Console.ReadLine(), out var day)) return false;
-
-        Console.Write("Hour (0-23): ");
-        if (!int.TryParse(Console.ReadLine(), out var hour)) return false;
-
-        Console.Write("Minute (0-59): ");
-        if (!int.TryParse(Console.ReadLine(), out var minute)) return false;
-
-        try
+        while (true)
         {
-            var local = new DateTime(year, month, day, hour, minute, 0);
-            result = new DateTimeOffset(
-                local,
-                TimeZoneInfo.Local.GetUtcOffset(local)
-            );
-            return true;
-        }
-        catch
-        {
-            return false;
+            Console.Write("Year: ");
+            var input = Console.ReadLine();
+            if (string.IsNullOrWhiteSpace(input)) return false;
+            if (int.TryParse(input, out var year) && year >= 1 && year <= 9999)
+            {
+                while (true)
+                {
+                    Console.Write("Month (1-12): ");
+                    input = Console.ReadLine();
+                    if (string.IsNullOrWhiteSpace(input)) return false;
+                    if (int.TryParse(input, out var month) && month >= 1 && month <= 12)
+                    {
+                        while (true)
+                        {
+                            Console.Write("Day: ");
+                            input = Console.ReadLine();
+                            if (string.IsNullOrWhiteSpace(input)) return false;
+                            if (int.TryParse(input, out var day) && day >= 1 && day <= DateTime.DaysInMonth(year, month))
+                            {
+                                while (true)
+                                {
+                                    Console.Write("Hour (0-23): ");
+                                    input = Console.ReadLine();
+                                    if (string.IsNullOrWhiteSpace(input)) return false;
+                                    if (int.TryParse(input, out var hour) && hour >= 0 && hour <= 23)
+                                    {
+                                        while (true)
+                                        {
+                                            Console.Write("Minute (0-59): ");
+                                            input = Console.ReadLine();
+                                            if (string.IsNullOrWhiteSpace(input)) return false;
+                                            if (int.TryParse(input, out var minute) && minute >= 0 && minute <= 59)
+                                            {
+                                                try
+                                                {
+                                                    var local = new DateTime(year, month, day, hour, minute, 0);
+                                                    result = new DateTimeOffset(
+                                                        local,
+                                                        TimeZoneInfo.Local.GetUtcOffset(local)
+                                                    );
+                                                    return true;
+                                                }
+                                                catch
+                                                {
+                                                    Console.WriteLine("Error: Invalid date and time.");
+                                                    return false;
+                                                }
+                                            }
+                                            Console.WriteLine("Minute invalid, please enter a minute between 0-59 or press 'Enter' to exit.");
+                                        }
+                                    }
+                                    Console.WriteLine("Hour invalid, please enter an hour between 0-23 or press 'Enter' to exit.");
+                                }
+                            }
+                            Console.WriteLine("Day invalid, please enter a valid day for the given month and year or press 'Enter' to exit.");
+                        }
+                    }
+                    Console.WriteLine("Month invalid, please enter a month between 1-12 or press 'Enter' to exit.");
+                }
+            }
+            Console.WriteLine("Year invalid, please enter a year between 1-9999 or press 'Enter' to exit.");
         }
     }
 }

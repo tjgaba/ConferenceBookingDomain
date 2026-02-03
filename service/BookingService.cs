@@ -31,6 +31,7 @@ public class BookingService
         int roomId,
         DateTimeOffset atTime)
     {
+        // Ensure the method retrieves bookings that are confirmed and overlap with the given time
         return _bookings.FirstOrDefault(b =>
             b.Room.Id == roomId &&
             b.Status == BookingStatus.Confirmed &&
