@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "dgSpecHash": "y/IH/RLxLUE=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\Public\\ConferenceBookingDomain\\API\\API.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\asus\\.nuget\\packages\\microsoft.aspnetcore.openapi\\9.0.11\\microsoft.aspnetcore.openapi.9.0.11.nupkg.sha512",
+    "C:\\Users\\asus\\.nuget\\packages\\microsoft.openapi\\1.6.17\\microsoft.openapi.1.6.17.nupkg.sha512"
+  ],
+  "logs": []
+}

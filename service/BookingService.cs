@@ -188,4 +188,30 @@ public class BookingService
             Console.WriteLine($"Error deleting booking: {ex.Message}");
         }
     }
+
+    public async Task ClearAllBookingsAsync(string filePath)
+    {
+        try
+        {
+            if (File.Exists(filePath))
+            {
+                // Clear the bookings list
+                _bookings.Clear();
+
+                // Write an empty list to the file
+                var emptyJson = JsonSerializer.Serialize(new List<Booking>());
+                await File.WriteAllTextAsync(filePath, emptyJson);
+
+                Console.WriteLine("All bookings have been cleared successfully.");
+            }
+            else
+            {
+                Console.WriteLine("Error: Bookings file not found.");
+            }
+        }
+        catch (IOException ex)
+        {
+            Console.WriteLine($"Error clearing bookings: {ex.Message}");
+        }
+    }
 }
