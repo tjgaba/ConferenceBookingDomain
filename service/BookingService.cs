@@ -62,7 +62,7 @@ public class BookingService
         TimeSpan duration)
     {
         if (!_roomsById.TryGetValue(roomId, out var room))
-            throw new InvalidOperationException("Conference room does not exist.");
+            throw new InvalidBookingException("Conference room does not exist.");
 
         var endTime = startTime.Add(duration);
 
@@ -74,7 +74,7 @@ public class BookingService
         );
 
         if (hasOverlap)
-            throw new InvalidOperationException(
+            throw new InvalidBookingException(
                 "Room is already booked for the selected time slot."
             );
 

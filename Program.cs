@@ -56,13 +56,30 @@ class Program
         Console.Write("Enter your name: ");
         var requestedBy = Console.ReadLine();
 
+        if (string.IsNullOrWhiteSpace(requestedBy))
+        {
+            Console.WriteLine("Error: Name cannot be empty.");
+            Console.ReadKey();
+            return;
+        }
+
         Console.WriteLine("\nAvailable Rooms:");
         foreach (var room in rooms)
             Console.WriteLine($"{room.Id}. {room.Name} (Capacity: {room.Capacity})");
 
         Console.Write("\nSelect Room ID: ");
-        if (!int.TryParse(Console.ReadLine(), out var roomId))
-            return;
+        var input = Console.ReadLine();
+        if (string.IsNullOrWhiteSpace(input)) return;
+
+        if (!int.TryParse(input, out var roomId) || !rooms.Any(r => r.Id == roomId))
+        {
+            Console.WriteLine("Error: Selected room does not exist.");
+            Console.WriteLine("Press 'Enter' to exit or select a correct room ID.");
+
+            input = Console.ReadLine();
+            if (string.IsNullOrWhiteSpace(input) || !int.TryParse(input, out roomId) || !rooms.Any(r => r.Id == roomId))
+                return;
+        }
 
         Console.WriteLine("\nEnter meeting start date & time:");
         if (!TryReadDateTimeOffset(out var startTime))
