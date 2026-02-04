@@ -31,3 +31,4 @@ c:\Users\Public\ConferenceBookingDomain\obj\Debug\net8.0\refint\ConferenceBookin
 c:\Users\Public\ConferenceBookingDomain\obj\Debug\net8.0\ConferenceBookingDomain.pdb
 c:\Users\Public\ConferenceBookingDomain\obj\Debug\net8.0\ConferenceBookingDomain.genruntimeconfig.cache
 c:\Users\Public\ConferenceBookingDomain\obj\Debug\net8.0\ref\ConferenceBookingDomain.dll
+C:\Users\Public\ConferenceBookingDomain\bin\Debug\net8.0\Data\bookings.json

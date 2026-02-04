@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "c:\\Users\\Public\\ConferenceBookingDomain\\API\\API.csproj": {}
+    "C:\\Users\\Public\\ConferenceBookingDomain\\API\\API.csproj": {}
   },
   "projects": {
-    "c:\\Users\\Public\\ConferenceBookingDomain\\API\\API.csproj": {
+    "C:\\Users\\Public\\ConferenceBookingDomain\\API\\API.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "c:\\Users\\Public\\ConferenceBookingDomain\\API\\API.csproj",
+        "projectUniqueName": "C:\\Users\\Public\\ConferenceBookingDomain\\API\\API.csproj",
         "projectName": "API",
-        "projectPath": "c:\\Users\\Public\\ConferenceBookingDomain\\API\\API.csproj",
+        "projectPath": "C:\\Users\\Public\\ConferenceBookingDomain\\API\\API.csproj",
         "packagesPath": "C:\\Users\\asus\\.nuget\\packages\\",
-        "outputPath": "c:\\Users\\Public\\ConferenceBookingDomain\\API\\obj\\",
+        "outputPath": "C:\\Users\\Public\\ConferenceBookingDomain\\API\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

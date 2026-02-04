@@ -37,3 +37,4 @@ c:\Users\Public\ConferenceBookingDomain\API\obj\Debug\net8.0\refint\API.dll
 c:\Users\Public\ConferenceBookingDomain\API\obj\Debug\net8.0\API.pdb
 c:\Users\Public\ConferenceBookingDomain\API\obj\Debug\net8.0\API.genruntimeconfig.cache
 c:\Users\Public\ConferenceBookingDomain\API\obj\Debug\net8.0\ref\API.dll
+C:\Users\Public\ConferenceBookingDomain\API\bin\Debug\net8.0\Data\bookings.json
