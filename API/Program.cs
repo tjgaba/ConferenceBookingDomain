@@ -17,6 +17,9 @@ public partial class Program
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
 
+        // Register BookingService with empty initial data (will be replaced by persistence on startup as needed)
+        builder.Services.AddSingleton<BookingService>(_ => new BookingService(new System.Collections.Generic.List<ConferenceRoom>(), new System.Collections.Generic.List<Booking>()));
+
         var app = builder.Build();
 
         if (app.Environment.IsDevelopment())
@@ -31,6 +34,9 @@ public partial class Program
         {
             "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
         };
+
+        // Map controllers so API endpoints (POST/DELETE) are exposed
+        app.MapControllers();
 
         app.MapGet("/weatherforecast", () =>
         {

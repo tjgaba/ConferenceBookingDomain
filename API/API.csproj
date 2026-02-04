@@ -14,6 +14,7 @@
 
   <ItemGroup>
     <Compile Include="Services\**\*.cs" />
+    <Compile Include="Controllers\**\*.cs" />
     <Compile Include="Models\**\*.cs" />
     <Compile Include="Entities\**\*.cs" />
     <Compile Include="Program.cs" />
