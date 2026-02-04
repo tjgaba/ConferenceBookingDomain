@@ -82,6 +82,15 @@ public class BookRoomHandler
         Console.ReadKey();
     }
 
+    // Non-interactive API-friendly method
+    public Booking BookRoomNonInteractive(BookingService bookingService, int? bookingId, int roomId, string requestedBy, DateTimeOffset startTime, TimeSpan duration)
+    {
+        if (bookingService == null) throw new ArgumentNullException(nameof(bookingService));
+        if (string.IsNullOrWhiteSpace(requestedBy)) throw new ArgumentException("requestedBy is required", nameof(requestedBy));
+        var idToUse = bookingId ?? _bookingIdCounter++;
+        return bookingService.CreateBooking(idToUse, roomId, requestedBy, startTime, duration);
+    }
+
     private bool TryReadDateTimeOffset(out DateTimeOffset result)
     {
         result = default;

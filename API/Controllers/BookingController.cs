@@ -7,32 +7,48 @@ using System.Threading.Tasks;
 public class BookingController : ControllerBase
 {
     private readonly BookingService _bookingService;
+    private readonly BookRoomHandler _bookRoomHandler;
+    private readonly ViewAvailabilityHandler _viewHandler;
 
-    public BookingController(BookingService bookingService)
+    public BookingController(BookingService bookingService, BookRoomHandler bookRoomHandler, ViewAvailabilityHandler viewHandler)
     {
         _bookingService = bookingService;
+        _bookRoomHandler = bookRoomHandler;
+        _viewHandler = viewHandler;
     }
 
     [HttpGet("availability")]
     public IActionResult GetAvailability([FromQuery] DateTimeOffset? atTime)
     {
-        var availability = _bookingService.GetAvailableRooms(atTime ?? DateTimeOffset.Now);
+        var availability = _viewHandler.GetAvailability(_bookingService, atTime ?? DateTimeOffset.Now);
         return Ok(availability);
     }
 
     [HttpPost("book")]
-    public IActionResult BookRoom([FromBody] BookingRequest request)
+    public async Task<IActionResult> BookRoom([FromBody] BookingRequest request)
     {
         try
         {
-            var booking = _bookingService.CreateBooking(
-                request.BookingId,
+            var booking = _bookRoomHandler.BookRoomNonInteractive(
+                _bookingService,
+                request.BookingId == 0 ? null : (int?)request.BookingId,
                 request.RoomId,
                 request.RequestedBy,
                 request.StartTime,
                 request.Duration);
 
+            // persist bookings after successful creation
+            await ConferenceBooking.Persistence.BookingFileStore.SaveAsync(_bookingService.GetAllBookings());
+
             return Ok(booking);
+        }
+        catch (ArgumentException ex)
+        {
+            return NotFound(ex.Message);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(ex.Message);
         }
         catch (Exception ex)
         {

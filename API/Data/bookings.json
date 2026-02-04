@@ -1,0 +1,18 @@
+[
+  {
+    "Id": 1,
+    "RoomId": 2,
+    "RequestedBy": "Alice",
+    "StartTime": "2026-02-04T15:00:00+00:00",
+    "EndTime": "2026-02-04T16:00:00+00:00",
+    "Status": 3
+  },
+  {
+    "Id": 3,
+    "RoomId": 3,
+    "RequestedBy": "Alice",
+    "StartTime": "2026-02-04T15:00:00+00:00",
+    "EndTime": "2026-02-04T16:00:00+00:00",
+    "Status": 2
+  }
+]

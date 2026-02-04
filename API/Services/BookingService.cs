@@ -118,6 +118,8 @@ public class BookingService
         await File.WriteAllTextAsync(filePath, json);
     }
 
+    public IReadOnlyList<Booking> GetAllBookings() => _bookings.AsReadOnly();
+
     public void CancelBooking(int bookingId)
     {
         var booking = _bookings.FirstOrDefault(b => b.Id == bookingId);

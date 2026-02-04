@@ -77,6 +77,13 @@ public class ViewAvailabilityHandler
         }
     }
 
+    // Non-interactive API-friendly method
+    public IEnumerable<ConferenceRoom> GetAvailability(BookingService bookingService, DateTimeOffset atTime)
+    {
+        if (bookingService == null) throw new ArgumentNullException(nameof(bookingService));
+        return bookingService.GetAvailableRooms(atTime);
+    }
+
     private bool TryReadDateTimeOffset(out DateTimeOffset result)
     {
         result = default;

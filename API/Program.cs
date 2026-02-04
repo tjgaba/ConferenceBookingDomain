@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using System.Linq;
 using System;
 using Swashbuckle.AspNetCore;
+using ConferenceBooking.Persistence;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
 
@@ -17,8 +18,18 @@ public partial class Program
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
 
-        // Register BookingService with empty initial data (will be replaced by persistence on startup as needed)
-        builder.Services.AddSingleton<BookingService>(_ => new BookingService(new System.Collections.Generic.List<ConferenceRoom>(), new System.Collections.Generic.List<Booking>()));
+        // Initialize rooms and bookings from repository / file store
+        var rooms = ConferenceRoomRepository.GetRooms();
+        var roomsById = rooms.ToDictionary(r => r.Id);
+        var bookings = BookingFileStore.LoadAsync(roomsById).GetAwaiter().GetResult();
+
+        // Register BookingService with persisted data
+        builder.Services.AddSingleton<BookingService>(_ => new BookingService(rooms, bookings));
+
+        // Register handlers for reuse; seed booking id counter from existing bookings
+        var nextBookingId = bookings.Any() ? bookings.Max(b => b.Id) + 1 : 1;
+        builder.Services.AddSingleton<BookRoomHandler>(_ => new BookRoomHandler(nextBookingId));
+        builder.Services.AddSingleton<ViewAvailabilityHandler>();
 
         var app = builder.Build();
 

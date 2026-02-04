@@ -20,4 +20,12 @@
     <Compile Include="Program.cs" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Include root service folder so API can reuse console handler logic -->
+    <Compile Include="..\service\**\*.cs" />
+    <!-- Include shared data and persistence code from root project -->
+    <Compile Include="..\Data\**\*.cs" />
+    <Compile Include="..\Persistence\**\*.cs" />
+  </ItemGroup>
+
 </Project>
