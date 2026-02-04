@@ -1,176 +1,212 @@
-# 🏢 Conference Room Booking System
+# 🏢 Conference Room Booking Domain & API
 
 ## 📑 Table of Contents
-
-- [📌 Project Purpose](#-project-purpose)
-- [🚀 What the Project Does](#-what-the-project-does)
-- [🧠 Architectural Overview](#-architectural-overview)
-- [🗂 Repository Structure](#-repository-structure)
-- [⚙️ Installation & Running the Project](#️-installation--running-the-project)
-- [🧩 Domain & Business Rules](#-domain--business-rules)
-- [📚 Project Scope](#-project-scope)
-- [📄 License](#-license)
+- [📌 Project Overview](#-project-overview)
+- [🎯 Objectives](#-objectives)
+- [🧱 Solution Structure](#-solution-structure)
+- [🧩 Domain Concepts](#-domain-concepts)
+- [🛡 Guard Clauses & Defensive Logic](#-guard-clauses--defensive-logic)
+- [⚠️ Exception Handling Strategy](#️-exception-handling-strategy)
+- [📦 Collection & LINQ Safety](#-collection--linq-safety)
+- [💾 Asynchronous File Persistence](#-asynchronous-file-persistence)
+- [🌐 ASP.NET Core Web API](#-aspnet-core-web-api)
+- [🧠 Design Principles Applied](#-design-principles-applied)
+- [🚀 Future Extensions](#-future-extensions)
 - [✍️ Author](#️-author)
 
 ---
 
-## 📌 Project Purpose
+## 📌 Project Overview
+This project models the **core domain and application behaviour** of a Conference Room Booking System using C#.
 
-This repository contains a **working Conference Room Booking System** implemented as a **console application**, with a strong emphasis on:
+The solution demonstrates:
+- Clean domain modelling
+- Defensive programming
+- Explicit business rule enforcement
+- Safe collection handling
+- Asynchronous file persistence
+- Proper layering with an ASP.NET Core Web API
 
-- Clear domain modelling
-- Explicit business rules
-- Separation of concerns
-- Intentional use of collections and LINQ
-
-The project has evolved from a static domain model into a system that **accepts booking requests, evaluates them against existing data, and enforces real-world booking constraints at runtime**.
-
----
-
-## 🚀 What the Project Does
-
-The Conference Room Booking System allows users to:
-
-- Book a conference room
-- View room availability
-- Cancel existing bookings
-
-The system enforces business rules such as:
-
-- A room cannot be double-booked for overlapping time slots
-- A booking must reference an existing conference room
-- Bookings must move through valid states only
-- Invalid booking requests are rejected early (fail-fast)
-
-All interactions are driven through a console-based menu.
+The system is designed so the **domain layer remains reusable and unchanged** while different application hosts (console app, Web API) coordinate its use.
 
 ---
 
-## 🧠 Architectural Overview
+## 🎯 Objectives
+The primary goals of this project are to:
 
-
-### 🟦 Domain Models
-Responsible for representing core business concepts and enforcing valid state transitions.
-
-- `Booking`
-- `ConferenceRoom`
-- `BookingStatus`
-- `RoomAvailability`
-
-### 🟨 Business Logic
-Encapsulates rules that operate across collections of domain objects.
-
-- `BookingService`
-  - Prevents overlapping bookings
-  - Determines room availability at a given time
-  - Validates booking requests
-  - Creates and manages bookings
-
-### 🟩 Program Orchestration
-Handles user interaction and application flow.
-
-- `Program.cs`
-  - Displays menus
-  - Captures user input
-  - Delegates some functionalities to `BookingService`
-  - Outputs results to the console
-
-**Business logic is avoided in the`Program.cs`according to the instruction on the assignment**
+- Model real-world booking concepts accurately
+- Enforce business rules through code structure
+- Prevent invalid states and unsafe operations
+- Demonstrate correct exception handling strategies
+- Persist and retrieve booking data asynchronously
+- Expose domain functionality through a Web API without leaking business logic
 
 ---
 
-## 🗂 Repository Structure
+## 🧱 Solution Structure
 ```
-├── Program.cs
-│ Console application entry point and orchestration
+ConferenceBookingDomain/
 │
 ├── Domain/
-│ ├── Booking.cs
-│ │ Booking entity with state validation
-│ │
 │ ├── ConferenceRoom.cs
-│ │ Represents a physical conference room
-│ │
+│ ├── Booking.cs
 │ ├── BookingStatus.cs
-│ │ Enum defining booking lifecycle states
-│ │
-│ └── RoomAvailability.cs
-│ Enum used for availability representation
+│ ├── RoomAvailability.cs
+│ ├── Exceptions/
+│ │ ├── InvalidBookingException.cs
+│ │ └── BookingPersistenceException.cs
 │
-├── Services/
-│ └── BookingService.cs
-│ Business logic operating across collections
+├── Application/
+│ ├── BookingService.cs
+│ ├── BookRoomHandler.cs
+│ ├── BookingFileStore.cs
 │
-├── README.md
-│ Project overview and architectural explanation
+├── ConsoleApp/
+│ └── Program.cs
 │
-└── LICENSE
-Project licensing information
+├── Api/
+│ ├── Controllers/
+│ │ └── BookingController.cs
+│ ├── Program.cs
+│ └── Api.csproj
+│
+└── README.md
 ```
 
 ---
 
-## ⚙️ Installation & Running the Project
+## 🧩 Domain Concepts
 
-### Prerequisites
+### Core Entities
+- **ConferenceRoom**  
+  Represents a physical room with capacity and availability constraints.
 
-- .NET SDK 8.x
-- Visual Studio or Visual Studio Code
+- **Booking**  
+  Represents a booking request and its lifecycle.
 
-### Steps
+### Enums (Business Rules)
+- **BookingStatus**
+  - Pending
+  - Confirmed
+  - Cancelled
 
-1. Clone or copy the repository locally
-2. Open the project in your IDE
-3. Build the solution
-4. Run the project
-5. Interact with the console menu to:
-   - Book rooms
-   - View availability
-   - Cancel bookings
+- **RoomAvailability**
+  - Available
+  - Unavailable
 
----
-
-## 🧩 Domain & Business Rules
-
-The system enforces the following rules:
-
-- A conference room cannot be double-booked for overlapping time slots
-- All bookings reference existing rooms
-- Booking state transitions are validated inside the domain
-- Availability is derived dynamically based on current bookings
-- Invalid requests fail fast and do not mutate system state
-
-Time slots are automatically captured using the system clock, with a fixed booking duration.
+Enums are used to ensure only **valid states** exist within the system.
 
 ---
 
-## 📚 Project Scope
+## 🛡 Guard Clauses & Defensive Logic
+The system uses **guard clauses** to immediately reject invalid operations.
 
-### In Scope
+### Examples:
+- Prevent booking an unavailable room
+- Prevent confirming an already confirmed booking
+- Prevent operations on empty collections
+- Prevent invalid state transitions
 
-- Domain-driven design principles
-- Explicit business rules
-- Collection-based logic using LINQ
-- Separation of domain, business logic, and orchestration
-- Console-based interaction
+Guard clauses ensure:
+- Invalid actions fail fast
+- The domain never enters an inconsistent state
 
-### Out of Scope (for now)
+---
 
-- Databases or persistence
-- Web APIs
+## ⚠️ Exception Handling Strategy
+
+### Custom Domain Exceptions
+- **InvalidBookingException**  
+  Thrown when a booking violates domain rules.
+
+- **BookingPersistenceException**  
+  Thrown when file I/O operations fail.
+
+### Exception Design Principles
+- Domain layer throws meaningful exceptions
+- Application and API layers decide how to respond
+- Exceptions are not used for control flow
+- Messages clearly describe the failure reason
+
+---
+
+## 📦 Collection & LINQ Safety
+The system safely handles:
+- Empty collections
+- Missing data
+- Failed lookups
+
+---
+
+## 💾 Asynchronous File Persistence
+Booking data is persisted using **asynchronous file operations**.
+
+### Capabilities:
+- Save bookings asynchronously
+- Load bookings asynchronously
+- Correct use of `async` / `await`
+- Safe handling of I/O failures
+
+File persistence is isolated from the domain and handled in the application layer.
+
+---
+
+## 🌐 ASP.NET Core Web API
+
+### Web API Requirements Fulfilled
+
+#### 1️⃣ ASP.NET Core Web API Project
+- Separate API project added
+- Domain and application layers remain unchanged
+- Proper project references configured
+
+#### 2️⃣ Program.cs as Application Host
+- Configures HTTP pipeline
+- Registers services
+- Enables controllers
+- Contains **no business logic**
+
+#### 3️⃣ Controllers as Entry Points
+- Controllers use constructor injection
+- Coordinate requests only
+- No domain rules inside controllers
+
+#### 4️⃣ Routing & Endpoints
+- Attribute routing used
+- At least one `GET` endpoint
+- At least one `POST` endpoint
+- Endpoints map directly to existing domain methods
+
+#### 5️⃣ Returning Data via HTTP
+- Domain data returned as JSON
+- Serialization handled by ASP.NET Core
+- No domain logic leakage
+
+---
+
+## 🧠 Design Principles Applied
+- Domain-first design
+- Explicit rule enforcement
+- Clear separation of concerns
+- Defensive programming
+- Fail-fast error handling
+- Infrastructure kept outside the domain
+
+> The domain defines what is allowed and forbidden.  
+> Applications coordinate.  
+> Infrastructure supports.
+
+---
+
+## 🚀 Future Extensions
+This project is intentionally structured to support future enhancements such as:
+- Database persistence
 - Authentication and authorization
-- Graphical user interfaces
-- Advanced scheduling (recurring bookings, variable durations)
-
----
-
-## 📄 License
-
-This project is licensed under the MIT License.
+- Advanced availability rules
+- Frontend integrations
+- Reporting and analytics
 
 ---
 
 ## ✍️ Author
-
-**Name**  : TJ Gaba  
-**Email** : tjgaba@outlook.com
+**TJ Gaba**

@@ -7,4 +7,20 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.App" Version="2.2.8" />
+  </ItemGroup>
+
+  
+
+  <ItemGroup>
+    <!-- Exclude files from embedded API project folders so they are not compiled into this root project -->
+    <Compile Remove="API\**\*.cs" />
+    <Compile Remove="API\WorkingSpace\**\*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="API\API.csproj" />
+  </ItemGroup>
+
 </Project>

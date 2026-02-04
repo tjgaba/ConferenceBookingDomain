@@ -74,19 +74,12 @@ namespace ConferenceBooking.Persistence
                         room,
                         record.RequestedBy,
                         record.StartTime,
-                        record.EndTime - record.StartTime
+                        record.EndTime,
+                        record.Status
                     );
 
-                    switch (record.Status)
-                    {
-                        case BookingStatus.Confirmed:
-                            booking.Confirm();
-                            break;
-                        case BookingStatus.Cancelled:
-                            booking.Cancel();
-                            break;
-                    }
-
+                    // The Booking constructor already sets the status from the record,
+                    // so no need to call Confirm/Cancel here which may throw.
                     bookings.Add(booking);
                 }
 
