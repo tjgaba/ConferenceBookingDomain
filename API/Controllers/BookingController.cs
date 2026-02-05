@@ -30,9 +30,17 @@ public class BookingController : ControllerBase
             return UnprocessableEntity("End date must be after start date.");
         }
 
+        var availableRooms = _bookingManager.GetAvailableRooms(dto.StartDate);
+        if (!availableRooms.Any())
+        {
+            return UnprocessableEntity("No rooms are available for the requested time.");
+        }
+
+        var room = availableRooms.First(); // Select the first available room
+
         var booking = new Booking(
             0, // Temporary booking ID
-            null, // Room object will be resolved in BookingManager
+            room, // Use the resolved room
             "RequestedBy", // Placeholder for requestedBy
             dto.StartDate,
             dto.EndDate,
@@ -41,7 +49,7 @@ public class BookingController : ControllerBase
 
         var result = _bookingManager.CreateBooking(
             booking.Id,
-            booking.Room.Id,
+            booking.Room.Id, // Room.Id is now resolved
             booking.RequestedBy,
             booking.StartTime,
             booking.EndTime - booking.StartTime
