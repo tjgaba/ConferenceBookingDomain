@@ -1,10 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using ConferenceBooking.API.Services;
 
 public class ViewAvailabilityHandler
 {
-    public void ViewAvailability(BookingService bookingService, List<ConferenceRoom> rooms)
+    public void ViewAvailability(BookingManager bookingManager, List<ConferenceRoom> rooms)
     {
         Console.Clear();
 
@@ -15,7 +16,7 @@ public class ViewAvailabilityHandler
             return;
         }
 
-        ShowAvailabilityTable(bookingService, rooms, DateTimeOffset.Now);
+        ShowAvailabilityTable(bookingManager, rooms, DateTimeOffset.Now);
 
         Console.WriteLine();
         Console.Write("Do you want to check availability for a specific date and time? (yes/no): ");
@@ -28,13 +29,13 @@ public class ViewAvailabilityHandler
                 return;
 
             Console.Clear();
-            ShowAvailabilityTable(bookingService, rooms, selectedTime);
+            ShowAvailabilityTable(bookingManager, rooms, selectedTime);
         }
 
         Console.ReadKey();
     }
 
-    private void ShowAvailabilityTable(BookingService bookingService, List<ConferenceRoom> rooms, DateTimeOffset atTime)
+    private void ShowAvailabilityTable(BookingManager bookingManager, List<ConferenceRoom> rooms, DateTimeOffset atTime)
     {
         Console.WriteLine($"Room Availability at {atTime}");
         Console.WriteLine("------------------------------------------------------------------------------------");
@@ -43,7 +44,7 @@ public class ViewAvailabilityHandler
 
         foreach (var room in rooms)
         {
-            var activeBooking = bookingService.GetActiveBookingForRoom(room.Id, atTime);
+            var activeBooking = bookingManager.GetActiveBookingForRoom(room.Id, atTime);
 
             if (activeBooking != null)
             {
@@ -57,7 +58,7 @@ public class ViewAvailabilityHandler
             }
             else
             {
-                var nextBooking = bookingService.GetNextBookingForRoom(room.Id, atTime);
+                var nextBooking = bookingManager.GetNextBookingForRoom(room.Id, atTime);
 
                 if (nextBooking == null)
                 {
@@ -78,10 +79,10 @@ public class ViewAvailabilityHandler
     }
 
     // Non-interactive API-friendly method
-    public IEnumerable<ConferenceRoom> GetAvailability(BookingService bookingService, DateTimeOffset atTime)
+    public IEnumerable<ConferenceRoom> GetAvailability(BookingManager bookingManager, DateTimeOffset atTime)
     {
-        if (bookingService == null) throw new ArgumentNullException(nameof(bookingService));
-        return bookingService.GetAvailableRooms(atTime);
+        if (bookingManager == null) throw new ArgumentNullException(nameof(bookingManager));
+        return bookingManager.GetAvailableRooms(atTime);
     }
 
     private bool TryReadDateTimeOffset(out DateTimeOffset result)

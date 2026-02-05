@@ -6,6 +6,7 @@ using Swashbuckle.AspNetCore;
 using ConferenceBooking.Persistence;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
+using ConferenceBooking.API.Services;
 
 public partial class Program
 {
@@ -23,8 +24,8 @@ public partial class Program
         var roomsById = rooms.ToDictionary(r => r.Id);
         var bookings = BookingFileStore.LoadAsync(roomsById).GetAwaiter().GetResult();
 
-        // Register BookingService with persisted data
-        builder.Services.AddSingleton<BookingService>(_ => new BookingService(rooms, bookings));
+        // Register BookingManager with persisted data
+        builder.Services.AddSingleton<BookingManager>(_ => new BookingManager(rooms, bookings));
 
         // Register handlers for reuse; seed booking id counter from existing bookings
         var nextBookingId = bookings.Any() ? bookings.Max(b => b.Id) + 1 : 1;
