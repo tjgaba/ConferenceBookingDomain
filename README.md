@@ -1,3 +1,4 @@
+
 # 🏢 Conference Room Booking System (Domain + API)
 
 ## 📚 Table of Contents
@@ -138,6 +139,7 @@ The system enforces rules strictly inside the domain and service layer:
 * ❌ Cannot create overlapping bookings
 * ❌ Invalid input is rejected early
 
+
 Guard clauses are used to **fail fast** and keep the domain consistent.
 
 ---
@@ -190,6 +192,7 @@ This design allows easy replacement with:
 | DELETE | `/booking`     | Delete a booking      |
 
 Swagger is enabled in development for easy testing.
+
 
 ---
 
