@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using ConferenceBooking.API.Services;
 
 public class BookRoomHandler
 {
@@ -11,7 +12,7 @@ public class BookRoomHandler
         _bookingIdCounter = bookingIdCounter;
     }
 
-    public void BookRoom(BookingService bookingService, List<ConferenceRoom> rooms)
+    public void BookRoom(BookingManager bookingManager, List<ConferenceRoom> rooms)
     {
         Console.Clear();
 
@@ -58,37 +59,39 @@ public class BookRoomHandler
         if (!int.TryParse(Console.ReadLine(), out var minutes) || minutes <= 0)
             return;
 
-        try
-        {
-            var booking = bookingService.CreateBooking(
+        var result = bookingManager.CreateBooking(
                 _bookingIdCounter++,
                 roomId,
                 requestedBy,
                 startTime,
-                TimeSpan.FromMinutes(minutes)
-            );
+                TimeSpan.FromMinutes(minutes));
 
-            Console.WriteLine("\nBooking confirmed!");
-            Console.WriteLine($"Room: {booking.Room.Name}");
-            Console.WriteLine($"Start: {booking.StartTime}");
-            Console.WriteLine($"End:   {booking.EndTime}");
-            Console.WriteLine($"Booking ID: {booking.Id}");
-        }
-        catch (Exception ex)
+        if (!result.IsSuccess)
         {
-            Console.WriteLine(ex.Message);
+            Console.WriteLine(result.ErrorMessage);
+            return;
         }
 
+        var booking = result.Value;
+
+        Console.WriteLine("\nBooking confirmed!");
+        Console.WriteLine($"Room: {booking.Room.Name}");
+        Console.WriteLine($"Start: {booking.StartTime}");
+        Console.WriteLine($"End:   {booking.EndTime}");
+        Console.WriteLine($"Booking ID: {booking.Id}");
         Console.ReadKey();
     }
 
     // Non-interactive API-friendly method
-    public Booking BookRoomNonInteractive(BookingService bookingService, int? bookingId, int roomId, string requestedBy, DateTimeOffset startTime, TimeSpan duration)
+    public Booking BookRoomNonInteractive(BookingManager bookingManager, int? bookingId, int roomId, string requestedBy, DateTimeOffset startTime, TimeSpan duration)
     {
-        if (bookingService == null) throw new ArgumentNullException(nameof(bookingService));
-        if (string.IsNullOrWhiteSpace(requestedBy)) throw new ArgumentException("requestedBy is required", nameof(requestedBy));
-        var idToUse = bookingId ?? _bookingIdCounter++;
-        return bookingService.CreateBooking(idToUse, roomId, requestedBy, startTime, duration);
+        if (bookingManager == null) throw new ArgumentNullException(nameof(bookingManager));
+        var result = bookingManager.CreateBooking(bookingId ?? 0, roomId, requestedBy, startTime, duration);
+
+        if (!result.IsSuccess)
+            throw new InvalidOperationException(result.ErrorMessage);
+
+        return result.Value;
     }
 
     private bool TryReadDateTimeOffset(out DateTimeOffset result)

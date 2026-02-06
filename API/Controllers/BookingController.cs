@@ -1,81 +1,64 @@
 using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using ConferenceBooking.API.Services;
+using ConferenceBooking.API.DTO;
 
 [ApiController]
 [Route("api/[controller]")]
 public class BookingController : ControllerBase
 {
-    private readonly BookingService _bookingService;
-    private readonly BookRoomHandler _bookRoomHandler;
-    private readonly ViewAvailabilityHandler _viewHandler;
+    private readonly BookingManager _bookingManager;
 
-    public BookingController(BookingService bookingService, BookRoomHandler bookRoomHandler, ViewAvailabilityHandler viewHandler)
+    public BookingController(BookingManager bookingManager)
     {
-        _bookingService = bookingService;
-        _bookRoomHandler = bookRoomHandler;
-        _viewHandler = viewHandler;
+        _bookingManager = bookingManager;
     }
 
     [HttpGet("availability")]
     public IActionResult GetAvailability([FromQuery] DateTimeOffset? atTime)
     {
-        var availability = _viewHandler.GetAvailability(_bookingService, atTime ?? DateTimeOffset.Now);
+        var availability = _bookingManager.GetAvailableRooms(atTime ?? DateTimeOffset.Now);
         return Ok(availability);
     }
 
     [HttpPost("book")]
-    public async Task<IActionResult> BookRoom([FromBody] BookingRequest request)
+    public IActionResult CreateBooking([FromBody] CreateBookingRequestDTO dto)
     {
-        try
+        if (dto.EndDate <= dto.StartDate)
         {
-            var booking = _bookRoomHandler.BookRoomNonInteractive(
-                _bookingService,
-                request.BookingId == 0 ? null : (int?)request.BookingId,
-                request.RoomId,
-                request.RequestedBy,
-                request.StartTime,
-                request.Duration);
+            return UnprocessableEntity("End date must be after start date.");
+        }
 
-            // persist bookings after successful creation
-            await ConferenceBooking.Persistence.BookingFileStore.SaveAsync(_bookingService.GetAllBookings());
+        var booking = new Booking(
+            0, // Temporary booking ID
+            null, // Room object will be resolved in BookingManager
+            "RequestedBy", // Placeholder for requestedBy
+            dto.StartDate,
+            dto.EndDate,
+            BookingStatus.Confirmed
+        );
 
-            return Ok(booking);
-        }
-        catch (ArgumentException ex)
+        var result = _bookingManager.CreateBooking(
+            booking.Id,
+            booking.Room.Id,
+            booking.RequestedBy,
+            booking.StartTime,
+            booking.EndTime - booking.StartTime
+        );
+
+        if (!result.IsSuccess)
         {
-            return NotFound(ex.Message);
+            return UnprocessableEntity(result.ErrorMessage);
         }
-        catch (InvalidOperationException ex)
-        {
-            return Conflict(ex.Message);
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(ex.Message);
-        }
+
+        return Ok(result.Value);
     }
 
     [HttpDelete("cancel/{id}")]
     public IActionResult CancelBooking(int id)
     {
-        try
-        {
-            _bookingService.CancelBooking(id);
-            return NoContent();
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(ex.Message);
-        }
+        _bookingManager.CancelBooking(id);
+        return NoContent();
     }
-}
-
-public class BookingRequest
-{
-    public int BookingId { get; set; }
-    public int RoomId { get; set; }
-    public string RequestedBy { get; set; }
-    public DateTimeOffset StartTime { get; set; }
-    public TimeSpan Duration { get; set; }
 }
