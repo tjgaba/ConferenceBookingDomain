@@ -16,13 +16,6 @@ public class BookingController : ControllerBase
         _bookingManager = bookingManager;
     }
 
-    [HttpGet("availability")]
-    public IActionResult GetAvailability([FromQuery] DateTimeOffset? atTime)
-    {
-        var availability = _bookingManager.GetAvailableRooms(atTime ?? DateTimeOffset.Now);
-        return Ok(availability);
-    }
-
     [HttpPost("book")]
     public IActionResult CreateBooking([FromBody] CreateBookingRequestDTO dto)
     {

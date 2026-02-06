@@ -187,6 +187,20 @@ namespace ConferenceBooking.API.Services
             return GetFirstAvailableRoom(startDate);
         }
 
+        public ConferenceRoom? GetRoomByNumber(int roomNumber)
+        {
+            return _roomsById.Values.FirstOrDefault(r => r.Number == roomNumber);
+        }
+
+        public bool IsRoomAvailable(int roomId, DateTimeOffset atTime)
+        {
+            if (!_roomsById.TryGetValue(roomId, out var room)) return false;
+
+            return !_bookings.Any(b => b.Room.Id == roomId &&
+                                   b.StartTime <= atTime &&
+                                   b.EndTime >= atTime);
+        }
+
         public class Resulting
         {
             public bool IsSuccess { get; }
