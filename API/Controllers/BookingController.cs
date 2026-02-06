@@ -31,9 +31,18 @@ public class BookingController : ControllerBase
             throw new InvalidBookingException("End date must be after start date.");
         }
 
+        // Fetch the first available room dynamically
+        var availableRooms = _bookingManager.GetAvailableRooms(dto.StartDate);
+        var room = availableRooms.FirstOrDefault();
+
+        if (room == null)
+        {
+            throw new InvalidBookingException("No available rooms for the specified time.");
+        }
+
         var booking = new Booking(
             0, // Temporary booking ID
-            new ConferenceRoom(0, "Default Room", 10), // Room object will be resolved in BookingManager
+            room, // Dynamically fetched room
             "RequestedBy", // Placeholder for requestedBy
             dto.StartDate,
             dto.EndDate,
