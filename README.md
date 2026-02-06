@@ -1,202 +1,226 @@
-# 🏢 Conference Room Booking Domain & API
 
-## 🌐 Recent Updates
-- **Dynamic Room Selection**: The `BookingController` now dynamically fetches available rooms instead of using hardcoded values.
-- **Debugging Logs**: Added logs in `BookingManager` to verify room initialization.
-- **Improved Exception Handling**: Enhanced middleware to handle domain-specific exceptions consistently.
+# 🏢 Conference Room Booking System (Domain + API)
 
----
+## 📚 Table of Contents
 
-## 📑 Table of Contents
-- [📌 Project Overview](#-project-overview)
-- [🎯 Objectives](#-objectives)
-- [🧱 Solution Structure](#-solution-structure)
-- [🧩 Domain Concepts](#-domain-concepts)
-- [🛡 Guard Clauses & Defensive Logic](#-guard-clauses--defensive-logic)
-- [⚠️ Exception Handling Strategy](#️-exception-handling-strategy)
-- [📦 Collection & LINQ Safety](#-collection--linq-safety)
-- [💾 Asynchronous File Persistence](#-asynchronous-file-persistence)
-- [🌐 ASP.NET Core Web API](#-aspnet-core-web-api)
-- [🧠 Design Principles Applied](#-design-principles-applied)
-- [🚀 Future Extensions](#-future-extensions)
-- [✍️ Author](#️-author)
+* [Overview](#-overview)
+* [Changes](#-what-changed-recently)
+* [Solution Structure](#-solution-structure)
+* [Core Domain Concepts](#-core-domain-concepts)
+* [Business Rules & Validation](#-business-rules--validation)
+* [Exception Handling](#-exception-handling)
+* [Persistence Strategy](#-persistence-strategy)
+* [Web API Endpoints](#-web-api-endpoints)
+* [Design Principles Applied](#-design-principles-applied)
+* [Possible Next Steps](#-possible-next-steps)
+* [Author](#-author)
 
 ---
 
-## 📌 Project Overview
-This project models the **core domain and application behaviour** of a Conference Room Booking System using C#.
+## 📌 Overview
 
-The solution demonstrates:
-- Clean domain modelling
-- Defensive programming
-- Explicit business rule enforcement
-- Safe collection handling
-- Asynchronous file persistence
-- Proper layering with an ASP.NET Core Web API
+This repository contains a **Conference Room Booking System** built with **.NET 8**, following clean architecture and domain‑driven design principles.
+The solution is split into a **pure domain layer** and an **ASP.NET Core Web API** that exposes booking functionality via HTTP endpoints.
 
-The system is designed so the **domain layer remains reusable and unchanged** while different application hosts (console app, Web API) coordinate its use.
+The system supports:
+
+* Creating bookings
+* Preventing booking conflicts
+* Viewing all bookings
+* Deleting bookings
+* Persisting data using JSON file storage
+* Centralized exception handling
 
 ---
 
-## 🎯 Objectives
-The primary goals of this project are to:
+## 🆕 What Changed Recently
 
-- Model real-world booking concepts accurately
-- Enforce business rules through code structure
-- Prevent invalid states and unsafe operations
-- Demonstrate correct exception handling strategies
-- Persist and retrieve booking data asynchronously
-- Expose domain functionality through a Web API without leaking business logic
+The project has evolved beyond a simple domain demo and now includes:
+
+* ✅ **Fully functional ASP.NET Core Web API**
+* ✅ **Multiple controllers** for booking lifecycle operations
+* ✅ **DTO-based request/response models**
+* ✅ **File‑based persistence using JSON**
+* ✅ **Custom middleware for exception handling**
+* ✅ **Clear separation between domain, services, persistence, and API layers**
 
 ---
 
 ## 🧱 Solution Structure
+
 ```
 ConferenceBookingDomain/
 │
+├── API/                        # ASP.NET Core Web API
+│   ├── Controllers/
+│   │   ├── BookingController.cs
+│   │   ├── GetAllBookingsController.cs
+│   │   └── DeleteBookingController.cs
+│   ├── DTO/
+│   │   ├── CreateBookingRequestDTO.cs
+│   │   ├── GetAllBookingsDTO.cs
+│   │   └── DeleteBookingDTO.cs
+│   ├── Middleware/
+│   │   └── ExceptionHandlingMiddleware.cs
+│   ├── Services/
+│   │   └── BookingManager.cs
+│   ├── Persistence/
+│   │   └── BookingFileStore.cs
+│   ├── Data/
+│   │   └── bookings.json
+│   └── Program.cs
+│
 ├── Domain/
-│ ├── ConferenceRoom.cs
-│ ├── Booking.cs
-│ ├── BookingStatus.cs
-│ ├── RoomAvailability.cs
-│ ├── Exceptions/
-│ │ ├── InvalidBookingException.cs
-│ │ └── BookingPersistenceException.cs
+│   ├── Models/
+│   │   ├── Booking.cs
+│   │   └── BookingRecord.cs
+│   ├── Entities/
+│   │   ├── ConferenceRoom.cs
+│   │   └── BookingStatus.cs
+│   ├── Interfaces/
+│   │   └── IBookingStore.cs
+│   ├── Exceptions/
+│   │   ├── InvalidBookingException.cs
+│   │   ├── BookingNotFoundException.cs
+│   │   └── BookingConflictException.cs
+│   └── Domain/RoomAvailability.cs
 │
-├── Application/
-│ ├── BookingService.cs
-│ ├── BookRoomHandler.cs
-│ ├── BookingFileStore.cs
+├── Persistence/
+│   ├── BookingFileStore.cs
+│   └── BookingPersistenceException.cs
 │
-├── ConsoleApp/
-│ └── Program.cs
+├── service/
+│   ├── BookRoomHandler.cs
+│   └── ViewAvailabilityHandler.cs
 │
-├── Api/
-│ ├── Controllers/
-│ │ └── BookingController.cs
-│ ├── Program.cs
-│ └── Api.csproj
+├── Data/
+│   └── bookings.json
 │
 └── README.md
 ```
 
 ---
 
-## 🧩 Domain Concepts
+## 🧩 Core Domain Concepts
 
-### Core Entities
-- **ConferenceRoom**  
-  Represents a physical room with capacity and availability constraints.
+### 📦 Booking
 
-- **Booking**  
-  Represents a booking request and its lifecycle.
+Represents a booking request including:
 
-### Enums (Business Rules)
-- **BookingStatus**
-  - Pending
-  - Confirmed
-  - Cancelled
+* Date & time
+* Assigned conference room
+* Booking status
 
-- **RoomAvailability**
-  - Available
-  - Unavailable
+### 🏢 ConferenceRoom
 
-Enums are used to ensure only **valid states** exist within the system.
+Represents a physical room with availability rules.
 
----
+### 📊 BookingStatus (Enum)
 
-## 🛡 Guard Clauses & Defensive Logic
-The system uses **guard clauses** to immediately reject invalid operations.
+* Pending
+* Confirmed
+* Cancelled
 
-### Examples:
-- Prevent booking an unavailable room
-- Prevent confirming an already confirmed booking
-- Prevent operations on empty collections
-- Prevent invalid state transitions
+### 📅 RoomAvailability (Enum)
 
-Guard clauses ensure:
-- Invalid actions fail fast
-- The domain never enters an inconsistent state
+* Available
+* Unavailable
+
+Enums guarantee that only **valid domain states** exist.
 
 ---
 
-## ⚠️ Exception Handling Strategy
+## 🛡 Business Rules & Validation
 
-### Custom Domain Exceptions
-- **InvalidBookingException**  
-  Thrown when a booking violates domain rules or no rooms are available.
+The system enforces rules strictly inside the domain and service layer:
 
-- **BookingPersistenceException**  
-  Thrown when file I/O operations fail.
+* ❌ Cannot book an unavailable room
+* ❌ Cannot delete a non‑existent booking
+* ❌ Cannot create overlapping bookings
+* ❌ Invalid input is rejected early
 
-### Exception Design Principles
-- Middleware ensures consistent error responses.
-- Logs provide detailed debugging information.
-- Exceptions are not used for control flow.
+
+Guard clauses are used to **fail fast** and keep the domain consistent.
 
 ---
 
-## 📦 Collection & LINQ Safety
-The system safely handles:
-- Empty collections
-- Missing data
-- Failed lookups
+## ⚠️ Exception Handling
+
+### Custom Exceptions
+
+* `InvalidBookingException`
+* `BookingConflictException`
+* `BookingNotFoundException`
+* `BookingPersistenceException`
+
+### Middleware
+
+All exceptions are handled centrally via:
+
+```
+ExceptionHandlingMiddleware
+```
+
+Which:
+
+* Converts domain exceptions to HTTP status codes
+* Returns clean JSON error responses
+* Prevents leaking internal details
 
 ---
 
-## 💾 Asynchronous File Persistence
-Booking data is persisted using **asynchronous file operations**.
+## 💾 Persistence Strategy
 
-### Capabilities:
-- Save bookings asynchronously
-- Load bookings asynchronously
-- Correct use of `async` / `await`
-- Safe handling of I/O failures
+* Bookings are stored in **JSON files**
+* All file operations are **asynchronous**
+* Persistence is isolated behind `IBookingStore`
 
-File persistence is isolated from the domain and handled in the application layer.
+This design allows easy replacement with:
+
+* SQL database
+* NoSQL store
+* Cloud storage
 
 ---
 
-## 🌐 ASP.NET Core Web API
+## 🌐 Web API Endpoints
 
-### Web API Enhancements
+| Method | Endpoint       | Description           |
+| ------ | -------------- | --------------------- |
+| POST   | `/booking`     | Create a booking      |
+| GET    | `/booking/all` | Retrieve all bookings |
+| DELETE | `/booking`     | Delete a booking      |
 
-#### 1️⃣ Dynamic Room Selection
-- The `POST /book` endpoint dynamically selects an available room for booking.
-- Throws `InvalidBookingException` if no rooms are available.
+Swagger is enabled in development for easy testing.
 
-#### 2️⃣ Debugging Logs
-- Logs added to `BookingManager` to verify room initialization during startup.
-
-#### 3️⃣ Exception Handling Middleware
-- Centralized middleware maps domain exceptions to HTTP status codes.
-- Ensures consistent JSON error responses.
 
 ---
 
 ## 🧠 Design Principles Applied
-- Domain-first design
-- Explicit rule enforcement
-- Clear separation of concerns
-- Defensive programming
-- Fail-fast error handling
-- Infrastructure kept outside the domain
 
-> The domain defines what is allowed and forbidden.  
-> Applications coordinate.  
+* Clean Architecture
+* Domain‑Driven Design (DDD)
+* Single Responsibility Principle
+* Dependency Inversion
+* Defensive programming
+* Explicit business rules
+
+> The domain contains the rules.
+> Services coordinate.
 > Infrastructure supports.
 
 ---
 
-## 🚀 Future Extensions
-This project is intentionally structured to support future enhancements such as:
-- Database persistence
-- Authentication and authorization
-- Advanced availability rules
-- Frontend integrations
-- Reporting and analytics
+## 🚀 Possible Next Steps
+
+* Replace JSON with a database
+* Add authentication & authorization
+* Introduce room capacity & scheduling windows
+* Add unit & integration tests
+* Build a frontend UI
 
 ---
 
 ## ✍️ Author
+
 **TJ Gaba**
