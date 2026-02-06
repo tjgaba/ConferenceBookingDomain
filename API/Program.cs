@@ -7,6 +7,7 @@ using ConferenceBooking.Persistence;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
 using ConferenceBooking.API.Services;
+using ConferenceBooking.API.Middleware;
 
 public partial class Program
 {
@@ -41,6 +42,9 @@ public partial class Program
         }
 
         app.UseHttpsRedirection();
+
+        // Add ExceptionHandlingMiddleware
+        app.UseMiddleware<ExceptionHandlingMiddleware>();
 
         // Map controllers so API endpoints (POST/DELETE) are exposed
         app.MapControllers();

@@ -6,7 +6,7 @@ using ConferenceBooking.API.DTO;
 /// Controller for managing room availability.
 /// </summary>
 [ApiController]
-[Route("api/[controller]Room")]
+[Route("api/[controller]ByRoomNumber")]
 public class AvailabilityController : ControllerBase
 {
     private readonly BookingManager _bookingManager;

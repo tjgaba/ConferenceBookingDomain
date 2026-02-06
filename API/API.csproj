@@ -30,4 +30,8 @@
     <Compile Include="Exceptions\**\*.cs" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="Middleware\**\*.cs" />
+  </ItemGroup>
+
 </Project>

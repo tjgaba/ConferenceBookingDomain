@@ -3,7 +3,7 @@ using ConferenceBooking.API.DTO;
 using ConferenceBooking.API.Services;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/[controller]ByTime")]
 public class AvailableRoomsController : ControllerBase
 {
     private readonly BookingManager _bookingManager;
