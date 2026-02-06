@@ -133,6 +133,18 @@ namespace ConferenceBooking.API.Services
             booking.Status = BookingStatus.Cancelled;
         }
 
+        public bool DeleteBooking(int bookingId)
+        {
+            var booking = _bookings.FirstOrDefault(b => b.Id == bookingId);
+            if (booking == null)
+            {
+                return false;
+            }
+
+            _bookings.Remove(booking);
+            return true;
+        }
+
         public Booking? GetNextBookingForRoom(int roomId, DateTimeOffset afterTime)
         {
             return _bookings

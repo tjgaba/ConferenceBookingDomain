@@ -27,6 +27,7 @@
     <Compile Include="..\Data\**\*.cs" />
     <Compile Include="..\Persistence\**\*.cs" />
     <Compile Include="DTO\**\*.cs" />
+    <Compile Include="Exceptions\**\*.cs" />
   </ItemGroup>
 
 </Project>
