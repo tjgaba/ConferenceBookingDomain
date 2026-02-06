@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using ConferenceBooking.API.Services;
 using ConferenceBooking.API.DTO;
+using ConferenceBooking.API.Exceptions;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -27,12 +28,12 @@ public class BookingController : ControllerBase
     {
         if (dto.EndDate <= dto.StartDate)
         {
-            return UnprocessableEntity("End date must be after start date.");
+            throw new InvalidBookingException("End date must be after start date.");
         }
 
         var booking = new Booking(
             0, // Temporary booking ID
-            null, // Room object will be resolved in BookingManager
+            new ConferenceRoom(0, "Default Room", 10), // Room object will be resolved in BookingManager
             "RequestedBy", // Placeholder for requestedBy
             dto.StartDate,
             dto.EndDate,
@@ -49,7 +50,7 @@ public class BookingController : ControllerBase
 
         if (!result.IsSuccess)
         {
-            return UnprocessableEntity(result.ErrorMessage);
+            throw new InvalidBookingException(result.ErrorMessage);
         }
 
         return Ok(result.Value);
