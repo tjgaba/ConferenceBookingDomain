@@ -17,6 +17,12 @@ namespace ConferenceBooking.API.Services
             List<ConferenceRoom> rooms,
             List<Booking> bookings)
         {
+            Console.WriteLine("[DEBUG] Initializing BookingManager with rooms:");
+            foreach (var room in rooms)
+            {
+                Console.WriteLine($"[DEBUG] Room ID: {room.Id}, Name: {room.Name}, Capacity: {room.Capacity}");
+            }
+
             _roomsById = rooms.ToDictionary(r => r.Id);
             _bookings = bookings;
         }
@@ -53,7 +59,10 @@ namespace ConferenceBooking.API.Services
             TimeSpan duration)
         {
             if (!_roomsById.ContainsKey(roomId))
+            {
+                Console.WriteLine($"[DEBUG] Room ID {roomId} does not exist.");
                 return Resulting<Booking>.Failure("Room does not exist.");
+            }
 
             var room = _roomsById[roomId];
             var endTime = startTime + duration;
@@ -131,6 +140,18 @@ namespace ConferenceBooking.API.Services
                 throw new InvalidOperationException("Booking is already cancelled.");
 
             booking.Status = BookingStatus.Cancelled;
+        }
+
+        public bool DeleteBooking(int bookingId)
+        {
+            var booking = _bookings.FirstOrDefault(b => b.Id == bookingId);
+            if (booking == null)
+            {
+                return false;
+            }
+
+            _bookings.Remove(booking);
+            return true;
         }
 
         public Booking? GetNextBookingForRoom(int roomId, DateTimeOffset afterTime)
