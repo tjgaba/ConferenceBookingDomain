@@ -5,6 +5,7 @@ using System.IO;
 using System.Text.Json;
 using System.Threading.Tasks;
 using ConferenceBooking.Persistence;
+using ConferenceBooking.API.Exceptions;
 
 namespace ConferenceBooking.API.Services
 {
@@ -12,6 +13,7 @@ namespace ConferenceBooking.API.Services
     {
         private readonly List<Booking> _bookings;
         private readonly Dictionary<int, ConferenceRoom> _roomsById;
+        private int _nextBookingId = 1; // Initialize booking ID counter
 
         public BookingManager(
             List<ConferenceRoom> rooms,
@@ -49,6 +51,14 @@ namespace ConferenceBooking.API.Services
                 b.StartTime <= atTime &&
                 atTime < b.EndTime
             );
+        }
+
+        public Booking? GetNextBookingForRoom(int roomId, DateTimeOffset atTime)
+        {
+            return _bookings
+                .Where(b => b.Room.Id == roomId && b.StartTime > atTime)
+                .OrderBy(b => b.StartTime)
+                .FirstOrDefault();
         }
 
         public Resulting<Booking> CreateBooking(
@@ -154,12 +164,27 @@ namespace ConferenceBooking.API.Services
             return true;
         }
 
-        public Booking? GetNextBookingForRoom(int roomId, DateTimeOffset afterTime)
+        public ConferenceRoom GetFirstAvailableRoom(DateTimeOffset startTime)
         {
-            return _bookings
-                .Where(b => b.Room.Id == roomId && b.Status == BookingStatus.Confirmed && b.StartTime > afterTime)
-                .OrderBy(b => b.StartTime)
-                .FirstOrDefault();
+            var availableRooms = GetAvailableRooms(startTime);
+            var room = availableRooms.FirstOrDefault();
+
+            if (room == null)
+            {
+                throw new InvalidBookingException("No available rooms for the specified time.");
+            }
+
+            return room;
+        }
+
+        public ConferenceRoom ValidateAndGetFirstAvailableRoom(DateTimeOffset startDate, DateTimeOffset endDate)
+        {
+            if (endDate <= startDate)
+            {
+                throw new InvalidBookingException("End date must be after start date.");
+            }
+
+            return GetFirstAvailableRoom(startDate);
         }
 
         public class Resulting
@@ -189,6 +214,11 @@ namespace ConferenceBooking.API.Services
 
             public static Resulting<T> Success(T value) => new Resulting<T>(true, string.Empty, value);
             public new static Resulting<T> Failure(string errorMessage) => new Resulting<T>(false, errorMessage, default!);
+        }
+
+        public int GenerateBookingId()
+        {
+            return _nextBookingId++;
         }
     }
 }

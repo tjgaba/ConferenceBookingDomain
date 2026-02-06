@@ -17,24 +17,14 @@ public class DeleteBookingController : ControllerBase
     [HttpDelete("delete/{id}")]
     public IActionResult DeleteBooking(int id)
     {
-        // Change: Replaced if/else block with exception handling for not-found errors.
         var result = _bookingManager.DeleteBooking(id);
-        if (!result)
-        {
-            throw new InvalidBookingException($"Booking with ID {id} not found.");
-        }
-        return NoContent();
+        return result ? NoContent() : NotFound(new { Message = $"Booking with ID {id} not found." });
     }
 
     [HttpDelete("delete")]
     public IActionResult DeleteBooking([FromBody] DeleteBookingDTO dto)
     {
-        // Change: Replaced if/else block with exception handling for not-found errors.
         var result = _bookingManager.DeleteBooking(dto.BookingId);
-        if (!result)
-        {
-            throw new InvalidBookingException($"Booking with ID {dto.BookingId} not found.");
-        }
-        return NoContent();
+        return result ? NoContent() : NotFound(new { Message = $"Booking with ID {dto.BookingId} not found." });
     }
 }

@@ -1,5 +1,12 @@
 # 🏢 Conference Room Booking Domain & API
 
+## 🌐 Recent Updates
+- **Dynamic Room Selection**: The `BookingController` now dynamically fetches available rooms instead of using hardcoded values.
+- **Debugging Logs**: Added logs in `BookingManager` to verify room initialization.
+- **Improved Exception Handling**: Enhanced middleware to handle domain-specific exceptions consistently.
+
+---
+
 ## 📑 Table of Contents
 - [📌 Project Overview](#-project-overview)
 - [🎯 Objectives](#-objectives)
@@ -117,16 +124,15 @@ Guard clauses ensure:
 
 ### Custom Domain Exceptions
 - **InvalidBookingException**  
-  Thrown when a booking violates domain rules.
+  Thrown when a booking violates domain rules or no rooms are available.
 
 - **BookingPersistenceException**  
   Thrown when file I/O operations fail.
 
 ### Exception Design Principles
-- Domain layer throws meaningful exceptions
-- Application and API layers decide how to respond
-- Exceptions are not used for control flow
-- Messages clearly describe the failure reason
+- Middleware ensures consistent error responses.
+- Logs provide detailed debugging information.
+- Exceptions are not used for control flow.
 
 ---
 
@@ -153,34 +159,18 @@ File persistence is isolated from the domain and handled in the application laye
 
 ## 🌐 ASP.NET Core Web API
 
-### Web API Requirements Fulfilled
+### Web API Enhancements
 
-#### 1️⃣ ASP.NET Core Web API Project
-- Separate API project added
-- Domain and application layers remain unchanged
-- Proper project references configured
+#### 1️⃣ Dynamic Room Selection
+- The `POST /book` endpoint dynamically selects an available room for booking.
+- Throws `InvalidBookingException` if no rooms are available.
 
-#### 2️⃣ Program.cs as Application Host
-- Configures HTTP pipeline
-- Registers services
-- Enables controllers
-- Contains **no business logic**
+#### 2️⃣ Debugging Logs
+- Logs added to `BookingManager` to verify room initialization during startup.
 
-#### 3️⃣ Controllers as Entry Points
-- Controllers use constructor injection
-- Coordinate requests only
-- No domain rules inside controllers
-
-#### 4️⃣ Routing & Endpoints
-- Attribute routing used
-- At least one `GET` endpoint
-- At least one `POST` endpoint
-- Endpoints map directly to existing domain methods
-
-#### 5️⃣ Returning Data via HTTP
-- Domain data returned as JSON
-- Serialization handled by ASP.NET Core
-- No domain logic leakage
+#### 3️⃣ Exception Handling Middleware
+- Centralized middleware maps domain exceptions to HTTP status codes.
+- Ensures consistent JSON error responses.
 
 ---
 

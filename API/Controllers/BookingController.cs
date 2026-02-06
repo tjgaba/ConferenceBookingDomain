@@ -26,22 +26,10 @@ public class BookingController : ControllerBase
     [HttpPost("book")]
     public IActionResult CreateBooking([FromBody] CreateBookingRequestDTO dto)
     {
-        if (dto.EndDate <= dto.StartDate)
-        {
-            throw new InvalidBookingException("End date must be after start date.");
-        }
-
-        // Fetch the first available room dynamically
-        var availableRooms = _bookingManager.GetAvailableRooms(dto.StartDate);
-        var room = availableRooms.FirstOrDefault();
-
-        if (room == null)
-        {
-            throw new InvalidBookingException("No available rooms for the specified time.");
-        }
+        var room = _bookingManager.ValidateAndGetFirstAvailableRoom(dto.StartDate, dto.EndDate);
 
         var booking = new Booking(
-            0, // Temporary booking ID
+            _bookingManager.GenerateBookingId(), // Auto-incremented booking ID
             room, // Dynamically fetched room
             "RequestedBy", // Placeholder for requestedBy
             dto.StartDate,
@@ -57,12 +45,9 @@ public class BookingController : ControllerBase
             booking.EndTime - booking.StartTime
         );
 
-        if (!result.IsSuccess)
-        {
-            throw new InvalidBookingException(result.ErrorMessage);
-        }
-
-        return Ok(result.Value);
+        return result.IsSuccess
+            ? Ok(result.Value)
+            : Conflict(new { Message = result.ErrorMessage });
     }
 
     [HttpDelete("cancel/{id}")]
