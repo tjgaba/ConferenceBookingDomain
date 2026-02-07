@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Http;
 using System;
 using System.Net;
 using System.Threading.Tasks;
+using ConferenceBooking.API.Exceptions;
 
 namespace ConferenceBooking.API.Middleware
 {
