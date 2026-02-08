@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "kT4pUspGdsc=",
+  "dgSpecHash": "aCPp5iwyLEo=",
   "success": true,
-  "projectFilePath": "C:\\Users\\Public\\ConferenceBookingDomain\\ConferenceBookingDomain.csproj",
+  "projectFilePath": "C:\\Users\\Public\\ConferenceBookingDomain\\ConferenceBookingDomain\\ConferenceBookingDomain.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\asus\\.nuget\\packages\\microsoft.aspnetcore.authentication.jwtbearer\\8.0.0\\microsoft.aspnetcore.authentication.jwtbearer.8.0.0.nupkg.sha512",
     "C:\\Users\\asus\\.nuget\\packages\\microsoft.aspnetcore.cryptography.internal\\8.0.0\\microsoft.aspnetcore.cryptography.internal.8.0.0.nupkg.sha512",
