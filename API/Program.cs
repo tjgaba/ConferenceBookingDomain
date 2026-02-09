@@ -43,6 +43,9 @@ public partial class Program
 
         app.UseHttpsRedirection();
 
+        app.UseAuthentication();
+        app.UseAuthorization();
+
         // Add ExceptionHandlingMiddleware
         app.UseMiddleware<ExceptionHandlingMiddleware>();
 

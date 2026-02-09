@@ -1,5 +1,6 @@
-using Microsoft.AspNetCore.Mvc;
+it addusing Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authorization;
 
 namespace API.Controllers
 {
@@ -9,6 +10,7 @@ namespace API.Controllers
     // Base route for all authentication-related endpoints.
 
     [Route("api/auth")]
+    [Authorize] // Protect all endpoints in this controller
     public class AuthController : ControllerBase
     {
         // UserManager is provided by ASP.NET Core Identity.
