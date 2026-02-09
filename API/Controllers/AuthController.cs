@@ -1,10 +1,9 @@
-it addusing Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
 
 namespace API.Controllers
 {
-   
     [ApiController]
 
     // Base route for all authentication-related endpoints.

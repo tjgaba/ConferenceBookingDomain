@@ -7,6 +7,7 @@ using ConferenceBooking.API.DTO;
 /// </summary>
 [ApiController]
 [Route("api/[controller]ByRoomNumber")]
+[Authorize]
 public class AvailabilityController : ControllerBase
 {
     private readonly BookingManager _bookingManager;
