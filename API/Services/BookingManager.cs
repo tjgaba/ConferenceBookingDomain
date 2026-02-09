@@ -8,6 +8,7 @@ using ConferenceBooking.Persistence;
 using ConferenceBooking.API.Exceptions;
 using ConferenceBooking.API.Entities;
 using ConferenceBooking.API.Services;
+using ConferenceBooking.API.Models;
 
 namespace ConferenceBooking.API.Services
 {

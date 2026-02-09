@@ -8,6 +8,7 @@ using ConferenceBooking.API.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ConferenceBooking.API.Models; // Added namespace for Booking
 
 [ApiController]
 [Route("api/[controller]")]

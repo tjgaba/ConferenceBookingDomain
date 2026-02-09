@@ -52,10 +52,18 @@ public partial class Program
         {
             var serviceProvider = scope.ServiceProvider;
 
-            var userManager = serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-            var roleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+            try
+            {
+                var userManager = serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+                var roleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
 
-            await IdentitySeeder.SeedAsync(userManager, roleManager);
+                // IdentitySeeder.SeedAsync(userManager, roleManager).Wait();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error during seeding: {ex.Message}");
+                throw;
+            }
         }
 
         if (app.Environment.IsDevelopment())

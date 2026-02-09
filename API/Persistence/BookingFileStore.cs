@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using ConferenceBooking.API.Entities;
+using ConferenceBooking.API.Models;
 
 namespace ConferenceBooking.Persistence
 {

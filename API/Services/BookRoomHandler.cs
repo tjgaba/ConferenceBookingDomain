@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using ConferenceBooking.API.Services;
 using ConferenceBooking.API.Entities;
+using ConferenceBooking.API.Models;
 
 public class BookRoomHandler
 {
