@@ -3,6 +3,8 @@ using System.Security.Claims;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
 
+namespace ConferenceBooking.API.Auth;
+
 public class TokenService
 {
     private readonly IConfiguration _config;

@@ -4,15 +4,18 @@ using System.Linq;
 using System;
 using Swashbuckle.AspNetCore;
 using ConferenceBooking.API.Data;
+using ConferenceBooking.API.Auth;
+using Microsoft.EntityFrameworkCore;
 using ConferenceBooking.Persistence;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
 using ConferenceBooking.API.Services;
 using ConferenceBooking.API.Middleware;
+using Microsoft.AspNetCore.Identity;
 
 public partial class Program
 {
-    public static void Main(string[] args)
+    public static async Task Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
 
@@ -20,6 +23,14 @@ public partial class Program
         builder.Services.AddControllers();
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
+
+        builder.Services.AddDbContext<ApplicationDbContext>(options =>
+        /*options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));*/
+            options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+        builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
+            .AddEntityFrameworkStores<ApplicationDbContext>()
+            .AddDefaultTokenProviders();
 
         // Initialize rooms and bookings from repository / file store
         var rooms = ConferenceRoomRepository.GetRooms();
@@ -35,6 +46,17 @@ public partial class Program
         builder.Services.AddSingleton<ViewAvailabilityHandler>();
 
         var app = builder.Build();
+
+        // Seed roles and users
+        using (var scope = app.Services.CreateScope())
+        {
+            var serviceProvider = scope.ServiceProvider;
+
+            var userManager = serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            var roleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+
+            await IdentitySeeder.SeedAsync(userManager, roleManager);
+        }
 
         if (app.Environment.IsDevelopment())
         {

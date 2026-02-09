@@ -1,13 +1,17 @@
-using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using ConferenceBooking.API.Services;
 using ConferenceBooking.API.DTO;
+using ConferenceBooking.API.Auth;
 using ConferenceBooking.API.Exceptions;
 using ConferenceBooking.API.Entities;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize] // Protect all endpoints in this controller
 public class BookingController : ControllerBase
 {
     private readonly BookingManager _bookingManager;
@@ -22,10 +26,16 @@ public class BookingController : ControllerBase
     {
         var room = _bookingManager.ValidateAndGetFirstAvailableRoom(dto.StartDate, dto.EndDate);
 
+        var userName = User.Identity?.Name ?? "Anonymous";
+        var roles = User.IsInRole("Admin") ? "Admin" :
+                    User.IsInRole("Receptionist") ? "Receptionist" :
+                    User.IsInRole("Employee") ? "Employee" :
+                    User.IsInRole("FacilityManager") ? "FacilityManager" : "User";
+
         var booking = new Booking(
             _bookingManager.GenerateBookingId(), // Auto-incremented booking ID
             room, // Dynamically fetched room
-            "RequestedBy", // Placeholder for requestedBy
+            userName, // Dynamically fetched user
             dto.StartDate,
             dto.EndDate,
             BookingStatus.Confirmed

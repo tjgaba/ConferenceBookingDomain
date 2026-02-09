@@ -15,7 +15,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.0">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
@@ -43,6 +43,7 @@
     <Compile Include="Data\ConferenceRoomRepository.cs" />
     <Compile Include="Persistence\BookingFileStore.cs" />
     <Compile Include="Persistence\BookingPersistenceException.cs" />
+    <Compile Include="Data\ApplicationDbContext.cs" />
   </ItemGroup>
 
   <ItemGroup>

@@ -154,6 +154,19 @@ namespace ConferenceBooking.API.Services
             booking.Status = ConferenceBooking.API.Entities.BookingStatus.Cancelled;
         }
 
+        public void CancelBooking(int bookingId, string reason)
+        {
+            var booking = _bookings.FirstOrDefault(b => b.Id == bookingId);
+            if (booking == null)
+                throw new ArgumentException("Booking not found.");
+
+            if (booking.Status == ConferenceBooking.API.Entities.BookingStatus.Cancelled)
+                throw new InvalidOperationException("Booking is already cancelled.");
+
+            booking.Status = ConferenceBooking.API.Entities.BookingStatus.Cancelled;
+            // Log or store the reason for cancellation if needed
+        }
+
         public bool DeleteBooking(int bookingId)
         {
             var booking = _bookings.FirstOrDefault(b => b.Id == bookingId);
