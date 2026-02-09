@@ -5,7 +5,6 @@ using ConferenceBooking.API.Exceptions;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize]
 public class DeleteBookingController : ControllerBase
 {
     private readonly BookingManager _bookingManager;

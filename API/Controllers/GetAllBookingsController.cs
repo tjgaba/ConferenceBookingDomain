@@ -4,7 +4,6 @@ using ConferenceBooking.API.DTO;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize]
 public class GetAllBookingsController : ControllerBase
 {
     private readonly BookingManager _bookingManager;

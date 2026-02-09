@@ -4,7 +4,7 @@ using ConferenceBooking.API.Services;
 
 [ApiController]
 [Route("api/[controller]ByTime")]
-[Authorize]
+
 public class AvailableRoomsController : ControllerBase
 {
     private readonly BookingManager _bookingManager;
