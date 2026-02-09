@@ -1,6 +1,9 @@
-public enum BookingStatus
+namespace ConferenceBooking.API.Entities
 {
-    Pending = 1,
-    Confirmed = 2,
-    Cancelled = 3
+    public enum BookingStatus
+    {
+        Pending,
+        Confirmed,
+        Cancelled
+    }
 }

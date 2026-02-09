@@ -1,4 +1,5 @@
 using System;
+using ConferenceBooking.API.Entities;
 
 namespace ConferenceBooking.Persistence
 {

@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using System.Linq;
 using System;
 using Swashbuckle.AspNetCore;
+using ConferenceBooking.API.Data;
 using ConferenceBooking.Persistence;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;

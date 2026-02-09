@@ -1,15 +1,18 @@
-public class ConferenceRoom
+namespace ConferenceBooking.API.Entities
 {
-    public int Id { get; }
-    public string Name { get; }
-    public int Capacity { get; }
-    public int Number { get; } // Added Number property
-
-    public ConferenceRoom(int id, string name, int capacity)
+    public class ConferenceRoom
     {
-        Id = id;
-        Name = name;
-        Capacity = capacity;
-        Number = id; // Default Number to Id
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public int Capacity { get; set; }
+        public int Number { get; set; } // Added property
+
+        public ConferenceRoom(int id, string name, int capacity, int number)
+        {
+            Id = id;
+            Name = name;
+            Capacity = capacity;
+            Number = number;
+        }
     }
 }

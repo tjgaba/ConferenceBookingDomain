@@ -39,6 +39,10 @@
     <Compile Include="..\Persistence\**\*.cs" />
     <Compile Include="DTO\**\*.cs" />
     <Compile Include="Exceptions\**\*.cs" />
+    <Compile Include="domain\**\*.cs" />
+    <Compile Include="Data\ConferenceRoomRepository.cs" />
+    <Compile Include="Persistence\BookingFileStore.cs" />
+    <Compile Include="Persistence\BookingPersistenceException.cs" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using API.Auth;
 
-namespace API.Data
+namespace ConferenceBooking.API.Data
 {
     public class ApplicationDbContext : DbContext
     {

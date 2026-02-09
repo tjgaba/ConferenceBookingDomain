@@ -1,5 +1,6 @@
 using System;
 using System.Text.Json.Serialization;
+using ConferenceBooking.API.Entities;
 
 public class Booking
 {

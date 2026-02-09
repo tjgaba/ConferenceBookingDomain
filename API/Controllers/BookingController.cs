@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using ConferenceBooking.API.Services;
 using ConferenceBooking.API.DTO;
 using ConferenceBooking.API.Exceptions;
+using ConferenceBooking.API.Entities;
 
 [ApiController]
 [Route("api/[controller]")]

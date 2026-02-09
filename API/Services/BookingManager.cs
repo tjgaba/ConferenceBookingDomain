@@ -6,6 +6,8 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using ConferenceBooking.Persistence;
 using ConferenceBooking.API.Exceptions;
+using ConferenceBooking.API.Entities;
+using ConferenceBooking.API.Services;
 
 namespace ConferenceBooking.API.Services
 {
@@ -34,7 +36,7 @@ namespace ConferenceBooking.API.Services
             return _roomsById.Values.Where(room =>
                 !_bookings.Any(b =>
                     b.Room.Id == room.Id &&
-                    b.Status == BookingStatus.Confirmed &&
+                    b.Status == ConferenceBooking.API.Entities.BookingStatus.Confirmed &&
                     b.StartTime <= atTime &&
                     atTime < b.EndTime
                 )
@@ -47,7 +49,7 @@ namespace ConferenceBooking.API.Services
         {
             return _bookings.FirstOrDefault(b =>
                 b.Room.Id == roomId &&
-                b.Status == BookingStatus.Confirmed &&
+                b.Status == ConferenceBooking.API.Entities.BookingStatus.Confirmed &&
                 b.StartTime <= atTime &&
                 atTime < b.EndTime
             );
@@ -79,7 +81,7 @@ namespace ConferenceBooking.API.Services
 
             if (_bookings.Any(b =>
                 b.Room.Id == roomId &&
-                b.Status == BookingStatus.Confirmed &&
+                b.Status == ConferenceBooking.API.Entities.BookingStatus.Confirmed &&
                 b.StartTime < endTime &&
                 startTime < b.EndTime))
             {
@@ -131,7 +133,7 @@ namespace ConferenceBooking.API.Services
                 RequestedBy = b.RequestedBy,
                 StartTime = b.StartTime,
                 EndTime = b.EndTime,
-                Status = b.Status
+                Status = (ConferenceBooking.API.Entities.BookingStatus)b.Status
             });
 
             var json = JsonSerializer.Serialize(records);
@@ -146,10 +148,10 @@ namespace ConferenceBooking.API.Services
             if (booking == null)
                 throw new ArgumentException("Booking not found.");
 
-            if (booking.Status == BookingStatus.Cancelled)
+            if (booking.Status == ConferenceBooking.API.Entities.BookingStatus.Cancelled)
                 throw new InvalidOperationException("Booking is already cancelled.");
 
-            booking.Status = BookingStatus.Cancelled;
+            booking.Status = ConferenceBooking.API.Entities.BookingStatus.Cancelled;
         }
 
         public bool DeleteBooking(int bookingId)

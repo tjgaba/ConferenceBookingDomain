@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
+using ConferenceBooking.API.Entities;
 
 namespace ConferenceBooking.Persistence
 {
@@ -43,7 +44,7 @@ namespace ConferenceBooking.Persistence
             }
             catch (IOException ex)
             {
-                throw new BookingPersistenceException(
+                throw new ConferenceBooking.Persistence.BookingPersistenceException(
                     "Unable to save booking data to disk.", ex);
             }
         }
@@ -87,8 +88,8 @@ namespace ConferenceBooking.Persistence
             }
             catch (IOException ex)
             {
-                throw new BookingPersistenceException(
-                    "Unable to load booking data to disk.", ex);
+                throw new ConferenceBooking.Persistence.BookingPersistenceException(
+                    "Unable to load booking data from disk.", ex);
             }
         }
     }
