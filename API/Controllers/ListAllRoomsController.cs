@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ConferenceBooking.API.Data;
 using ConferenceBooking.API.DTO;
+using ConferenceBooking.API.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace API.Controllers
@@ -19,18 +20,36 @@ namespace API.Controllers
         }
 
         /// <summary>
-        /// Get all conference rooms
+        /// Get all conference rooms with optional filtering
         /// </summary>
+        /// <param name="location">Filter by location (optional)</param>
+        /// <param name="activeOnly">Show only active rooms (default: true)</param>
         [HttpGet]
-        public async Task<IActionResult> GetAllRooms()
+        public async Task<IActionResult> GetAllRooms([FromQuery] RoomLocation? location, [FromQuery] bool activeOnly = true)
         {
-            var rooms = await _dbContext.ConferenceRooms
+            var query = _dbContext.ConferenceRooms.AsQueryable();
+
+            // Filter by active status
+            if (activeOnly)
+            {
+                query = query.Where(r => r.IsActive);
+            }
+
+            // Filter by location if provided
+            if (location.HasValue)
+            {
+                query = query.Where(r => r.Location == location.Value);
+            }
+
+            var rooms = await query
                 .Select(r => new ListAllRoomsDTO
                 {
                     Id = r.Id,
                     Name = r.Name,
                     Capacity = r.Capacity,
-                    Number = r.Number
+                    Number = r.Number,
+                    Location = r.Location.ToString(),
+                    IsActive = r.IsActive
                 })
                 .ToListAsync();
 
@@ -55,7 +74,9 @@ namespace API.Controllers
                 Id = room.Id,
                 Name = room.Name,
                 Capacity = room.Capacity,
-                Number = room.Number
+                Number = room.Number,
+                Location = room.Location.ToString(),
+                IsActive = room.IsActive
             };
 
             return Ok(roomDto);

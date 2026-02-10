@@ -52,6 +52,12 @@ public class UpdateBookingController : ControllerBase
                 return BadRequest(new { Message = $"Room with ID {dto.RoomId.Value} not found." });
             }
 
+            // Check if new room is active
+            if (!newRoom.IsActive)
+            {
+                return BadRequest(new { Message = "The selected room is not currently available for booking." });
+            }
+
             // Check for conflicts in the new room
             var startTime = dto.StartTime ?? booking.StartTime;
             var endTime = dto.EndTime ?? booking.EndTime;

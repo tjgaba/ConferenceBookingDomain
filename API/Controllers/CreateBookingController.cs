@@ -56,6 +56,12 @@ public class CreateBookingController : ControllerBase
             return Conflict(new { Message = "Room cannot be null when creating a booking." });
         }
 
+        // Check if room is active
+        if (!room.IsActive)
+        {
+            return BadRequest(new { Message = "This room is not currently available for booking." });
+        }
+
         var duration = dto.EndDate - dto.StartDate;
         var endTime = dto.StartDate + duration;
 

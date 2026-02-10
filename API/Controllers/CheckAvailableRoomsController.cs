@@ -33,6 +33,11 @@ public class CheckAvailableRoomsController : ControllerBase
             return NotFound(new { Message = $"Room with ID {roomId} not found." });
         }
 
+        if (!room.IsActive)
+        {
+            return BadRequest(new { Message = "This room is not currently active." });
+        }
+
         var isAvailable = !await _dbContext.Bookings.AnyAsync(b =>
             b.RoomId == roomId &&
             b.Status == BookingStatus.Confirmed &&
@@ -59,7 +64,7 @@ public class CheckAvailableRoomsController : ControllerBase
         var requestedTime = atTime ?? DateTimeOffset.Now;
 
         var availableRooms = await _dbContext.ConferenceRooms
-            .Where(room => !_dbContext.Bookings.Any(b =>
+            .Where(room => room.IsActive && !_dbContext.Bookings.Any(b =>
                 b.RoomId == room.Id &&
                 b.Status == BookingStatus.Confirmed &&
                 b.StartTime <= requestedTime &&

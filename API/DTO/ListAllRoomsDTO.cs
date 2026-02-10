@@ -6,5 +6,7 @@ namespace ConferenceBooking.API.DTO
         public string? Name { get; set; }
         public int Capacity { get; set; }
         public int Number { get; set; }
+        public string? Location { get; set; }
+        public bool IsActive { get; set; }
     }
 }

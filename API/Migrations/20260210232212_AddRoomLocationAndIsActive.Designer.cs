@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -9,9 +10,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace API.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260210232212_AddRoomLocationAndIsActive")]
+    partial class AddRoomLocationAndIsActive
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.0");
@@ -57,7 +60,7 @@ namespace API.Migrations
                             Id = 2,
                             Capacity = 8,
                             IsActive = true,
-                            Location = 0,
+                            Location = 1,
                             Name = "Conference Room B",
                             Number = 102
                         },
@@ -66,7 +69,7 @@ namespace API.Migrations
                             Id = 3,
                             Capacity = 15,
                             IsActive = true,
-                            Location = 0,
+                            Location = 2,
                             Name = "Conference Room C",
                             Number = 103
                         },
@@ -75,198 +78,18 @@ namespace API.Migrations
                             Id = 4,
                             Capacity = 20,
                             IsActive = true,
-                            Location = 0,
+                            Location = 4,
                             Name = "Board Room",
-                            Number = 104
+                            Number = 201
                         },
                         new
                         {
                             Id = 5,
                             Capacity = 6,
                             IsActive = true,
-                            Location = 0,
-                            Name = "Meeting Room 1",
-                            Number = 105
-                        },
-                        new
-                        {
-                            Id = 6,
-                            Capacity = 10,
-                            IsActive = true,
-                            Location = 1,
-                            Name = "Conference Room A",
-                            Number = 201
-                        },
-                        new
-                        {
-                            Id = 7,
-                            Capacity = 8,
-                            IsActive = true,
-                            Location = 1,
-                            Name = "Conference Room B",
-                            Number = 202
-                        },
-                        new
-                        {
-                            Id = 8,
-                            Capacity = 15,
-                            IsActive = true,
-                            Location = 1,
-                            Name = "Conference Room C",
-                            Number = 203
-                        },
-                        new
-                        {
-                            Id = 9,
-                            Capacity = 20,
-                            IsActive = true,
-                            Location = 1,
-                            Name = "Board Room",
-                            Number = 204
-                        },
-                        new
-                        {
-                            Id = 10,
-                            Capacity = 6,
-                            IsActive = true,
-                            Location = 1,
-                            Name = "Meeting Room 1",
-                            Number = 205
-                        },
-                        new
-                        {
-                            Id = 11,
-                            Capacity = 10,
-                            IsActive = true,
-                            Location = 2,
-                            Name = "Conference Room A",
-                            Number = 301
-                        },
-                        new
-                        {
-                            Id = 12,
-                            Capacity = 8,
-                            IsActive = true,
-                            Location = 2,
-                            Name = "Conference Room B",
-                            Number = 302
-                        },
-                        new
-                        {
-                            Id = 13,
-                            Capacity = 15,
-                            IsActive = true,
-                            Location = 2,
-                            Name = "Conference Room C",
-                            Number = 303
-                        },
-                        new
-                        {
-                            Id = 14,
-                            Capacity = 20,
-                            IsActive = true,
-                            Location = 2,
-                            Name = "Board Room",
-                            Number = 304
-                        },
-                        new
-                        {
-                            Id = 15,
-                            Capacity = 6,
-                            IsActive = true,
-                            Location = 2,
-                            Name = "Meeting Room 1",
-                            Number = 305
-                        },
-                        new
-                        {
-                            Id = 16,
-                            Capacity = 10,
-                            IsActive = true,
-                            Location = 3,
-                            Name = "Conference Room A",
-                            Number = 401
-                        },
-                        new
-                        {
-                            Id = 17,
-                            Capacity = 8,
-                            IsActive = true,
-                            Location = 3,
-                            Name = "Conference Room B",
-                            Number = 402
-                        },
-                        new
-                        {
-                            Id = 18,
-                            Capacity = 15,
-                            IsActive = true,
-                            Location = 3,
-                            Name = "Conference Room C",
-                            Number = 403
-                        },
-                        new
-                        {
-                            Id = 19,
-                            Capacity = 20,
-                            IsActive = true,
-                            Location = 3,
-                            Name = "Board Room",
-                            Number = 404
-                        },
-                        new
-                        {
-                            Id = 20,
-                            Capacity = 6,
-                            IsActive = true,
                             Location = 3,
                             Name = "Meeting Room 1",
-                            Number = 405
-                        },
-                        new
-                        {
-                            Id = 21,
-                            Capacity = 10,
-                            IsActive = true,
-                            Location = 4,
-                            Name = "Conference Room A",
-                            Number = 501
-                        },
-                        new
-                        {
-                            Id = 22,
-                            Capacity = 8,
-                            IsActive = true,
-                            Location = 4,
-                            Name = "Conference Room B",
-                            Number = 502
-                        },
-                        new
-                        {
-                            Id = 23,
-                            Capacity = 15,
-                            IsActive = true,
-                            Location = 4,
-                            Name = "Conference Room C",
-                            Number = 503
-                        },
-                        new
-                        {
-                            Id = 24,
-                            Capacity = 20,
-                            IsActive = true,
-                            Location = 4,
-                            Name = "Board Room",
-                            Number = 504
-                        },
-                        new
-                        {
-                            Id = 25,
-                            Capacity = 6,
-                            IsActive = true,
-                            Location = 4,
-                            Name = "Meeting Room 1",
-                            Number = 505
+                            Number = 104
                         });
                 });
 
