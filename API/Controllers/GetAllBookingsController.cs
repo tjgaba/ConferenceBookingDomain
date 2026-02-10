@@ -30,7 +30,9 @@ public class GetAllBookingsController : ControllerBase
                 RequestedBy = b.RequestedBy,
                 StartTime = b.StartTime,
                 EndTime = b.EndTime,
-                Status = b.Status.ToString()
+                Status = b.Status.ToString(),
+                CreatedAt = b.CreatedAt,
+                CancelledAt = b.CancelledAt
             })
             .ToListAsync();
 

@@ -30,6 +30,16 @@ public class ApplicationDbContext : IdentityDbContext
             .HasForeignKey(b => b.RoomId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        // Configure Booking timestamps
+        modelBuilder.Entity<Booking>()
+            .Property(b => b.CreatedAt)
+            .IsRequired()
+            .HasDefaultValueSql("datetime('now')");
+
+        modelBuilder.Entity<Booking>()
+            .Property(b => b.CancelledAt)
+            .IsRequired(false);
+
         // Configure Session-Room relationship
         modelBuilder.Entity<Session>()
             .HasOne(s => s.Room)

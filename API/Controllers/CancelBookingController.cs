@@ -32,7 +32,7 @@ public class CancelBookingController : ControllerBase
             return BadRequest(new { Message = "Booking is already cancelled." });
         }
 
-        booking.Status = BookingStatus.Cancelled;
+        booking.Cancel();
         await _dbContext.SaveChangesAsync();
         return NoContent();
     }

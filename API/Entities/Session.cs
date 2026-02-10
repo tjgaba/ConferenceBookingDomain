@@ -16,7 +16,7 @@ namespace ConferenceBooking.API.Entities
         public int Capacity { get; set; }
         
         [Required]
-        public DateTimeOffset StartTime { get; set; }
+        public DateTimeOffset StartTime { get; set; } 
         
         [Required]
         public DateTimeOffset EndTime { get; set; }

@@ -11,5 +11,7 @@ namespace ConferenceBooking.API.DTO
         public DateTimeOffset StartTime { get; set; }
         public DateTimeOffset EndTime { get; set; }
         public string? Status { get; set; } = string.Empty; // Default to empty string
+        public DateTimeOffset CreatedAt { get; set; }
+        public DateTimeOffset? CancelledAt { get; set; }
     }
 }

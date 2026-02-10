@@ -13,6 +13,8 @@ public class Booking
     public DateTimeOffset StartTime { get; set; }
     public DateTimeOffset EndTime { get; set; }
     public BookingStatus Status { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset? CancelledAt { get; set; }
 
     [JsonConstructor]
     public Booking(
@@ -30,6 +32,7 @@ public class Booking
         StartTime = startTime;
         EndTime = endTime;
         Status = status;
+        CreatedAt = DateTimeOffset.UtcNow;
     }
 
     public Booking()
@@ -37,6 +40,7 @@ public class Booking
         // Parameterless constructor for EF Core
         Room = new ConferenceRoom(); // Default initialization
         RequestedBy = string.Empty; // Default initialization
+        CreatedAt = DateTimeOffset.UtcNow;
     }
 
     public void Confirm()
@@ -52,5 +56,6 @@ public class Booking
             throw new InvalidOperationException("Booking is already cancelled.");
 
         Status = BookingStatus.Cancelled;
+        CancelledAt = DateTimeOffset.UtcNow;
     }
 }
