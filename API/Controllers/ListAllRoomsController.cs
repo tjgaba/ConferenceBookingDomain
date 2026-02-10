@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ConferenceBooking.API.Data;
+using ConferenceBooking.API.DTO;
 using Microsoft.EntityFrameworkCore;
 
 namespace API.Controllers
@@ -8,11 +9,11 @@ namespace API.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
-    public class RoomsController : ControllerBase
+    public class ListAllRoomsController : ControllerBase
     {
         private readonly ApplicationDbContext _dbContext;
 
-        public RoomsController(ApplicationDbContext dbContext)
+        public ListAllRoomsController(ApplicationDbContext dbContext)
         {
             _dbContext = dbContext;
         }
@@ -24,12 +25,12 @@ namespace API.Controllers
         public async Task<IActionResult> GetAllRooms()
         {
             var rooms = await _dbContext.ConferenceRooms
-                .Select(r => new
+                .Select(r => new ListAllRoomsDTO
                 {
-                    r.Id,
-                    r.Name,
-                    r.Capacity,
-                    r.Number
+                    Id = r.Id,
+                    Name = r.Name,
+                    Capacity = r.Capacity,
+                    Number = r.Number
                 })
                 .ToListAsync();
 
@@ -49,13 +50,15 @@ namespace API.Controllers
                 return NotFound(new { Message = $"Room with ID {id} not found." });
             }
 
-            return Ok(new
+            var roomDto = new ListAllRoomsDTO
             {
-                room.Id,
-                room.Name,
-                room.Capacity,
-                room.Number
-            });
+                Id = room.Id,
+                Name = room.Name,
+                Capacity = room.Capacity,
+                Number = room.Number
+            };
+
+            return Ok(roomDto);
         }
     }
 }

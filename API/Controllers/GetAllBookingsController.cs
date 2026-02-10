@@ -1,26 +1,28 @@
-using ConferenceBooking.API.Services;
+using ConferenceBooking.API.Data;
 using ConferenceBooking.API.DTO;
-using ConferenceBooking.API.Auth;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Linq;
+using System.Threading.Tasks;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize] // Only Admin can delete bookings
+[Authorize] 
 public class GetAllBookingsController : ControllerBase
 {
-    private readonly BookingManager _bookingManager;
+    private readonly ApplicationDbContext _dbContext;
 
-    public GetAllBookingsController(BookingManager bookingManager)
+    public GetAllBookingsController(ApplicationDbContext dbContext)
     {
-        _bookingManager = bookingManager;
+        _dbContext = dbContext;
     }
 
     [HttpGet("all")]
     public async Task<IActionResult> GetAllBookings()
     {
-        var bookings = (await _bookingManager.GetAllBookingsAsync())
+        var bookings = await _dbContext.Bookings
+            .Include(b => b.Room)
             .Select(b => new GetAllBookingsDTO
             {
                 BookingId = b.Id,
@@ -29,7 +31,9 @@ public class GetAllBookingsController : ControllerBase
                 StartTime = b.StartTime,
                 EndTime = b.EndTime,
                 Status = b.Status.ToString()
-            });
+            })
+            .ToListAsync();
+
         return Ok(bookings);
     }
 }

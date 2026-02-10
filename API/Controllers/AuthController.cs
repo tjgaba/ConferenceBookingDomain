@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using API.DTO;
+using ConferenceBooking.API.DTO;
 using ConferenceBooking.API.Auth;
 using Microsoft.AspNetCore.Identity;
 

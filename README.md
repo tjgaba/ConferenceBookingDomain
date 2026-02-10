@@ -72,13 +72,13 @@ ConferenceBookingDomain/
 ├── API/                        # ASP.NET Core Web API
 │   ├── Controllers/
 │   │   ├── AuthController.cs              # JWT login
-│   │   ├── BookingController.cs           # Create bookings
+│   │   ├── CreateBookingController.cs     # Create bookings
+│   │   ├── UpdateBookingController.cs     # Update bookings
 │   │   ├── GetAllBookingsController.cs    # List all bookings
 │   │   ├── DeleteBookingController.cs     # Admin-only delete
 │   │   ├── CancelBookingController.cs     # Cancel bookings
-│   │   ├── RoomsController.cs             # Get all rooms
-│   │   ├── AvailabilityController.cs      # Check room availability
-│   │   └── AvailableRoomsController.cs    # List available rooms
+│   │   ├── ListAllRoomsController.cs      # Get all rooms
+│   │   └── CheckAvailableRoomsController.cs # Check room availability
 │   ├── Auth/
 │   │   ├── ApplicationUser.cs             # Identity user
 │   │   ├── IdentitySeeder.cs              # Seed users & roles
@@ -87,8 +87,12 @@ ConferenceBookingDomain/
 │   │   └── ApplicationDbContext.cs        # EF Core DbContext
 │   ├── DTO/
 │   │   ├── CreateBookingRequestDTO.cs
+│   │   ├── UpdateBookingDTO.cs
 │   │   ├── GetAllBookingsDTO.cs
-│   │   ├── AvailabilityDTO.cs
+│   │   ├── CancelBookingDTO.cs
+│   │   ├── DeleteBookingDTO.cs
+│   │   ├── CheckAvailableRoomsDTO.cs
+│   │   ├── ListAllRoomsDTO.cs
 │   │   └── LoginDto.cs
 │   ├── Middleware/
 │   │   └── ExceptionHandlingMiddleware.cs

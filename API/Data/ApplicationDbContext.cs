@@ -30,6 +30,13 @@ public class ApplicationDbContext : IdentityDbContext
             .HasForeignKey(b => b.RoomId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        // Configure Session-Room relationship
+        modelBuilder.Entity<Session>()
+            .HasOne(s => s.Room)
+            .WithMany()
+            .HasForeignKey(s => s.RoomId)
+            .OnDelete(DeleteBehavior.SetNull);
+
         // Seed Conference Rooms
         modelBuilder.Entity<ConferenceRoom>().HasData(
             new ConferenceRoom { Id = 1, Name = "Conference Room A", Capacity = 10, Number = 101 },
@@ -43,4 +50,5 @@ public class ApplicationDbContext : IdentityDbContext
     public DbSet<ApplicationUser> ApplicationUsers { get; set; }
     public DbSet<Booking> Bookings { get; set; }
     public DbSet<ConferenceRoom> ConferenceRooms { get; set; }
+    public DbSet<Session> Sessions { get; set; }
 }
