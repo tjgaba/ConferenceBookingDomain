@@ -1,22 +1,48 @@
 using System.Collections.Generic;
 using ConferenceBooking.API.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace ConferenceBooking.API.Data
 {
-    public static class ConferenceRoomRepository
+    public class ConferenceRoomRepository
     {
-        // BACK-END DATA SOURCE:
-        // Central definition of available conference rooms
-        public static List<ConferenceRoom> GetRooms()
+        private readonly ApplicationDbContext _dbContext;
+
+        public ConferenceRoomRepository(ApplicationDbContext dbContext)
         {
-            return new List<ConferenceRoom>
+            _dbContext = dbContext;
+        }
+
+        public async Task<List<ConferenceRoom>> GetAllRoomsAsync()
+        {
+            return await _dbContext.ConferenceRooms.ToListAsync();
+        }
+
+        public async Task<ConferenceRoom?> GetRoomByIdAsync(int id)
+        {
+            return await _dbContext.ConferenceRooms.FirstOrDefaultAsync(r => r.Id == id);
+        }
+
+        public async Task AddRoomAsync(ConferenceRoom room)
+        {
+            await _dbContext.ConferenceRooms.AddAsync(room);
+            await _dbContext.SaveChangesAsync();
+        }
+
+        public async Task UpdateRoomAsync(ConferenceRoom room)
+        {
+            _dbContext.ConferenceRooms.Update(room);
+            await _dbContext.SaveChangesAsync();
+        }
+
+        public async Task DeleteRoomAsync(int id)
+        {
+            var room = await GetRoomByIdAsync(id);
+            if (room != null)
             {
-                new ConferenceRoom(1, "Room 1", 5, 101),
-                new ConferenceRoom(2, "Room 2", 10, 102),
-                new ConferenceRoom(3, "Room 3", 15, 103),
-                new ConferenceRoom(4, "Room 4", 20, 104),
-                new ConferenceRoom(5, "Room 5", 25, 105),
-            };
+                _dbContext.ConferenceRooms.Remove(room);
+                await _dbContext.SaveChangesAsync();
+            }
         }
     }
 }

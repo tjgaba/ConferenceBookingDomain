@@ -1,6 +1,8 @@
 using System;
 using System.Text.Json.Serialization;
 using ConferenceBooking.API.Entities;
+namespace ConferenceBooking.API.Models;
+
 
 public class Booking
 {
@@ -26,6 +28,13 @@ public class Booking
         StartTime = startTime;
         EndTime = endTime;
         Status = status;
+    }
+
+    public Booking()
+    {
+        // Parameterless constructor for EF Core
+        Room = new ConferenceRoom(); // Default initialization
+        RequestedBy = string.Empty; // Default initialization
     }
 
     public void Confirm()

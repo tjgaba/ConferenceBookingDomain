@@ -1,12 +1,17 @@
-using Microsoft.AspNetCore.Mvc;
 using ConferenceBooking.API.Services;
 using ConferenceBooking.API.DTO;
+using ConferenceBooking.API.Auth;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
 
 /// <summary>
 /// Controller for managing room availability.
 /// </summary>
 [ApiController]
 [Route("api/[controller]ByRoomNumber")]
+[Authorize] // Protect all endpoints in this controller
 public class AvailabilityController : ControllerBase
 {
     private readonly BookingManager _bookingManager;
@@ -17,19 +22,19 @@ public class AvailabilityController : ControllerBase
     }
 
     [HttpGet]
-    public IActionResult GetAvailability([FromQuery] int roomNumber)
+    public async Task<IActionResult> GetAvailability([FromQuery] int roomId)
     {
-        var room = _bookingManager.GetRoomByNumber(roomNumber);
+        var room = await _bookingManager.GetRoomByIdAsync(roomId);
         if (room == null)
         {
-            return NotFound(new { Message = $"Room with number {roomNumber} not found." });
+            return NotFound(new { Message = $"Room with ID {roomId} not found." });
         }
 
         var availability = new AvailabilityDTO
         {
             RoomId = room.Id,
             RoomName = room.Name,
-            IsAvailable = _bookingManager.IsRoomAvailable(room.Id, DateTimeOffset.Now)
+            IsAvailable = await _bookingManager.IsRoomAvailableAsync(room.Id, DateTimeOffset.Now)
         };
 
         return Ok(availability);

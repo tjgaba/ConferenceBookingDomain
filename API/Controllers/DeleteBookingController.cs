@@ -1,10 +1,14 @@
-using Microsoft.AspNetCore.Mvc;
 using ConferenceBooking.API.Services;
 using ConferenceBooking.API.DTO;
+using ConferenceBooking.API.Auth;
 using ConferenceBooking.API.Exceptions;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize] // Protect all endpoints in this controller
 public class DeleteBookingController : ControllerBase
 {
     private readonly BookingManager _bookingManager;
@@ -15,6 +19,7 @@ public class DeleteBookingController : ControllerBase
     }
 
     [HttpDelete("delete/{id}")]
+    [Authorize(Roles = "Admin")] // Only Admin can delete bookings
     public IActionResult DeleteBooking(int id)
     {
         var result = _bookingManager.DeleteBooking(id);
@@ -22,6 +27,7 @@ public class DeleteBookingController : ControllerBase
     }
 
     [HttpDelete("delete")]
+    [Authorize(Roles = "Admin")] // Only Admin can delete bookings
     public IActionResult DeleteBooking([FromBody] DeleteBookingDTO dto)
     {
         var result = _bookingManager.DeleteBooking(dto.BookingId);

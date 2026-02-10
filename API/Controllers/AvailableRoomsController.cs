@@ -1,9 +1,13 @@
-using Microsoft.AspNetCore.Mvc;
 using ConferenceBooking.API.DTO;
 using ConferenceBooking.API.Services;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using ConferenceBooking.API.Auth;
 
 [ApiController]
 [Route("api/[controller]ByTime")]
+[Authorize] // Protect all endpoints in this controller
 
 public class AvailableRoomsController : ControllerBase
 {
