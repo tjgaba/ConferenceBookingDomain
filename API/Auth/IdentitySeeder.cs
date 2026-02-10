@@ -1,40 +1,81 @@
 using Microsoft.AspNetCore.Identity;
-
-namespace ConferenceBooking.API.Auth;
+using ConferenceBooking.API.Auth;
 
 public static class IdentitySeeder
 {
     public static async Task SeedAsync(UserManager<ApplicationUser> userManager,
     RoleManager<IdentityRole> roleManager)
     {
-        var rolesAndUsers = new[]
+        if (!await roleManager.RoleExistsAsync("Admin"))
         {
-            new { Role = "Admin", UserName = "AdminUser", Email = "admin@domain.com", Password = "Admin123!" },
-            new { Role = "Receptionist", UserName = "ReceptionistUser", Email = "receptionist@domain.com", Password = "Receptionist123!" },
-            new { Role = "Employee", UserName = "EmployeeUser", Email = "employee@domain.com", Password = "Employee123!" },
-            new { Role = "FacilityManager", UserName = "FacilityManagerUser", Email = "facilitymanager@domain.com", Password = "FacilityManager123!" }
-        };
+            await roleManager.CreateAsync(new IdentityRole("Admin"));
+        }
+        var admin = await userManager.FindByNameAsync("Admin");
 
-        foreach (var entry in rolesAndUsers)
+        if (admin == null)
         {
-            if (!await roleManager.RoleExistsAsync(entry.Role))
+            admin = new ApplicationUser
             {
-                await roleManager.CreateAsync(new IdentityRole(entry.Role));
-            }
+                UserName = "Admin",
+                Email = "admin@domain.com"
+            };
 
-            var user = await userManager.FindByNameAsync(entry.UserName);
+            await userManager.CreateAsync(admin, "Admin123!");
+            await userManager.AddToRoleAsync(admin, "Admin");
+        }
 
-            if (user == null)
+        if (!await roleManager.RoleExistsAsync("Receptionist"))
+        {
+            await roleManager.CreateAsync(new IdentityRole("Receptionist"));
+        }
+        var receptionist = await userManager.FindByNameAsync("ReceptionistUser");
+
+        if (receptionist == null)
+        {
+            receptionist = new ApplicationUser
             {
-                user = new ApplicationUser
-                {
-                    UserName = entry.UserName,
-                    Email = entry.Email
-                };
+                UserName = "ReceptionistUser",
+                Email = "receptionist@domain.com"
+            };
 
-                await userManager.CreateAsync(user, entry.Password);
-                await userManager.AddToRoleAsync(user, entry.Role);
-            }
+            await userManager.CreateAsync(receptionist, "Receptionist123!");
+            await userManager.AddToRoleAsync(receptionist, "Receptionist");
+        }
+
+        if (!await roleManager.RoleExistsAsync("FacilityManager"))
+        {
+            await roleManager.CreateAsync(new IdentityRole("FacilityManager"));
+        }
+        var facilityManager = await userManager.FindByNameAsync("FacilityManagerUser");
+
+        if (facilityManager == null)
+        {
+            facilityManager = new ApplicationUser
+            {
+                UserName = "FacilityManagerUser",
+                Email = "facilitymanager@domain.com"
+            };
+
+            await userManager.CreateAsync(facilityManager, "FacilityManager123!");
+            await userManager.AddToRoleAsync(facilityManager, "FacilityManager");
+        }
+
+        if (!await roleManager.RoleExistsAsync("Employee"))
+        {
+            await roleManager.CreateAsync(new IdentityRole("Employee"));
+        }
+        var employee = await userManager.FindByNameAsync("EmployeeUser");
+
+        if (employee == null)
+        {
+            employee = new ApplicationUser
+            {
+                UserName = "EmployeeUser",
+                Email = "employee@domain.com"
+            };
+
+            await userManager.CreateAsync(employee, "Employee123!");
+            await userManager.AddToRoleAsync(employee, "Employee");
         }
     }
 }

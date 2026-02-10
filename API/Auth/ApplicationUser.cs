@@ -4,5 +4,7 @@ namespace ConferenceBooking.API.Auth;
 
 public class ApplicationUser : IdentityUser
 {
-    // Extend as needed.
+    // Add any additional properties here if needed
+    // For example:
+    // public string FullName { get; set; }
 }

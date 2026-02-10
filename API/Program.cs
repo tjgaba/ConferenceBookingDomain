@@ -25,13 +25,13 @@ public partial class Program
         builder.Services.AddSwaggerGen();
 
         builder.Services.AddDbContext<ApplicationDbContext>(options =>
-        /*options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));*/
-            options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+            options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
         builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
-
+            
+        builder.Services.AddScoped<TokenService>();
         // Initialize rooms and bookings from repository / file store
         var rooms = ConferenceRoomRepository.GetRooms();
         var roomsById = rooms.ToDictionary(r => r.Id);
@@ -57,7 +57,7 @@ public partial class Program
                 var userManager = serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
                 var roleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
 
-                // IdentitySeeder.SeedAsync(userManager, roleManager).Wait();
+                IdentitySeeder.SeedAsync(userManager, roleManager).Wait();
             }
             catch (Exception ex)
             {
