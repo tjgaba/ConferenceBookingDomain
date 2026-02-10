@@ -12,6 +12,9 @@ using Microsoft.Extensions.Hosting;
 using ConferenceBooking.API.Services;
 using ConferenceBooking.API.Middleware;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 public partial class Program
 {
@@ -32,23 +35,41 @@ public partial class Program
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
 
+        // Configure JWT Authentication
+        builder.Services.AddAuthentication(options =>
+        {
+            options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+        })
+        .AddJwtBearer(options =>
+        {
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+                ValidIssuer = builder.Configuration["Jwt:Issuer"],
+                ValidAudience = builder.Configuration["Jwt:Audience"],
+                IssuerSigningKey = new SymmetricSecurityKey(
+                    Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key not configured")))
+            };
+        });
+
         builder.Services.AddScoped<TokenService>();
 
         // Register BookingManager with ApplicationDbContext
         builder.Services.AddScoped<BookingManager>();
 
-        // Remove unused handlers
-        builder.Services.AddScoped<BookRoomHandler>();
-        builder.Services.AddScoped<ViewAvailabilityHandler>();
-
         // Seed roles and users
         var app = builder.Build();
 
-        // Ensure database is created after app is built
+        // Ensure database is created with proper schema
         using (var scope = app.Services.CreateScope())
         {
             var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            dbContext.Database.Migrate();
+            // Use EnsureCreated for development - creates schema based on model
+            dbContext.Database.EnsureCreated();
         }
 
         // Seed roles and users
