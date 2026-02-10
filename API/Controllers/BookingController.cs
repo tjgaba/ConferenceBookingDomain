@@ -12,6 +12,7 @@ using ConferenceBooking.API.Models; // Added namespace for Booking
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -47,23 +48,12 @@ public class BookingController : ControllerBase
             return Unauthorized();
         }
 
-        var room = _bookingManager.ValidateAndGetFirstAvailableRoom(dto.StartDate, dto.EndDate);
-
-        var booking = new Booking(
-            _bookingManager.GenerateBookingId(), // Auto-incremented booking ID
-            room, // Dynamically fetched room
-            user.UserName ?? "Unknown User", // Fallback for null UserName
+        var result = await _bookingManager.CreateBookingAsync(
+            dto.BookingId,
+            dto.RoomId,
+            user.UserName ?? "Unknown User",
             dto.StartDate,
-            dto.EndDate,
-            BookingStatus.Confirmed
-        );
-
-        var result = _bookingManager.CreateBooking(
-            booking.Id,
-            booking.Room.Id,
-            booking.RequestedBy,
-            booking.StartTime,
-            booking.EndTime - booking.StartTime
+            dto.EndDate - dto.StartDate
         );
 
         _logger.LogInformation(result.IsSuccess ? "Booking created successfully" : $"Booking creation failed: {result.ErrorMessage}"); // Logging result

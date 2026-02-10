@@ -25,27 +25,31 @@ public partial class Program
         builder.Services.AddSwaggerGen();
 
         builder.Services.AddDbContext<ApplicationDbContext>(options =>
-            options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+            options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+        // Move Identity and TokenService registration before app is built
         builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
-            
+
         builder.Services.AddScoped<TokenService>();
-        // Initialize rooms and bookings from repository / file store
-        var rooms = ConferenceRoomRepository.GetRooms();
-        var roomsById = rooms.ToDictionary(r => r.Id);
-        var bookings = BookingFileStore.LoadAsync(roomsById).GetAwaiter().GetResult();
 
-        // Register BookingManager with persisted data
-        builder.Services.AddSingleton<BookingManager>(_ => new BookingManager(rooms, bookings));
+        // Register BookingManager with ApplicationDbContext
+        builder.Services.AddScoped<BookingManager>();
 
-        // Register handlers for reuse; seed booking id counter from existing bookings
-        var nextBookingId = bookings.Any() ? bookings.Max(b => b.Id) + 1 : 1;
-        builder.Services.AddSingleton<BookRoomHandler>(_ => new BookRoomHandler(nextBookingId));
-        builder.Services.AddSingleton<ViewAvailabilityHandler>();
+        // Remove unused handlers
+        builder.Services.AddScoped<BookRoomHandler>();
+        builder.Services.AddScoped<ViewAvailabilityHandler>();
 
+        // Seed roles and users
         var app = builder.Build();
+
+        // Ensure database is created after app is built
+        using (var scope = app.Services.CreateScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            dbContext.Database.Migrate();
+        }
 
         // Seed roles and users
         using (var scope = app.Services.CreateScope())

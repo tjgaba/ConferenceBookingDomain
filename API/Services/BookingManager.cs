@@ -9,48 +9,38 @@ using ConferenceBooking.API.Exceptions;
 using ConferenceBooking.API.Entities;
 using ConferenceBooking.API.Services;
 using ConferenceBooking.API.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace ConferenceBooking.API.Services
 {
     public class BookingManager
     {
-        private readonly List<Booking> _bookings;
-        private readonly Dictionary<int, ConferenceRoom> _roomsById;
-        private int _nextBookingId = 1; // Initialize booking ID counter
+        private readonly ApplicationDbContext _dbContext;
 
-        public BookingManager(
-            List<ConferenceRoom> rooms,
-            List<Booking> bookings)
+        public BookingManager(ApplicationDbContext dbContext)
         {
-            Console.WriteLine("[DEBUG] Initializing BookingManager with rooms:");
-            foreach (var room in rooms)
-            {
-                Console.WriteLine($"[DEBUG] Room ID: {room.Id}, Name: {room.Name}, Capacity: {room.Capacity}");
-            }
-
-            _roomsById = rooms.ToDictionary(r => r.Id);
-            _bookings = bookings;
+            _dbContext = dbContext;
         }
 
         public IEnumerable<ConferenceRoom> GetAvailableRooms(DateTimeOffset atTime)
         {
-            return _roomsById.Values.Where(room =>
-                !_bookings.Any(b =>
+            return _dbContext.ConferenceRooms.Where(room =>
+                !_dbContext.Bookings.Any(b =>
                     b.Room.Id == room.Id &&
-                    b.Status == ConferenceBooking.API.Entities.BookingStatus.Confirmed &&
+                    b.Status == BookingStatus.Confirmed &&
                     b.StartTime <= atTime &&
                     atTime < b.EndTime
                 )
-            );
+            ).ToList();
         }
 
         public Booking? GetActiveBookingForRoom(
             int roomId,
             DateTimeOffset atTime)
         {
-            return _bookings.FirstOrDefault(b =>
+            return _dbContext.Bookings.FirstOrDefault(b =>
                 b.Room.Id == roomId &&
-                b.Status == ConferenceBooking.API.Entities.BookingStatus.Confirmed &&
+                b.Status == BookingStatus.Confirmed &&
                 b.StartTime <= atTime &&
                 atTime < b.EndTime
             );
@@ -58,31 +48,35 @@ namespace ConferenceBooking.API.Services
 
         public Booking? GetNextBookingForRoom(int roomId, DateTimeOffset atTime)
         {
-            return _bookings
+            return _dbContext.Bookings
                 .Where(b => b.Room.Id == roomId && b.StartTime > atTime)
                 .OrderBy(b => b.StartTime)
                 .FirstOrDefault();
         }
 
-        public Resulting<Booking> CreateBooking(
+        public async Task<Resulting<Booking>> CreateBookingAsync(
             int bookingId,
             int roomId,
             string requestedBy,
             DateTimeOffset startTime,
             TimeSpan duration)
         {
-            if (!_roomsById.ContainsKey(roomId))
+            if (!await _dbContext.ConferenceRooms.AnyAsync(r => r.Id == roomId))
             {
-                Console.WriteLine($"[DEBUG] Room ID {roomId} does not exist.");
                 return Resulting<Booking>.Failure("Room does not exist.");
             }
 
-            var room = _roomsById[roomId];
+            var room = await _dbContext.ConferenceRooms.FirstOrDefaultAsync(r => r.Id == roomId);
+            if (room == null)
+            {
+                throw new InvalidOperationException("Room cannot be null when creating a booking.");
+            }
+
             var endTime = startTime + duration;
 
-            if (_bookings.Any(b =>
+            if (await _dbContext.Bookings.AnyAsync(b =>
                 b.Room.Id == roomId &&
-                b.Status == ConferenceBooking.API.Entities.BookingStatus.Confirmed &&
+                b.Status == BookingStatus.Confirmed &&
                 b.StartTime < endTime &&
                 startTime < b.EndTime))
             {
@@ -98,7 +92,8 @@ namespace ConferenceBooking.API.Services
                 BookingStatus.Confirmed
             );
 
-            _bookings.Add(booking);
+            await _dbContext.Bookings.AddAsync(booking);
+            await _dbContext.SaveChangesAsync();
             return Resulting<Booking>.Success(booking);
         }
 
@@ -111,23 +106,26 @@ namespace ConferenceBooking.API.Services
 
             foreach (var record in bookings ?? Enumerable.Empty<BookingRecord>())
             {
-                if (_roomsById.TryGetValue(record.RoomId, out var room))
+                var room = _dbContext.ConferenceRooms.FirstOrDefault(r => r.Id == record.RoomId);
+                if (room == null)
                 {
-                    _bookings.Add(new Booking(
-                        record.Id,
-                        room,
-                        record.RequestedBy,
-                        record.StartTime,
-                        record.EndTime,
-                        record.Status
-                    ));
+                    throw new InvalidOperationException("Room not found.");
                 }
+
+                _dbContext.Bookings.Add(new Booking(
+                    record.Id,
+                    room,
+                    record.RequestedBy,
+                    record.StartTime,
+                    record.EndTime,
+                    record.Status
+                ));
             }
         }
 
         public async Task SaveBookingsAsync(string filePath)
         {
-            var records = _bookings.Select(b => new BookingRecord
+            var records = _dbContext.Bookings.Select(b => new BookingRecord
             {
                 Id = b.Id,
                 RoomId = b.Room.Id,
@@ -141,42 +139,45 @@ namespace ConferenceBooking.API.Services
             await File.WriteAllTextAsync(filePath, json);
         }
 
-        public IReadOnlyList<Booking> GetAllBookings() => _bookings.AsReadOnly();
+        public async Task<IReadOnlyList<Booking>> GetAllBookingsAsync()
+        {
+            return await _dbContext.Bookings.ToListAsync();
+        }
 
         public void CancelBooking(int bookingId)
         {
-            var booking = _bookings.FirstOrDefault(b => b.Id == bookingId);
+            var booking = _dbContext.Bookings.FirstOrDefault(b => b.Id == bookingId);
             if (booking == null)
                 throw new ArgumentException("Booking not found.");
 
-            if (booking.Status == ConferenceBooking.API.Entities.BookingStatus.Cancelled)
+            if (booking.Status == BookingStatus.Cancelled)
                 throw new InvalidOperationException("Booking is already cancelled.");
 
-            booking.Status = ConferenceBooking.API.Entities.BookingStatus.Cancelled;
+            booking.Status = BookingStatus.Cancelled;
         }
 
-        public void CancelBooking(int bookingId, string reason)
+        public async Task CancelBookingAsync(int bookingId)
         {
-            var booking = _bookings.FirstOrDefault(b => b.Id == bookingId);
+            var booking = await _dbContext.Bookings.FirstOrDefaultAsync(b => b.Id == bookingId);
             if (booking == null)
                 throw new ArgumentException("Booking not found.");
 
-            if (booking.Status == ConferenceBooking.API.Entities.BookingStatus.Cancelled)
+            if (booking.Status == BookingStatus.Cancelled)
                 throw new InvalidOperationException("Booking is already cancelled.");
 
-            booking.Status = ConferenceBooking.API.Entities.BookingStatus.Cancelled;
-            // Log or store the reason for cancellation if needed
+            booking.Status = BookingStatus.Cancelled;
+            await _dbContext.SaveChangesAsync();
         }
 
         public bool DeleteBooking(int bookingId)
         {
-            var booking = _bookings.FirstOrDefault(b => b.Id == bookingId);
+            var booking = _dbContext.Bookings.FirstOrDefault(b => b.Id == bookingId);
             if (booking == null)
             {
                 return false;
             }
 
-            _bookings.Remove(booking);
+            _dbContext.Bookings.Remove(booking);
             return true;
         }
 
@@ -203,18 +204,32 @@ namespace ConferenceBooking.API.Services
             return GetFirstAvailableRoom(startDate);
         }
 
-        public ConferenceRoom? GetRoomByNumber(int roomNumber)
+        public ConferenceRoom? GetRoomById(int roomId)
         {
-            return _roomsById.Values.FirstOrDefault(r => r.Number == roomNumber);
+            return _dbContext.ConferenceRooms.FirstOrDefault(r => r.Id == roomId);
+        }
+
+        public async Task<ConferenceRoom?> GetRoomByIdAsync(int roomId)
+        {
+            return await _dbContext.ConferenceRooms.FirstOrDefaultAsync(r => r.Id == roomId);
         }
 
         public bool IsRoomAvailable(int roomId, DateTimeOffset atTime)
         {
-            if (!_roomsById.TryGetValue(roomId, out var room)) return false;
+            if (!_dbContext.ConferenceRooms.Any(r => r.Id == roomId)) return false;
 
-            return !_bookings.Any(b => b.Room.Id == roomId &&
+            return !_dbContext.Bookings.Any(b => b.Room.Id == roomId &&
                                    b.StartTime <= atTime &&
                                    b.EndTime >= atTime);
+        }
+
+        public async Task<bool> IsRoomAvailableAsync(int roomId, DateTimeOffset atTime)
+        {
+            return !await _dbContext.Bookings.AnyAsync(b =>
+                b.Room.Id == roomId &&
+                b.Status == BookingStatus.Confirmed &&
+                b.StartTime <= atTime &&
+                atTime < b.EndTime);
         }
 
         public class Resulting
@@ -244,11 +259,6 @@ namespace ConferenceBooking.API.Services
 
             public static Resulting<T> Success(T value) => new Resulting<T>(true, string.Empty, value);
             public new static Resulting<T> Failure(string errorMessage) => new Resulting<T>(false, errorMessage, default!);
-        }
-
-        public int GenerateBookingId()
-        {
-            return _nextBookingId++;
         }
     }
 }

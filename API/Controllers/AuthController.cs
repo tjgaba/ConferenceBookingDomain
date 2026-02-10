@@ -1,9 +1,7 @@
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using API.DTO;
 using ConferenceBooking.API.Auth;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Identity;
 
 namespace API.Controllers
@@ -57,6 +55,18 @@ namespace API.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login(LoginDto dto)
         {
+            // Ensure dto.Username is not null
+            if (string.IsNullOrEmpty(dto.Username))
+            {
+                throw new ArgumentException("Username cannot be null or empty.");
+            }
+
+            // Ensure dto.Password is not null
+            if (string.IsNullOrEmpty(dto.Password))
+            {
+                throw new ArgumentException("Password cannot be null or empty.");
+            }
+
             // Attempt to find the user by username.
             // If the user does not exist, this returns null.
             var user = await _userManager.FindByNameAsync(dto.Username);

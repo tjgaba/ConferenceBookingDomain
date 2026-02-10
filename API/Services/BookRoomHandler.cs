@@ -14,7 +14,7 @@ public class BookRoomHandler
         _bookingIdCounter = bookingIdCounter;
     }
 
-    public void BookRoom(BookingManager bookingManager, List<ConferenceRoom> rooms)
+    public async void BookRoom(BookingManager bookingManager, List<ConferenceRoom> rooms)
     {
         Console.Clear();
 
@@ -61,12 +61,12 @@ public class BookRoomHandler
         if (!int.TryParse(Console.ReadLine(), out var minutes) || minutes <= 0)
             return;
 
-        var result = bookingManager.CreateBooking(
-                _bookingIdCounter++,
-                roomId,
-                requestedBy,
-                startTime,
-                TimeSpan.FromMinutes(minutes));
+        var result = await bookingManager.CreateBookingAsync(
+            _bookingIdCounter++,
+            roomId,
+            requestedBy,
+            startTime,
+            TimeSpan.FromMinutes(minutes));
 
         if (!result.IsSuccess)
         {
@@ -85,10 +85,10 @@ public class BookRoomHandler
     }
 
     // Non-interactive API-friendly method
-    public Booking BookRoomNonInteractive(BookingManager bookingManager, int? bookingId, int roomId, string requestedBy, DateTimeOffset startTime, TimeSpan duration)
+    public async Task<Booking> BookRoomNonInteractiveAsync(BookingManager bookingManager, int? bookingId, int roomId, string requestedBy, DateTimeOffset startTime, TimeSpan duration)
     {
         if (bookingManager == null) throw new ArgumentNullException(nameof(bookingManager));
-        var result = bookingManager.CreateBooking(bookingId ?? 0, roomId, requestedBy, startTime, duration);
+        var result = await bookingManager.CreateBookingAsync(bookingId ?? 0, roomId, requestedBy, startTime, duration);
 
         if (!result.IsSuccess)
             throw new InvalidOperationException(result.ErrorMessage);

@@ -6,22 +6,34 @@ public static class IdentitySeeder
     public static async Task SeedAsync(UserManager<ApplicationUser> userManager,
     RoleManager<IdentityRole> roleManager)
     {
-        if (!await roleManager.RoleExistsAsync("Admin"))
+        try
         {
-            await roleManager.CreateAsync(new IdentityRole("Admin"));
-        }
-        var admin = await userManager.FindByNameAsync("Admin");
-
-        if (admin == null)
-        {
-            admin = new ApplicationUser
+            if (!await roleManager.RoleExistsAsync("Admin"))
             {
-                UserName = "Admin",
-                Email = "admin@domain.com"
-            };
+                await roleManager.CreateAsync(new IdentityRole("Admin"));
+            }
+            var admin = await userManager.FindByNameAsync("Admin");
 
-            await userManager.CreateAsync(admin, "Admin123!");
-            await userManager.AddToRoleAsync(admin, "Admin");
+            if (admin == null)
+            {
+                admin = new ApplicationUser
+                {
+                    UserName = "Admin",
+                    Email = "admin@domain.com"
+                };
+
+                var result = await userManager.CreateAsync(admin, "Admin123!");
+                if (!result.Succeeded)
+                {
+                    throw new Exception("Failed to create Admin user: " + string.Join(", ", result.Errors.Select(e => e.Description)));
+                }
+                await userManager.AddToRoleAsync(admin, "Admin");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error during seeding: {ex.Message}");
+            throw;
         }
 
         if (!await roleManager.RoleExistsAsync("Receptionist"))

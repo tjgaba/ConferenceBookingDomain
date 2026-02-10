@@ -6,10 +6,10 @@ namespace ConferenceBooking.API.DTO
     {
         // Change: Added nullable annotations to properties to handle potential null values.
         public int BookingId { get; set; }
-        public string? RoomName { get; set; } // Nullable to allow missing room names.
-        public string? RequestedBy { get; set; } // Nullable to allow missing requester information.
+        public string? RoomName { get; set; } = string.Empty; // Default to empty string
+        public string? RequestedBy { get; set; } = string.Empty; // Default to empty string
         public DateTimeOffset StartTime { get; set; }
         public DateTimeOffset EndTime { get; set; }
-        public string? Status { get; set; } // Nullable to allow missing status information.
+        public string? Status { get; set; } = string.Empty; // Default to empty string
     }
 }

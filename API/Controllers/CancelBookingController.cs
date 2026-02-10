@@ -16,11 +16,11 @@ public class CancelBookingController : ControllerBase
     }
 
     [HttpDelete("cancel")]
-    public IActionResult CancelBooking([FromBody] CancelBookingDTO cancelBookingDTO)
+    public async Task<IActionResult> CancelBooking([FromBody] CancelBookingDTO cancelBookingDTO)
     {
         try
         {
-            _bookingManager.CancelBooking(cancelBookingDTO.BookingId, cancelBookingDTO.Reason);
+            await _bookingManager.CancelBookingAsync(cancelBookingDTO.BookingId);
             return NoContent();
         }
         catch (Exception ex)

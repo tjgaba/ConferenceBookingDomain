@@ -18,9 +18,9 @@ public class GetAllBookingsController : ControllerBase
     }
 
     [HttpGet("all")]
-    public IActionResult GetAllBookings()
+    public async Task<IActionResult> GetAllBookings()
     {
-        var bookings = _bookingManager.GetAllBookings()
+        var bookings = (await _bookingManager.GetAllBookingsAsync())
             .Select(b => new GetAllBookingsDTO
             {
                 BookingId = b.Id,

@@ -13,5 +13,8 @@ namespace ConferenceBooking.API.DTO
 
         [Required]
         public DateTime EndDate { get; set; }
+
+        [Required]
+        public int BookingId { get; set; }
     }
 }
