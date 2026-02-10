@@ -7,6 +7,7 @@ namespace ConferenceBooking.API.Models;
 public class Booking
 {
     public int Id { get; set; }
+    public int RoomId { get; set; } // Foreign key
     public ConferenceRoom Room { get; set; }
     public string RequestedBy { get; set; }
     public DateTimeOffset StartTime { get; set; }
@@ -23,6 +24,7 @@ public class Booking
         BookingStatus status)
     {
         Id = id;
+        RoomId = room.Id;
         Room = room;
         RequestedBy = requestedBy;
         StartTime = startTime;

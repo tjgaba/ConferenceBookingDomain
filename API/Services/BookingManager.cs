@@ -26,7 +26,7 @@ namespace ConferenceBooking.API.Services
         {
             return _dbContext.ConferenceRooms.Where(room =>
                 !_dbContext.Bookings.Any(b =>
-                    b.Room.Id == room.Id &&
+                    b.RoomId == room.Id &&
                     b.Status == BookingStatus.Confirmed &&
                     b.StartTime <= atTime &&
                     atTime < b.EndTime
@@ -39,7 +39,7 @@ namespace ConferenceBooking.API.Services
             DateTimeOffset atTime)
         {
             return _dbContext.Bookings.FirstOrDefault(b =>
-                b.Room.Id == roomId &&
+                b.RoomId == roomId &&
                 b.Status == BookingStatus.Confirmed &&
                 b.StartTime <= atTime &&
                 atTime < b.EndTime
@@ -49,7 +49,7 @@ namespace ConferenceBooking.API.Services
         public Booking? GetNextBookingForRoom(int roomId, DateTimeOffset atTime)
         {
             return _dbContext.Bookings
-                .Where(b => b.Room.Id == roomId && b.StartTime > atTime)
+                .Where(b => b.RoomId == roomId && b.StartTime > atTime)
                 .OrderBy(b => b.StartTime)
                 .FirstOrDefault();
         }
@@ -74,11 +74,16 @@ namespace ConferenceBooking.API.Services
 
             var endTime = startTime + duration;
 
-            if (await _dbContext.Bookings.AnyAsync(b =>
-                b.Room.Id == roomId &&
-                b.Status == BookingStatus.Confirmed &&
-                b.StartTime < endTime &&
-                startTime < b.EndTime))
+            // Check for overlapping bookings - load to memory first to avoid EF Core translation issues
+            var conflictingBookings = await _dbContext.Bookings
+                .Where(b => b.RoomId == roomId)
+                .ToListAsync();
+
+            var hasConflict = conflictingBookings
+                .Where(b => b.Status == BookingStatus.Confirmed)
+                .Any(b => b.EndTime > startTime && b.StartTime < endTime);
+
+            if (hasConflict)
             {
                 return Resulting<Booking>.Failure("Room is not available during the requested time.");
             }
@@ -128,7 +133,7 @@ namespace ConferenceBooking.API.Services
             var records = _dbContext.Bookings.Select(b => new BookingRecord
             {
                 Id = b.Id,
-                RoomId = b.Room.Id,
+                RoomId = b.RoomId,
                 RequestedBy = b.RequestedBy,
                 StartTime = b.StartTime,
                 EndTime = b.EndTime,
@@ -218,7 +223,7 @@ namespace ConferenceBooking.API.Services
         {
             if (!_dbContext.ConferenceRooms.Any(r => r.Id == roomId)) return false;
 
-            return !_dbContext.Bookings.Any(b => b.Room.Id == roomId &&
+            return !_dbContext.Bookings.Any(b => b.RoomId == roomId &&
                                    b.StartTime <= atTime &&
                                    b.EndTime >= atTime);
         }
@@ -226,7 +231,7 @@ namespace ConferenceBooking.API.Services
         public async Task<bool> IsRoomAvailableAsync(int roomId, DateTimeOffset atTime)
         {
             return !await _dbContext.Bookings.AnyAsync(b =>
-                b.Room.Id == roomId &&
+                b.RoomId == roomId &&
                 b.Status == BookingStatus.Confirmed &&
                 b.StartTime <= atTime &&
                 atTime < b.EndTime);
