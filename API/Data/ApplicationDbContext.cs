@@ -82,7 +82,48 @@ public class ApplicationDbContext : IdentityDbContext
             new ConferenceRoom { Id = 22, Name = "Conference Room B", Capacity = 8, Number = 502, Location = RoomLocation.Durban, IsActive = true },
             new ConferenceRoom { Id = 23, Name = "Conference Room C", Capacity = 15, Number = 503, Location = RoomLocation.Durban, IsActive = true },
             new ConferenceRoom { Id = 24, Name = "Board Room", Capacity = 20, Number = 504, Location = RoomLocation.Durban, IsActive = true },
-            new ConferenceRoom { Id = 25, Name = "Meeting Room 1", Capacity = 6, Number = 505, Location = RoomLocation.Durban, IsActive = true }
+            new ConferenceRoom { Id = 25, Name = "Meeting Room 1", Capacity = 6, Number = 505, Location = RoomLocation.Durban, IsActive = true },
+            
+            // REQUIREMENT: At least one inactive room (soft-deleted/deactivated)
+            // Room 26 is marked as inactive for testing deactivation functionality
+            new ConferenceRoom { Id = 26, Name = "Archived Meeting Room", Capacity = 12, Number = 506, Location = RoomLocation.Durban, IsActive = false }
+        );
+
+        // REQUIREMENT: At least one session with a valid time range
+        // Session must have StartTime < EndTime to be valid
+        // This seeds a test session for Room 6 (Cape Town Conference Room A)
+        // Using high ID (9001) to avoid conflicts with user-created sessions
+        modelBuilder.Entity<Session>().HasData(
+            new Session 
+            { 
+                Id = 9001, // High ID to avoid conflicts - makes seeding repeatable
+                Title = "Q1 Strategy Planning Session", // Required field
+                Description = "Quarterly strategic planning and review meeting", // Optional description
+                RoomId = 6, // Cape Town Conference Room A
+                Capacity = 10, 
+                StartTime = new DateTimeOffset(2026, 3, 1, 9, 0, 0, TimeSpan.Zero), // March 1, 2026 9:00 AM UTC
+                EndTime = new DateTimeOffset(2026, 3, 1, 11, 0, 0, TimeSpan.Zero)   // March 1, 2026 11:00 AM UTC
+            }
+        );
+
+        // REQUIREMENT: At least one booking in a non-default status
+        // Default status is "Pending", so we need a Confirmed or Cancelled booking
+        // This seeds a confirmed booking for testing the booking lifecycle
+        // Using high ID (9001) to avoid conflicts with user-created bookings - ensures repeatability
+        modelBuilder.Entity<Booking>().HasData(
+            new Booking 
+            { 
+                Id = 9001, // High ID to avoid conflicts - makes seeding repeatable without duplicates
+                RoomId = 6, // Cape Town Conference Room A (same room as session above)
+                RequestedBy = "seed.user@test.com", // Test user who created the booking
+                StartTime = new DateTimeOffset(2026, 2, 15, 14, 0, 0, TimeSpan.Zero), // Feb 15, 2026 2:00 PM UTC
+                EndTime = new DateTimeOffset(2026, 2, 15, 16, 0, 0, TimeSpan.Zero),   // Feb 15, 2026 4:00 PM UTC
+                Status = BookingStatus.Confirmed, // NON-DEFAULT STATUS (default would be Pending)
+                CreatedAt = new DateTimeOffset(2026, 2, 10, 10, 0, 0, TimeSpan.Zero), // When booking was created
+                CancelledAt = null, // Not cancelled
+                Location = RoomLocation.CapeTown, // Booking location matches room location
+                Capacity = 10 // Required capacity for this booking
+            }
         );
     }
 

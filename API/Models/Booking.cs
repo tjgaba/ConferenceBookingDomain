@@ -44,7 +44,8 @@ public class Booking
     public Booking()
     {
         // Parameterless constructor for EF Core
-        Room = new ConferenceRoom(); // Default initialization
+        // Navigation properties should be null by default - EF Core will populate them
+        Room = null!; // Will be populated by EF Core from RoomId foreign key
         RequestedBy = string.Empty; // Default initialization
         CreatedAt = DateTimeOffset.UtcNow;
     }
