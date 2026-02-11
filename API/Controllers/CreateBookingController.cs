@@ -82,20 +82,28 @@ public class CreateBookingController : ControllerBase
             return Conflict(new { Message = "A booking with this ID already exists. Please use a unique booking ID." });
         }
 
+        // Parse and validate location
+        if (!Enum.TryParse<RoomLocation>(dto.Location, true, out var location))
+        {
+            return BadRequest(new { Message = $"Invalid location. Valid values are: {string.Join(", ", Enum.GetNames(typeof(RoomLocation)))}" });
+        }
+
         var booking = new Booking(
             dto.BookingId,
             room,
             user.UserName ?? "Unknown User",
             dto.StartDate,
             dto.EndDate,
-            BookingStatus.Confirmed
+            BookingStatus.Pending,
+            location,
+            dto.Capacity
         );
 
         await _dbContext.Bookings.AddAsync(booking);
         await _dbContext.SaveChangesAsync();
 
-        _logger.LogInformation("Booking created successfully");
-        return Ok(booking);
+        _logger.LogInformation("Booking created successfully with Pending status");
+        return Ok(new { Message = "Booking created and pending confirmation by receptionist.", Booking = booking });
     }
 
     [HttpDelete("cancel/{id}")]

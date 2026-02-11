@@ -70,23 +70,6 @@ public partial class Program
             var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
             // Use EnsureCreated for development - creates schema based on model
             dbContext.Database.EnsureCreated();
-            
-            // Manually ensure London rooms exist (IDs 1-5)
-            if (!dbContext.ConferenceRooms.Any(r => r.Id >= 1 && r.Id <= 5))
-            {
-                var londonRooms = new[]
-                {
-                    new ConferenceBooking.API.Entities.ConferenceRoom { Id = 1, Name = "Conference Room A", Capacity = 10, Number = 101, Location = ConferenceBooking.API.Entities.RoomLocation.London, IsActive = true },
-                    new ConferenceBooking.API.Entities.ConferenceRoom { Id = 2, Name = "Conference Room B", Capacity = 8, Number = 102, Location = ConferenceBooking.API.Entities.RoomLocation.London, IsActive = true },
-                    new ConferenceBooking.API.Entities.ConferenceRoom { Id = 3, Name = "Conference Room C", Capacity = 15, Number = 103, Location = ConferenceBooking.API.Entities.RoomLocation.London, IsActive = true },
-                    new ConferenceBooking.API.Entities.ConferenceRoom { Id = 4, Name = "Board Room", Capacity = 20, Number = 104, Location = ConferenceBooking.API.Entities.RoomLocation.London, IsActive = true },
-                    new ConferenceBooking.API.Entities.ConferenceRoom { Id = 5, Name = "Meeting Room 1", Capacity = 6, Number = 105, Location = ConferenceBooking.API.Entities.RoomLocation.London, IsActive = true }
-                };
-                
-                dbContext.ConferenceRooms.AddRange(londonRooms);
-                dbContext.SaveChanges();
-                Console.WriteLine("Added missing London rooms (IDs 1-5)");
-            }
         }
 
         // Seed roles and users

@@ -59,7 +59,9 @@ namespace ConferenceBooking.API.Services
             int roomId,
             string requestedBy,
             DateTimeOffset startTime,
-            TimeSpan duration)
+            TimeSpan duration,
+            RoomLocation location,
+            int capacity)
         {
             if (!await _dbContext.ConferenceRooms.AnyAsync(r => r.Id == roomId))
             {
@@ -94,7 +96,9 @@ namespace ConferenceBooking.API.Services
                 requestedBy,
                 startTime,
                 endTime,
-                BookingStatus.Confirmed
+                BookingStatus.Confirmed,
+                location,
+                capacity
             );
 
             await _dbContext.Bookings.AddAsync(booking);
@@ -123,7 +127,9 @@ namespace ConferenceBooking.API.Services
                     record.RequestedBy,
                     record.StartTime,
                     record.EndTime,
-                    record.Status
+                    record.Status,
+                    room.Location, // Use room's location
+                    10 // Default capacity for legacy migration data
                 ));
             }
         }

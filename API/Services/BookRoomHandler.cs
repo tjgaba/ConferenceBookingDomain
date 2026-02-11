@@ -61,12 +61,16 @@ public class BookRoomHandler
         if (!int.TryParse(Console.ReadLine(), out var minutes) || minutes <= 0)
             return;
 
+        var selectedRoom = rooms.First(r => r.Id == roomId);
+
         var result = await bookingManager.CreateBookingAsync(
             _bookingIdCounter++,
             roomId,
             requestedBy,
             startTime,
-            TimeSpan.FromMinutes(minutes));
+            TimeSpan.FromMinutes(minutes),
+            selectedRoom.Location, // Use room's location
+            selectedRoom.Capacity); // Use room's capacity
 
         if (!result.IsSuccess)
         {
@@ -85,10 +89,10 @@ public class BookRoomHandler
     }
 
     // Non-interactive API-friendly method
-    public async Task<Booking> BookRoomNonInteractiveAsync(BookingManager bookingManager, int? bookingId, int roomId, string requestedBy, DateTimeOffset startTime, TimeSpan duration)
+    public async Task<Booking> BookRoomNonInteractiveAsync(BookingManager bookingManager, int? bookingId, int roomId, string requestedBy, DateTimeOffset startTime, TimeSpan duration, RoomLocation location, int capacity)
     {
         if (bookingManager == null) throw new ArgumentNullException(nameof(bookingManager));
-        var result = await bookingManager.CreateBookingAsync(bookingId ?? 0, roomId, requestedBy, startTime, duration);
+        var result = await bookingManager.CreateBookingAsync(bookingId ?? 0, roomId, requestedBy, startTime, duration, location, capacity);
 
         if (!result.IsSuccess)
             throw new InvalidOperationException(result.ErrorMessage);

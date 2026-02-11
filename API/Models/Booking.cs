@@ -15,6 +15,8 @@ public class Booking
     public BookingStatus Status { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? CancelledAt { get; set; }
+    public RoomLocation Location { get; set; }
+    public int Capacity { get; set; }
 
     [JsonConstructor]
     public Booking(
@@ -23,7 +25,9 @@ public class Booking
         string requestedBy,
         DateTimeOffset startTime,
         DateTimeOffset endTime,
-        BookingStatus status)
+        BookingStatus status,
+        RoomLocation location,
+        int capacity)
     {
         Id = id;
         RoomId = room.Id;
@@ -32,6 +36,8 @@ public class Booking
         StartTime = startTime;
         EndTime = endTime;
         Status = status;
+        Location = location;
+        Capacity = capacity;
         CreatedAt = DateTimeOffset.UtcNow;
     }
 

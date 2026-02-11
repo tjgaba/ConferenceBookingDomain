@@ -55,7 +55,7 @@ namespace ConferenceBooking.API.Middleware
                 success = false,
                 error = new
                 {
-                    message = "An unexpected error occurred.",
+                    message = "An unexpected error occurred.Ca",
                     details = exception.Message,
                     statusCode = context.Response.StatusCode
                 }
