@@ -9,7 +9,7 @@ namespace API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = "Admin")] // Only admins can manage rooms
+    [Authorize(Roles = "Admin,FacilityManager")] // Admins and Facility Managers can manage rooms
     public class RoomManagementController : ControllerBase
     {
         private readonly ApplicationDbContext _dbContext;
