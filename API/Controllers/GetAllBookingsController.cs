@@ -38,4 +38,31 @@ public class GetAllBookingsController : ControllerBase
 
         return Ok(bookings);
     }
+
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetBookingById(int id)
+    {
+        var booking = await _dbContext.Bookings
+            .Include(b => b.Room)
+            .Where(b => b.Id == id)
+            .Select(b => new GetAllBookingsDTO
+            {
+                BookingId = b.Id,
+                RoomName = b.Room.Name,
+                RequestedBy = b.RequestedBy,
+                StartTime = b.StartTime,
+                EndTime = b.EndTime,
+                Status = b.Status.ToString(),
+                CreatedAt = b.CreatedAt,
+                CancelledAt = b.CancelledAt
+            })
+            .FirstOrDefaultAsync();
+
+        if (booking == null)
+        {
+            return NotFound(new { Message = $"Booking with ID {id} not found." });
+        }
+
+        return Ok(booking);
+    }
 }

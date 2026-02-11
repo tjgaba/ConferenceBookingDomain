@@ -62,13 +62,13 @@ public class CreateBookingController : ControllerBase
             return BadRequest(new { Message = "This room is not currently available for booking." });
         }
 
-        var duration = dto.EndDate - dto.StartDate;
-        var endTime = dto.StartDate + duration;
-
-        // Check for overlapping bookings
-        var hasConflict = await _dbContext.Bookings
+        // Check for overlapping bookings - fetch and filter in memory to avoid LINQ translation issues
+        var confirmedBookings = await _dbContext.Bookings
             .Where(b => b.RoomId == dto.RoomId && b.Status == BookingStatus.Confirmed)
-            .AnyAsync(b => b.EndTime > dto.StartDate && b.StartTime < endTime);
+            .ToListAsync();
+        
+        var hasConflict = confirmedBookings
+            .Any(b => b.EndTime > dto.StartDate && b.StartTime < dto.EndDate);
 
         if (hasConflict)
         {
@@ -76,12 +76,18 @@ public class CreateBookingController : ControllerBase
             return Conflict(new { Message = "Room is not available during the requested time." });
         }
 
+        // Check if booking ID already exists
+        if (await _dbContext.Bookings.AnyAsync(b => b.Id == dto.BookingId))
+        {
+            return Conflict(new { Message = "A booking with this ID already exists. Please use a unique booking ID." });
+        }
+
         var booking = new Booking(
             dto.BookingId,
             room,
             user.UserName ?? "Unknown User",
             dto.StartDate,
-            endTime,
+            dto.EndDate,
             BookingStatus.Confirmed
         );
 
