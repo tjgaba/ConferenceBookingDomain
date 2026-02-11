@@ -1,4 +1,4 @@
-namespace API.DTO
+namespace ConferenceBooking.API.DTO
 {
     public class LoginDto
     {

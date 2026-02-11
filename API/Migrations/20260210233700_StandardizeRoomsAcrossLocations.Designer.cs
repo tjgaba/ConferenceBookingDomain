@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -9,9 +10,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace API.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260210233700_StandardizeRoomsAcrossLocations")]
+    partial class StandardizeRoomsAcrossLocations
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.0");
@@ -267,15 +270,6 @@ namespace API.Migrations
                             Location = 4,
                             Name = "Meeting Room 1",
                             Number = 505
-                        },
-                        new
-                        {
-                            Id = 26,
-                            Capacity = 12,
-                            IsActive = false,
-                            Location = 4,
-                            Name = "Archived Meeting Room",
-                            Number = 506
                         });
                 });
 
@@ -309,18 +303,6 @@ namespace API.Migrations
                     b.HasIndex("RoomId");
 
                     b.ToTable("Sessions");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 9001,
-                            Capacity = 10,
-                            Description = "Quarterly strategic planning and review meeting",
-                            EndTime = new DateTimeOffset(new DateTime(2026, 3, 1, 11, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
-                            RoomId = 6,
-                            StartTime = new DateTimeOffset(new DateTime(2026, 3, 1, 9, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
-                            Title = "Q1 Strategy Planning Session"
-                        });
                 });
 
             modelBuilder.Entity("ConferenceBooking.API.Models.Booking", b =>
@@ -332,9 +314,6 @@ namespace API.Migrations
                     b.Property<DateTimeOffset?>("CancelledAt")
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("Capacity")
-                        .HasColumnType("INTEGER");
-
                     b.Property<DateTimeOffset>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT")
@@ -342,9 +321,6 @@ namespace API.Migrations
 
                     b.Property<DateTimeOffset>("EndTime")
                         .HasColumnType("TEXT");
-
-                    b.Property<int>("Location")
-                        .HasColumnType("INTEGER");
 
                     b.Property<string>("RequestedBy")
                         .IsRequired()
@@ -364,20 +340,6 @@ namespace API.Migrations
                     b.HasIndex("RoomId");
 
                     b.ToTable("Bookings");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 9001,
-                            Capacity = 10,
-                            CreatedAt = new DateTimeOffset(new DateTime(2026, 2, 10, 10, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
-                            EndTime = new DateTimeOffset(new DateTime(2026, 2, 15, 16, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
-                            Location = 1,
-                            RequestedBy = "seed.user@test.com",
-                            RoomId = 6,
-                            StartTime = new DateTimeOffset(new DateTime(2026, 2, 15, 14, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
-                            Status = 1
-                        });
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>

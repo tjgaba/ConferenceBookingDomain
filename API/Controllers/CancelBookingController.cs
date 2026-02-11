@@ -1,31 +1,39 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using ConferenceBooking.API.Services;
-using ConferenceBooking.API.Auth;
+using ConferenceBooking.API.Data;
+using ConferenceBooking.API.DTO;
+using ConferenceBooking.API.Entities;
+using Microsoft.EntityFrameworkCore;
+using System.Threading.Tasks;
 
 [ApiController]
 [Route("api/[controller]")]
 [Authorize] // Protect all endpoints in this controller
 public class CancelBookingController : ControllerBase
 {
-    private readonly BookingManager _bookingManager;
+    private readonly ApplicationDbContext _dbContext;
 
-    public CancelBookingController(BookingManager bookingManager)
+    public CancelBookingController(ApplicationDbContext dbContext)
     {
-        _bookingManager = bookingManager;
+        _dbContext = dbContext;
     }
 
     [HttpDelete("cancel")]
     public async Task<IActionResult> CancelBooking([FromBody] CancelBookingDTO cancelBookingDTO)
     {
-        try
+        var booking = await _dbContext.Bookings.FirstOrDefaultAsync(b => b.Id == cancelBookingDTO.BookingId);
+        if (booking == null)
         {
-            await _bookingManager.CancelBookingAsync(cancelBookingDTO.BookingId);
-            return NoContent();
+            return NotFound(new { Message = "Booking not found." });
         }
-        catch (Exception ex)
+
+        if (booking.Status == BookingStatus.Cancelled)
         {
-            return NotFound(new { Message = ex.Message });
+            return BadRequest(new { Message = "Booking is already cancelled." });
         }
+
+        booking.Cancel();
+        await _dbContext.SaveChangesAsync();
+        return NoContent();
     }
 }

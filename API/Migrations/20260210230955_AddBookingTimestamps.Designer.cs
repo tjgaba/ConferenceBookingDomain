@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -9,9 +10,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace API.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260210230955_AddBookingTimestamps")]
+    partial class AddBookingTimestamps
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.0");
@@ -23,12 +26,6 @@ namespace API.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("Capacity")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("Location")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Name")
@@ -47,8 +44,6 @@ namespace API.Migrations
                         {
                             Id = 1,
                             Capacity = 10,
-                            IsActive = true,
-                            Location = 0,
                             Name = "Conference Room A",
                             Number = 101
                         },
@@ -56,8 +51,6 @@ namespace API.Migrations
                         {
                             Id = 2,
                             Capacity = 8,
-                            IsActive = true,
-                            Location = 0,
                             Name = "Conference Room B",
                             Number = 102
                         },
@@ -65,8 +58,6 @@ namespace API.Migrations
                         {
                             Id = 3,
                             Capacity = 15,
-                            IsActive = true,
-                            Location = 0,
                             Name = "Conference Room C",
                             Number = 103
                         },
@@ -74,208 +65,15 @@ namespace API.Migrations
                         {
                             Id = 4,
                             Capacity = 20,
-                            IsActive = true,
-                            Location = 0,
                             Name = "Board Room",
-                            Number = 104
+                            Number = 201
                         },
                         new
                         {
                             Id = 5,
                             Capacity = 6,
-                            IsActive = true,
-                            Location = 0,
                             Name = "Meeting Room 1",
-                            Number = 105
-                        },
-                        new
-                        {
-                            Id = 6,
-                            Capacity = 10,
-                            IsActive = true,
-                            Location = 1,
-                            Name = "Conference Room A",
-                            Number = 201
-                        },
-                        new
-                        {
-                            Id = 7,
-                            Capacity = 8,
-                            IsActive = true,
-                            Location = 1,
-                            Name = "Conference Room B",
-                            Number = 202
-                        },
-                        new
-                        {
-                            Id = 8,
-                            Capacity = 15,
-                            IsActive = true,
-                            Location = 1,
-                            Name = "Conference Room C",
-                            Number = 203
-                        },
-                        new
-                        {
-                            Id = 9,
-                            Capacity = 20,
-                            IsActive = true,
-                            Location = 1,
-                            Name = "Board Room",
-                            Number = 204
-                        },
-                        new
-                        {
-                            Id = 10,
-                            Capacity = 6,
-                            IsActive = true,
-                            Location = 1,
-                            Name = "Meeting Room 1",
-                            Number = 205
-                        },
-                        new
-                        {
-                            Id = 11,
-                            Capacity = 10,
-                            IsActive = true,
-                            Location = 2,
-                            Name = "Conference Room A",
-                            Number = 301
-                        },
-                        new
-                        {
-                            Id = 12,
-                            Capacity = 8,
-                            IsActive = true,
-                            Location = 2,
-                            Name = "Conference Room B",
-                            Number = 302
-                        },
-                        new
-                        {
-                            Id = 13,
-                            Capacity = 15,
-                            IsActive = true,
-                            Location = 2,
-                            Name = "Conference Room C",
-                            Number = 303
-                        },
-                        new
-                        {
-                            Id = 14,
-                            Capacity = 20,
-                            IsActive = true,
-                            Location = 2,
-                            Name = "Board Room",
-                            Number = 304
-                        },
-                        new
-                        {
-                            Id = 15,
-                            Capacity = 6,
-                            IsActive = true,
-                            Location = 2,
-                            Name = "Meeting Room 1",
-                            Number = 305
-                        },
-                        new
-                        {
-                            Id = 16,
-                            Capacity = 10,
-                            IsActive = true,
-                            Location = 3,
-                            Name = "Conference Room A",
-                            Number = 401
-                        },
-                        new
-                        {
-                            Id = 17,
-                            Capacity = 8,
-                            IsActive = true,
-                            Location = 3,
-                            Name = "Conference Room B",
-                            Number = 402
-                        },
-                        new
-                        {
-                            Id = 18,
-                            Capacity = 15,
-                            IsActive = true,
-                            Location = 3,
-                            Name = "Conference Room C",
-                            Number = 403
-                        },
-                        new
-                        {
-                            Id = 19,
-                            Capacity = 20,
-                            IsActive = true,
-                            Location = 3,
-                            Name = "Board Room",
-                            Number = 404
-                        },
-                        new
-                        {
-                            Id = 20,
-                            Capacity = 6,
-                            IsActive = true,
-                            Location = 3,
-                            Name = "Meeting Room 1",
-                            Number = 405
-                        },
-                        new
-                        {
-                            Id = 21,
-                            Capacity = 10,
-                            IsActive = true,
-                            Location = 4,
-                            Name = "Conference Room A",
-                            Number = 501
-                        },
-                        new
-                        {
-                            Id = 22,
-                            Capacity = 8,
-                            IsActive = true,
-                            Location = 4,
-                            Name = "Conference Room B",
-                            Number = 502
-                        },
-                        new
-                        {
-                            Id = 23,
-                            Capacity = 15,
-                            IsActive = true,
-                            Location = 4,
-                            Name = "Conference Room C",
-                            Number = 503
-                        },
-                        new
-                        {
-                            Id = 24,
-                            Capacity = 20,
-                            IsActive = true,
-                            Location = 4,
-                            Name = "Board Room",
-                            Number = 504
-                        },
-                        new
-                        {
-                            Id = 25,
-                            Capacity = 6,
-                            IsActive = true,
-                            Location = 4,
-                            Name = "Meeting Room 1",
-                            Number = 505
-                        },
-                        new
-                        {
-                            Id = 26,
-                            Capacity = 12,
-                            IsActive = false,
-                            Location = 4,
-                            Name = "Archived Meeting Room",
-                            Number = 506
+                            Number = 104
                         });
                 });
 
@@ -309,18 +107,6 @@ namespace API.Migrations
                     b.HasIndex("RoomId");
 
                     b.ToTable("Sessions");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 9001,
-                            Capacity = 10,
-                            Description = "Quarterly strategic planning and review meeting",
-                            EndTime = new DateTimeOffset(new DateTime(2026, 3, 1, 11, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
-                            RoomId = 6,
-                            StartTime = new DateTimeOffset(new DateTime(2026, 3, 1, 9, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
-                            Title = "Q1 Strategy Planning Session"
-                        });
                 });
 
             modelBuilder.Entity("ConferenceBooking.API.Models.Booking", b =>
@@ -332,9 +118,6 @@ namespace API.Migrations
                     b.Property<DateTimeOffset?>("CancelledAt")
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("Capacity")
-                        .HasColumnType("INTEGER");
-
                     b.Property<DateTimeOffset>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT")
@@ -342,9 +125,6 @@ namespace API.Migrations
 
                     b.Property<DateTimeOffset>("EndTime")
                         .HasColumnType("TEXT");
-
-                    b.Property<int>("Location")
-                        .HasColumnType("INTEGER");
 
                     b.Property<string>("RequestedBy")
                         .IsRequired()
@@ -364,20 +144,6 @@ namespace API.Migrations
                     b.HasIndex("RoomId");
 
                     b.ToTable("Bookings");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 9001,
-                            Capacity = 10,
-                            CreatedAt = new DateTimeOffset(new DateTime(2026, 2, 10, 10, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
-                            EndTime = new DateTimeOffset(new DateTime(2026, 2, 15, 16, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
-                            Location = 1,
-                            RequestedBy = "seed.user@test.com",
-                            RoomId = 6,
-                            StartTime = new DateTimeOffset(new DateTime(2026, 2, 15, 14, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
-                            Status = 1
-                        });
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>

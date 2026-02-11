@@ -77,7 +77,9 @@ namespace ConferenceBooking.Persistence
                         record.RequestedBy,
                         record.StartTime,
                         record.EndTime,
-                        record.Status
+                        record.Status,
+                        room.Location, // Use room's location
+                        10 // Default capacity for legacy data
                     );
 
                     // The Booking constructor already sets the status from the record,

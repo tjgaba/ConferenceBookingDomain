@@ -1,5 +1,8 @@
-public class CancelBookingDTO
+namespace ConferenceBooking.API.DTO
 {
-    public int BookingId { get; set; }
-    public string? Reason { get; set; }
+    public class CancelBookingDTO
+    {
+        public int BookingId { get; set; }
+        public string? Reason { get; set; }
+    }
 }

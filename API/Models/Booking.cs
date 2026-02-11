@@ -13,6 +13,10 @@ public class Booking
     public DateTimeOffset StartTime { get; set; }
     public DateTimeOffset EndTime { get; set; }
     public BookingStatus Status { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset? CancelledAt { get; set; }
+    public RoomLocation Location { get; set; }
+    public int Capacity { get; set; }
 
     [JsonConstructor]
     public Booking(
@@ -21,7 +25,9 @@ public class Booking
         string requestedBy,
         DateTimeOffset startTime,
         DateTimeOffset endTime,
-        BookingStatus status)
+        BookingStatus status,
+        RoomLocation location,
+        int capacity)
     {
         Id = id;
         RoomId = room.Id;
@@ -30,13 +36,18 @@ public class Booking
         StartTime = startTime;
         EndTime = endTime;
         Status = status;
+        Location = location;
+        Capacity = capacity;
+        CreatedAt = DateTimeOffset.UtcNow;
     }
 
     public Booking()
     {
         // Parameterless constructor for EF Core
-        Room = new ConferenceRoom(); // Default initialization
+        // Navigation properties should be null by default - EF Core will populate them
+        Room = null!; // Will be populated by EF Core from RoomId foreign key
         RequestedBy = string.Empty; // Default initialization
+        CreatedAt = DateTimeOffset.UtcNow;
     }
 
     public void Confirm()
@@ -52,5 +63,6 @@ public class Booking
             throw new InvalidOperationException("Booking is already cancelled.");
 
         Status = BookingStatus.Cancelled;
+        CancelledAt = DateTimeOffset.UtcNow;
     }
 }
