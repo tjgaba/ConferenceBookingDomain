@@ -33,6 +33,31 @@ namespace ConferenceBooking.API.Data
         }
 
         /// <summary>
+        /// Retrieves paginated bookings from the database.
+        /// DATABASE OPERATION: SELECT * FROM Bookings WITH JOIN, LIMIT and OFFSET for pagination
+        /// </summary>
+        /// <param name="page">Page number (1-based)</param>
+        /// <param name="pageSize">Number of items per page</param>
+        /// <returns>Tuple containing total count and paginated bookings</returns>
+        public async Task<(int totalCount, List<Booking> bookings)> GetAllBookingsPaginatedAsync(int page, int pageSize)
+        {
+            // DATABASE OPERATION: Get total count - SELECT COUNT(*) FROM Bookings
+            var totalCount = await _dbContext.Bookings.CountAsync();
+
+            // DATABASE OPERATION: Get paginated results with SKIP and TAKE
+            // Translates to SQL: SELECT * FROM Bookings LIMIT @pageSize OFFSET @skip
+            // Order by Id descending (newer bookings have higher IDs)
+            var bookings = await _dbContext.Bookings
+                .Include(b => b.Room)
+                .OrderByDescending(b => b.Id) // Order by ID instead of DateTimeOffset
+                .Skip((page - 1) * pageSize) // Skip previous pages
+                .Take(pageSize) // Take only current page items
+                .ToListAsync();
+
+            return (totalCount, bookings);
+        }
+
+        /// <summary>
         /// Retrieves a single booking by its ID.
         /// DATABASE OPERATION: SELECT * FROM Bookings WHERE Id = @id
         /// </summary>
@@ -100,6 +125,76 @@ namespace ConferenceBooking.API.Data
             // ToListAsync() executes the complete SQL query at the database level
             // All WHERE clauses above are combined into a single SQL SELECT statement
             return await query.ToListAsync();
+        }
+
+        /// <summary>
+        /// Get filtered and paginated bookings based on various criteria.
+        /// All filtering happens at the database level using LINQ.
+        /// </summary>
+        /// <param name="filter">Filter criteria</param>
+        /// <param name="page">Page number (1-based)</param>
+        /// <param name="pageSize">Number of items per page</param>
+        /// <returns>Tuple containing total count and paginated filtered bookings</returns>
+        public async Task<(int totalCount, List<Booking> bookings)> GetFilteredBookingsPaginatedAsync(FilterBookingsDTO filter, int page, int pageSize)
+        {
+            // Start with base query including Room navigation property
+            IQueryable<Booking> query = _dbContext.Bookings.Include(b => b.Room);
+
+            // Apply all filters (same as GetFilteredBookingsAsync)
+            
+            // DATABASE FILTER: Filter by room name using SQL LIKE
+            if (!string.IsNullOrWhiteSpace(filter.RoomName))
+            {
+                query = query.Where(b => b.Room.Name.Contains(filter.RoomName)); // Translates to SQL: WHERE Room.Name LIKE '%filterValue%'
+            }
+
+            // DATABASE FILTER: Filter by location using SQL WHERE clause
+            if (filter.Location.HasValue)
+            {
+                query = query.Where(b => b.Location == filter.Location.Value); // Translates to SQL: WHERE Booking.Location = @location
+            }
+
+            // DATABASE FILTER: Filter by date range - bookings that overlap with the specified range
+            if (filter.StartDate.HasValue)
+            {
+                var filterStartDate = filter.StartDate.Value;
+                query = query.Where(b => b.EndTime.CompareTo(filterStartDate) >= 0); // Translates to SQL: WHERE EndTime >= @startDate
+            }
+
+            if (filter.EndDate.HasValue)
+            {
+                var filterEndDate = filter.EndDate.Value;
+                query = query.Where(b => b.StartTime.CompareTo(filterEndDate) <= 0); // Translates to SQL: WHERE StartTime <= @endDate
+            }
+
+            // DATABASE FILTER: Filter by room active status using JOIN
+            if (filter.IsActiveRoom.HasValue)
+            {
+                query = query.Where(b => b.Room.IsActive == filter.IsActiveRoom.Value); // Translates to SQL: WHERE Room.IsActive = @isActive
+            }
+
+            // DATABASE FILTER: Filter by booking status
+            if (!string.IsNullOrWhiteSpace(filter.Status))
+            {
+                if (Enum.TryParse<BookingStatus>(filter.Status, true, out var status))
+                {
+                    query = query.Where(b => b.Status == status); // Translates to SQL: WHERE Status = @status
+                }
+            }
+
+            // DATABASE OPERATION: Get total count of filtered results - SELECT COUNT(*) FROM ... WHERE ...
+            var totalCount = await query.CountAsync();
+
+            // DATABASE OPERATION: Apply pagination - LIMIT and OFFSET
+            // Translates to SQL: SELECT * FROM ... WHERE ... ORDER BY ... LIMIT @pageSize OFFSET @skip
+            // Order by Id descending (newer bookings have higher IDs)
+            var bookings = await query
+                .OrderByDescending(b => b.Id) // Order by ID instead of DateTimeOffset
+                .Skip((page - 1) * pageSize) // Skip previous pages
+                .Take(pageSize) // Take only current page items
+                .ToListAsync();
+
+            return (totalCount, bookings);
         }
 
         /// <summary>

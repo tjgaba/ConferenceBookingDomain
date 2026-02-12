@@ -39,31 +39,52 @@ namespace ConferenceBooking.API.Controllers
         #region GET Endpoints
 
         /// <summary>
-        /// Get all bookings
+        /// Get all bookings with pagination support
         /// </summary>
+        /// <param name="page">Page number (default: 1)</param>
+        /// <param name="pageSize">Items per page (default: 10)</param>
         [HttpGet]
         [HttpGet("all")]
-        public async Task<IActionResult> GetAllBookings()
+        public async Task<IActionResult> GetAllBookings([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
         {
-            var bookings = await _dbContext.Bookings
-                .Include(b => b.Room)
-                .Select(b => new GetAllBookingsDTO
-                {
-                    BookingId = b.Id,
-                    RoomName = b.Room.Name,
-                    RoomNumber = b.Room.Number,
-                    Location = b.Location.ToString(),
-                    IsActive = b.Room.IsActive,
-                    RequestedBy = b.RequestedBy,
-                    StartTime = b.StartTime,
-                    EndTime = b.EndTime,
-                    Status = b.Status.ToString(),
-                    CreatedAt = b.CreatedAt,
-                    CancelledAt = b.CancelledAt
-                })
-                .ToListAsync();
+            // Validate pagination parameters
+            if (page < 1) page = 1;
+            if (pageSize < 1) pageSize = 10;
+            if (pageSize > 100) pageSize = 100; // Max page size limit
 
-            return Ok(bookings);
+            // Get paginated bookings from repository
+            var (totalCount, bookings) = await _bookingRepository.GetAllBookingsPaginatedAsync(page, pageSize);
+
+            // Map to DTOs
+            var bookingDtos = bookings.Select(b => new GetAllBookingsDTO
+            {
+                BookingId = b.Id,
+                RoomName = b.Room.Name,
+                RoomNumber = b.Room.Number,
+                Location = b.Location.ToString(),
+                IsActive = b.Room.IsActive,
+                RequestedBy = b.RequestedBy,
+                StartTime = b.StartTime,
+                EndTime = b.EndTime,
+                Status = b.Status.ToString(),
+                CreatedAt = b.CreatedAt,
+                CancelledAt = b.CancelledAt
+            }).ToList();
+
+            // Calculate total pages
+            var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+
+            // Create paginated response
+            var response = new PaginatedResponseDTO<GetAllBookingsDTO>
+            {
+                CurrentPage = page,
+                PageSize = pageSize,
+                TotalRecords = totalCount,
+                TotalPages = totalPages,
+                Data = bookingDtos
+            };
+
+            return Ok(response);
         }
 
         /// <summary>
@@ -100,24 +121,34 @@ namespace ConferenceBooking.API.Controllers
         }
 
         /// <summary>
-        /// Get filtered bookings by room, location, date range, and/or room active status.
+        /// Get filtered bookings by room, location, date range, and/or room active status with pagination.
         /// All filtering happens at the database level for optimal performance.
         /// Examples:
-        /// - GET /api/booking/filter?roomName=Room A
-        /// - GET /api/booking/filter?location=CapeTown
-        /// - GET /api/booking/filter?startDate=2026-02-01&endDate=2026-02-28
-        /// - GET /api/booking/filter?isActiveRoom=true
-        /// - GET /api/booking/filter?roomName=Room A&location=London&isActiveRoom=true
+        /// - GET /api/booking/filter?roomName=Room A&page=1&pageSize=10
+        /// - GET /api/booking/filter?location=CapeTown&page=2&pageSize=20
+        /// - GET /api/booking/filter?startDate=2026-02-01&endDate=2026-02-28&page=1&pageSize=10
+        /// - GET /api/booking/filter?isActiveRoom=true&page=1&pageSize=10
+        /// - GET /api/booking/filter?roomName=Room A&location=London&isActiveRoom=true&page=1&pageSize=10
         /// </summary>
+        /// <param name="filter">Filter criteria</param>
+        /// <param name="page">Page number (default: 1)</param>
+        /// <param name="pageSize">Items per page (default: 10)</param>
         [HttpGet("filter")]
-        public async Task<IActionResult> GetFilteredBookings([FromQuery] FilterBookingsDTO filter)
+        public async Task<IActionResult> GetFilteredBookings([FromQuery] FilterBookingsDTO filter, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
         {
-            _logger.LogInformation("Filtering bookings with criteria: RoomName={RoomName}, Location={Location}, StartDate={StartDate}, EndDate={EndDate}, IsActiveRoom={IsActiveRoom}, Status={Status}",
-                filter.RoomName, filter.Location, filter.StartDate, filter.EndDate, filter.IsActiveRoom, filter.Status);
+            // Validate pagination parameters
+            if (page < 1) page = 1;
+            if (pageSize < 1) pageSize = 10;
+            if (pageSize > 100) pageSize = 100; // Max page size limit
 
-            var bookings = await _bookingRepository.GetFilteredBookingsAsync(filter);
+            _logger.LogInformation("Filtering bookings with criteria: RoomName={RoomName}, Location={Location}, StartDate={StartDate}, EndDate={EndDate}, IsActiveRoom={IsActiveRoom}, Status={Status}, Page={Page}, PageSize={PageSize}",
+                filter.RoomName, filter.Location, filter.StartDate, filter.EndDate, filter.IsActiveRoom, filter.Status, page, pageSize);
 
-            var result = bookings.Select(b => new GetAllBookingsDTO
+            // Get paginated filtered bookings from repository
+            var (totalCount, bookings) = await _bookingRepository.GetFilteredBookingsPaginatedAsync(filter, page, pageSize);
+
+            // Map to DTOs
+            var bookingDtos = bookings.Select(b => new GetAllBookingsDTO
             {
                 BookingId = b.Id,
                 RoomName = b.Room.Name,
@@ -132,22 +163,23 @@ namespace ConferenceBooking.API.Controllers
                 CancelledAt = b.CancelledAt
             }).ToList();
 
-            _logger.LogInformation("Found {Count} bookings matching the filter criteria", result.Count);
+            _logger.LogInformation("Found {TotalCount} bookings matching the filter criteria, returning page {Page} of {TotalPages}", 
+                totalCount, page, (int)Math.Ceiling(totalCount / (double)pageSize));
 
-            return Ok(new 
-            { 
-                Count = result.Count,
-                Filters = new 
-                {
-                    RoomName = filter.RoomName,
-                    Location = filter.Location?.ToString(),
-                    StartDate = filter.StartDate,
-                    EndDate = filter.EndDate,
-                    IsActiveRoom = filter.IsActiveRoom,
-                    Status = filter.Status
-                },
-                Bookings = result 
-            });
+            // Calculate total pages
+            var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+
+            // Create paginated response
+            var response = new PaginatedResponseDTO<GetAllBookingsDTO>
+            {
+                CurrentPage = page,
+                PageSize = pageSize,
+                TotalRecords = totalCount,
+                TotalPages = totalPages,
+                Data = bookingDtos
+            };
+
+            return Ok(response);
         }
 
         #endregion
