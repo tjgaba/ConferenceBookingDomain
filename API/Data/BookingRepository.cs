@@ -34,7 +34,8 @@ namespace ConferenceBooking.API.Data
 
         /// <summary>
         /// Retrieves paginated bookings from the database.
-        /// DATABASE OPERATION: SELECT * FROM Bookings WITH JOIN, LIMIT and OFFSET for pagination
+        /// DATABASE OPERATION: SELECT * FROM Bookings WITH JOIN
+        /// Note: Sorting happens in-memory after fetching due to SQLite DateTimeOffset limitations
         /// </summary>
         /// <param name="page">Page number (1-based)</param>
         /// <param name="pageSize">Number of items per page</param>
@@ -50,18 +51,18 @@ namespace ConferenceBooking.API.Data
             // DATABASE OPERATION: Get total count - SELECT COUNT(*) FROM Bookings
             var totalCount = await _dbContext.Bookings.CountAsync();
 
-            // Start with base query
-            IQueryable<Booking> query = _dbContext.Bookings.Include(b => b.Room);
+            // Fetch all bookings from database with Room navigation property
+            // Note: We fetch all to sort in memory due to SQLite DateTimeOffset limitations
+            var allBookings = await _dbContext.Bookings.Include(b => b.Room).ToListAsync();
 
-            // Apply sorting before pagination
-            query = ApplySorting(query, sortBy, sortOrder);
+            // Apply sorting in-memory (client-side)
+            var sortedBookings = ApplySortingInMemory(allBookings, sortBy, sortOrder);
 
-            // DATABASE OPERATION: Get paginated results with SKIP and TAKE
-            // Translates to SQL: SELECT * FROM Bookings LIMIT @pageSize OFFSET @skip
-            var bookings = await query
-                .Skip((page - 1) * pageSize) // Skip previous pages
-                .Take(pageSize) // Take only current page items
-                .ToListAsync();
+            // Apply pagination in-memory
+            var bookings = sortedBookings
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
 
             return (totalCount, bookings);
         }
@@ -201,47 +202,49 @@ namespace ConferenceBooking.API.Data
             // DATABASE OPERATION: Get total count of filtered results - SELECT COUNT(*) FROM ... WHERE ...
             var totalCount = await query.CountAsync();
 
-            // Apply sorting before pagination
-            query = ApplySorting(query, sortBy, sortOrder);
+            // Fetch filtered bookings from database
+            var allBookings = await query.ToListAsync();
 
-            // DATABASE OPERATION: Apply pagination - LIMIT and OFFSET
-            // Translates to SQL: SELECT * FROM ... WHERE ... ORDER BY ... LIMIT @pageSize OFFSET @skip
-            var bookings = await query
-                .Skip((page - 1) * pageSize) // Skip previous pages
-                .Take(pageSize) // Take only current page items
-                .ToListAsync();
+            // Apply sorting in-memory (client-side)
+            var sortedBookings = ApplySortingInMemory(allBookings, sortBy, sortOrder);
+
+            // Apply pagination in-memory
+            var bookings = sortedBookings
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
 
             return (totalCount, bookings);
         }
 
         /// <summary>
-        /// Applies sorting to the booking query based on the specified field and order.
-        /// Sorting is applied before pagination to ensure consistent results.
+        /// Applies sorting to the booking list in-memory.
+        /// Sorting is done client-side to avoid SQLite DateTimeOffset translation issues.
         /// </summary>
-        /// <param name="query">The booking query to apply sorting to</param>
+        /// <param name="bookings">The booking list to apply sorting to</param>
         /// <param name="sortBy">Field to sort by (Date, RoomName, CreatedAt)</param>
         /// <param name="sortOrder">Sort order (asc or desc)</param>
-        /// <returns>Sorted queryable</returns>
-        private IQueryable<Booking> ApplySorting(IQueryable<Booking> query, string? sortBy, string sortOrder)
+        /// <returns>Sorted list</returns>
+        private List<Booking> ApplySortingInMemory(List<Booking> bookings, string? sortBy, string sortOrder)
         {
             var isAscending = sortOrder?.ToLower() == "asc";
 
             return sortBy?.ToLower() switch
             {
                 "date" => isAscending 
-                    ? query.OrderBy(b => b.StartTime) 
-                    : query.OrderByDescending(b => b.StartTime),
+                    ? bookings.OrderBy(b => b.StartTime).ToList()
+                    : bookings.OrderByDescending(b => b.StartTime).ToList(),
                 
                 "roomname" => isAscending 
-                    ? query.OrderBy(b => b.Room.Name) 
-                    : query.OrderByDescending(b => b.Room.Name),
+                    ? bookings.OrderBy(b => b.Room.Name).ToList()
+                    : bookings.OrderByDescending(b => b.Room.Name).ToList(),
                 
                 "createdat" => isAscending 
-                    ? query.OrderBy(b => b.CreatedAt) 
-                    : query.OrderByDescending(b => b.CreatedAt),
+                    ? bookings.OrderBy(b => b.CreatedAt).ToList()
+                    : bookings.OrderByDescending(b => b.CreatedAt).ToList(),
                 
                 // Default sorting by CreatedAt descending (newest first)
-                _ => query.OrderByDescending(b => b.CreatedAt)
+                _ => bookings.OrderByDescending(b => b.CreatedAt).ToList()
             };
         }
 
