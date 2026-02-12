@@ -30,16 +30,16 @@ namespace ConferenceBooking.API.Controllers
         /// Get all conference rooms with optional filtering
         /// </summary>
         /// <param name="location">Filter by location (optional)</param>
-        /// <param name="activeOnly">Show only active rooms (default: true)</param>
+        /// <param name="isActive">Filter by active status: true = active only, false = inactive only, null = all rooms (optional)</param>
         [HttpGet]
-        public async Task<IActionResult> GetAllRooms([FromQuery] RoomLocation? location, [FromQuery] bool activeOnly = true)
+        public async Task<IActionResult> GetAllRooms([FromQuery] RoomLocation? location, [FromQuery] bool? isActive = null)
         {
             var query = _dbContext.ConferenceRooms.AsQueryable();
 
-            // Filter by active status
-            if (activeOnly)
+            // Filter by active status if specified
+            if (isActive.HasValue)
             {
-                query = query.Where(r => r.IsActive);
+                query = query.Where(r => r.IsActive == isActive.Value);
             }
 
             // Filter by location if provided

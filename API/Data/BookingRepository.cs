@@ -9,6 +9,10 @@ using ConferenceBooking.API.DTO;
 
 namespace ConferenceBooking.API.Data
 {
+    /// <summary>
+    /// Repository for managing booking data access.
+    /// All database operations for bookings are performed here.
+    /// </summary>
     public class BookingRepository
     {
         private readonly ApplicationDbContext _dbContext;
@@ -18,11 +22,22 @@ namespace ConferenceBooking.API.Data
             _dbContext = dbContext;
         }
 
+        /// <summary>
+        /// Retrieves all bookings from the database.
+        /// DATABASE OPERATION: SELECT * FROM Bookings WITH JOIN to ConferenceRooms
+        /// </summary>
+        /// <returns>List of all bookings with their associated room information</returns>
         public async Task<List<Booking>> GetAllBookingsAsync()
         {
             return await _dbContext.Bookings.Include(b => b.Room).ToListAsync();
         }
 
+        /// <summary>
+        /// Retrieves a single booking by its ID.
+        /// DATABASE OPERATION: SELECT * FROM Bookings WHERE Id = @id
+        /// </summary>
+        /// <param name="id">The booking ID to search for</param>
+        /// <returns>The booking if found, null otherwise</returns>
         public async Task<Booking?> GetBookingByIdAsync(int id)
         {
             return await _dbContext.Bookings.Include(b => b.Room).FirstOrDefaultAsync(b => b.Id == id);
@@ -38,67 +53,95 @@ namespace ConferenceBooking.API.Data
             IQueryable<Booking> query = _dbContext.Bookings.Include(b => b.Room);
 
             // Apply filters only if they are provided (not null)
+            // Each Where clause below builds the SQL query - NO data is fetched yet
             
-            // Filter by room name
+            // DATABASE FILTER: Filter by room name using SQL LIKE
             if (!string.IsNullOrWhiteSpace(filter.RoomName))
             {
-                query = query.Where(b => b.Room.Name.Contains(filter.RoomName));
+                query = query.Where(b => b.Room.Name.Contains(filter.RoomName)); // Translates to SQL: WHERE Room.Name LIKE '%filterValue%'
             }
 
-            // Filter by location (booking's location, not room's location)
+            // DATABASE FILTER: Filter by location using SQL WHERE clause
             if (filter.Location.HasValue)
             {
-                query = query.Where(b => b.Location == filter.Location.Value);
+                query = query.Where(b => b.Location == filter.Location.Value); // Translates to SQL: WHERE Booking.Location = @location
             }
 
-            // Filter by date range - bookings that overlap with the specified range
+            // DATABASE FILTER: Filter by date range - bookings that overlap with the specified range
+            // Store filter values in local variables to help with SQL translation
             if (filter.StartDate.HasValue)
             {
-                query = query.Where(b => b.EndTime >= filter.StartDate.Value);
+                var filterStartDate = filter.StartDate.Value;
+                query = query.Where(b => b.EndTime.CompareTo(filterStartDate) >= 0); // Translates to SQL: WHERE EndTime >= @startDate
             }
 
             if (filter.EndDate.HasValue)
             {
-                query = query.Where(b => b.StartTime <= filter.EndDate.Value);
+                var filterEndDate = filter.EndDate.Value;
+                query = query.Where(b => b.StartTime.CompareTo(filterEndDate) <= 0); // Translates to SQL: WHERE StartTime <= @endDate
             }
 
-            // Filter by room active status
+            // DATABASE FILTER: Filter by room active status using JOIN
             if (filter.IsActiveRoom.HasValue)
             {
-                query = query.Where(b => b.Room.IsActive == filter.IsActiveRoom.Value);
+                query = query.Where(b => b.Room.IsActive == filter.IsActiveRoom.Value); // Translates to SQL: WHERE Room.IsActive = @isActive
             }
 
-            // Filter by booking status
+            // DATABASE FILTER: Filter by booking status
             if (!string.IsNullOrWhiteSpace(filter.Status))
             {
                 if (Enum.TryParse<BookingStatus>(filter.Status, true, out var status))
                 {
-                    query = query.Where(b => b.Status == status);
+                    query = query.Where(b => b.Status == status); // Translates to SQL: WHERE Status = @status
                 }
             }
 
-            // Execute query at database level and return results
+            // *** DATABASE EXECUTION POINT ***
+            // ToListAsync() executes the complete SQL query at the database level
+            // All WHERE clauses above are combined into a single SQL SELECT statement
             return await query.ToListAsync();
         }
 
+        /// <summary>
+        /// Adds a new booking to the database.
+        /// DATABASE OPERATION: INSERT INTO Bookings VALUES (...)
+        /// </summary>
+        /// <param name="booking">The booking entity to add</param>
         public async Task AddBookingAsync(Booking booking)
         {
+            // Add booking to the change tracker
             await _dbContext.Bookings.AddAsync(booking);
+            // Persist changes to database
             await _dbContext.SaveChangesAsync();
         }
 
+        /// <summary>
+        /// Updates an existing booking in the database.
+        /// DATABASE OPERATION: UPDATE Bookings SET ... WHERE Id = @id
+        /// </summary>
+        /// <param name="booking">The booking entity with updated values</param>
         public async Task UpdateBookingAsync(Booking booking)
         {
+            // Mark entity as modified in change tracker
             _dbContext.Bookings.Update(booking);
+            // Persist changes to database
             await _dbContext.SaveChangesAsync();
         }
 
+        /// <summary>
+        /// Deletes a booking from the database by ID.
+        /// DATABASE OPERATION: DELETE FROM Bookings WHERE Id = @id
+        /// </summary>
+        /// <param name="id">The ID of the booking to delete</param>
         public async Task DeleteBookingAsync(int id)
         {
+            // First, retrieve the booking
             var booking = await GetBookingByIdAsync(id);
             if (booking != null)
             {
+                // Remove from change tracker
                 _dbContext.Bookings.Remove(booking);
+                // Persist deletion to database
                 await _dbContext.SaveChangesAsync();
             }
         }

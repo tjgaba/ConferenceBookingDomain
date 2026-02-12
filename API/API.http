@@ -217,3 +217,43 @@ GET {{API_HostAddress}}/api/booking/filter?isActiveRoom=false
 Authorization: Bearer {{token}}
 
 ###
+
+###############################################
+# ROOM FILTERING (Active/Inactive Status)
+###############################################
+
+### 26. GET ALL ROOMS (Active and Inactive)
+GET {{API_HostAddress}}/api/room
+Accept: application/json
+
+###
+
+### 27. GET ONLY ACTIVE ROOMS
+GET {{API_HostAddress}}/api/room?isActive=true
+Accept: application/json
+
+###
+
+### 28. GET ONLY INACTIVE ROOMS
+GET {{API_HostAddress}}/api/room?isActive=false
+Accept: application/json
+
+###
+
+### 29. GET ACTIVE ROOMS IN SPECIFIC LOCATION
+GET {{API_HostAddress}}/api/room?location=CapeTown&isActive=true
+Accept: application/json
+
+###
+
+### 30. GET INACTIVE ROOMS IN SPECIFIC LOCATION
+GET {{API_HostAddress}}/api/room?location=London&isActive=false
+Accept: application/json
+
+###
+
+### 31. GET ALL ROOMS IN LOCATION (Active + Inactive)
+GET {{API_HostAddress}}/api/room?location=Johannesburg
+Accept: application/json
+
+###
