@@ -57,6 +57,7 @@ public partial class Program
         });
 
         builder.Services.AddScoped<TokenService>();
+        builder.Services.AddScoped<ISessionManager, SessionManager>();
 
         // Register BookingManager with ApplicationDbContext
         builder.Services.AddScoped<BookingManager>();
@@ -100,6 +101,10 @@ public partial class Program
         app.UseHttpsRedirection();
 
         app.UseAuthentication();
+        
+        // Add SessionValidationMiddleware - must be after UseAuthentication
+        app.UseMiddleware<SessionValidationMiddleware>();
+        
         app.UseAuthorization();
 
         // Add ExceptionHandlingMiddleware

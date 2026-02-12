@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace ConferenceBooking.API.Entities
 {
-    public class Session
+    public class ConferenceSession
     {
         public int Id { get; set; }
         
@@ -24,12 +24,12 @@ namespace ConferenceBooking.API.Entities
         public int? RoomId { get; set; }
         public ConferenceRoom? Room { get; set; }
         
-        public Session()
+        public ConferenceSession()
         {
             Title = string.Empty;
         }
         
-        public Session(string title, int capacity, DateTimeOffset startTime, DateTimeOffset endTime)
+        public ConferenceSession(string title, int capacity, DateTimeOffset startTime, DateTimeOffset endTime)
         {
             if (capacity <= 0)
                 throw new ArgumentException("Capacity must be a positive value.", nameof(capacity));

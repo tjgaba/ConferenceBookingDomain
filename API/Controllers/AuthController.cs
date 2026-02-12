@@ -2,7 +2,11 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ConferenceBooking.API.DTO;
 using ConferenceBooking.API.Auth;
+using ConferenceBooking.API.Services;
 using Microsoft.AspNetCore.Identity;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Collections.Generic;
 
 namespace API.Controllers
 {
@@ -31,6 +35,9 @@ namespace API.Controllers
         // Controllers should not generate tokens themselves.
         private readonly TokenService _tokenService;
 
+        // SessionManager handles user session tracking
+        private readonly ISessionManager _sessionManager;
+
         // Dependencies are injected via constructor injection.
         // This keeps the controller:
         // - Testable
@@ -38,10 +45,12 @@ namespace API.Controllers
         // - Focused on orchestration only
         public AuthController(
             UserManager<ApplicationUser> userManager,
-            TokenService tokenService)
+            TokenService tokenService,
+            ISessionManager sessionManager)
         {
             _userManager = userManager;
             _tokenService = tokenService;
+            _sessionManager = sessionManager;
         }
 
         // This endpoint handles user authentication (login).
@@ -99,10 +108,114 @@ namespace API.Controllers
             // to keep the controller simple.
             var token = _tokenService.GenerateToken(user, roles);
 
-            // Return the token to the client.
+            // Create a session to track this login
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+            var userAgent = HttpContext.Request.Headers["User-Agent"].ToString();
+            var session = await _sessionManager.CreateSessionAsync(user.Id, token, ipAddress, userAgent);
+
+            // Return the token and refresh token to the client.
             // The client is responsible for storing and sending
             // this token with future requests.
-            return Ok(new { token });
+            return Ok(new 
+            { 
+                token,
+                refreshToken = session.RefreshToken,
+                expiresAt = session.ExpiresAt,
+                user = new
+                {
+                    username = user.UserName,
+                    email = user.Email,
+                    roles
+                }
+            });
+        }
+
+        /// <summary>
+        /// Logout and revoke the current session
+        /// </summary>
+        [HttpPost("logout")]
+        [Authorize]
+        public async Task<IActionResult> Logout()
+        {
+            var token = HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+            
+            if (!string.IsNullOrEmpty(token))
+            {
+                await _sessionManager.RevokeSessionAsync(token, "User logout");
+            }
+
+            return Ok(new { message = "Logged out successfully" });
+        }
+
+        /// <summary>
+        /// Logout from all devices (revoke all user sessions)
+        /// </summary>
+        [HttpPost("logout-all")]
+        [Authorize]
+        public async Task<IActionResult> LogoutAll()
+        {
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized();
+            }
+
+            await _sessionManager.RevokeAllUserSessionsAsync(userId, "User logged out from all devices");
+
+            return Ok(new { message = "Logged out from all devices successfully" });
+        }
+
+        /// <summary>
+        /// Get all active sessions for the current user
+        /// </summary>
+        [HttpGet("sessions")]
+        [Authorize]
+        public async Task<IActionResult> GetActiveSessions()
+        {
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized();
+            }
+
+            var sessions = await _sessionManager.GetUserActiveSessionsAsync(userId);
+
+            return Ok(sessions.Select(s => new
+            {
+                s.Id,
+                s.CreatedAt,
+                s.ExpiresAt,
+                s.LastActivityAt,
+                s.IpAddress,
+                s.UserAgent,
+                isCurrent = s.Token == HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "")
+            }));
+        }
+
+        /// <summary>
+        /// Revoke a specific session by ID
+        /// </summary>
+        [HttpDelete("sessions/{sessionId}")]
+        [Authorize]
+        public async Task<IActionResult> RevokeSession(int sessionId)
+        {
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized();
+            }
+
+            var success = await _sessionManager.RevokeSessionByIdAsync(sessionId, userId, "Revoked by user");
+
+            if (!success)
+            {
+                return NotFound(new { message = "Session not found or already revoked" });
+            }
+
+            return Ok(new { message = "Session revoked successfully" });
         }
     }
 }

@@ -40,12 +40,29 @@ public class ApplicationDbContext : IdentityDbContext
             .Property(b => b.CancelledAt)
             .IsRequired(false);
 
-        // Configure Session-Room relationship
-        modelBuilder.Entity<Session>()
+        // Configure ConferenceSession-Room relationship
+        modelBuilder.Entity<ConferenceSession>()
             .HasOne(s => s.Room)
             .WithMany()
             .HasForeignKey(s => s.RoomId)
             .OnDelete(DeleteBehavior.SetNull);
+
+        // Configure UserSession-User relationship
+        modelBuilder.Entity<UserSession>()
+            .HasOne(s => s.User)
+            .WithMany()
+            .HasForeignKey(s => s.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Configure UserSession indexes for performance
+        modelBuilder.Entity<UserSession>()
+            .HasIndex(s => s.Token);
+        
+        modelBuilder.Entity<UserSession>()
+            .HasIndex(s => s.RefreshToken);
+        
+        modelBuilder.Entity<UserSession>()
+            .HasIndex(s => new { s.UserId, s.IsRevoked, s.ExpiresAt });
 
         // Seed Conference Rooms - Each location has standardized room set
         modelBuilder.Entity<ConferenceRoom>().HasData(
@@ -93,8 +110,8 @@ public class ApplicationDbContext : IdentityDbContext
         // Session must have StartTime < EndTime to be valid
         // This seeds a test session for Room 6 (Cape Town Conference Room A)
         // Using high ID (9001) to avoid conflicts with user-created sessions
-        modelBuilder.Entity<Session>().HasData(
-            new Session 
+        modelBuilder.Entity<ConferenceSession>().HasData(
+            new ConferenceSession 
             { 
                 Id = 9001, // High ID to avoid conflicts - makes seeding repeatable
                 Title = "Q1 Strategy Planning Session", // Required field
@@ -130,5 +147,6 @@ public class ApplicationDbContext : IdentityDbContext
     public DbSet<ApplicationUser> ApplicationUsers { get; set; }
     public DbSet<Booking> Bookings { get; set; }
     public DbSet<ConferenceRoom> ConferenceRooms { get; set; }
-    public DbSet<Session> Sessions { get; set; }
+    public DbSet<ConferenceSession> ConferenceSessions { get; set; }
+    public DbSet<UserSession> UserSessions { get; set; }
 }
