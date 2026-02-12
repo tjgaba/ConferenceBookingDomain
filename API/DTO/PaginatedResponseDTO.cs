@@ -34,6 +34,16 @@ namespace ConferenceBooking.API.DTO
         public List<T> Data { get; set; } = new List<T>();
 
         /// <summary>
+        /// Field used for sorting (Date, RoomName, CreatedAt)
+        /// </summary>
+        public string? SortBy { get; set; }
+
+        /// <summary>
+        /// Sort order (asc or desc)
+        /// </summary>
+        public string SortOrder { get; set; } = "desc";
+
+        /// <summary>
         /// Whether there is a previous page
         /// </summary>
         public bool HasPrevious => CurrentPage > 1;

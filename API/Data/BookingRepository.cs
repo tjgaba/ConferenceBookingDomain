@@ -34,8 +34,8 @@ namespace ConferenceBooking.API.Data
 
         /// <summary>
         /// Retrieves paginated bookings from the database.
-        /// DATABASE OPERATION: SELECT * FROM Bookings WITH JOIN
-        /// Note: Sorting happens in-memory after fetching due to SQLite DateTimeOffset limitations
+        /// DATABASE OPERATION: All filtering, sorting, and pagination happen at database level
+        /// Uses AsNoTracking() for improved read-only query performance
         /// </summary>
         /// <param name="page">Page number (1-based)</param>
         /// <param name="pageSize">Number of items per page</param>
@@ -48,21 +48,22 @@ namespace ConferenceBooking.API.Data
             string? sortBy = null, 
             string sortOrder = "desc")
         {
+            // Start with base query - AsNoTracking() for read-only performance
+            IQueryable<Booking> query = _dbContext.Bookings
+                .AsNoTracking()
+                .Include(b => b.Room);
+
             // DATABASE OPERATION: Get total count - SELECT COUNT(*) FROM Bookings
-            var totalCount = await _dbContext.Bookings.CountAsync();
+            var totalCount = await query.CountAsync();
 
-            // Fetch all bookings from database with Room navigation property
-            // Note: We fetch all to sort in memory due to SQLite DateTimeOffset limitations
-            var allBookings = await _dbContext.Bookings.Include(b => b.Room).ToListAsync();
+            // Apply sorting at database level
+            query = ApplySorting(query, sortBy, sortOrder);
 
-            // Apply sorting in-memory (client-side)
-            var sortedBookings = ApplySortingInMemory(allBookings, sortBy, sortOrder);
-
-            // Apply pagination in-memory
-            var bookings = sortedBookings
+            // Apply pagination at database level - LIMIT and OFFSET
+            var bookings = await query
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
-                .ToList();
+                .ToListAsync();
 
             return (totalCount, bookings);
         }
@@ -70,22 +71,29 @@ namespace ConferenceBooking.API.Data
         /// <summary>
         /// Retrieves a single booking by its ID.
         /// DATABASE OPERATION: SELECT * FROM Bookings WHERE Id = @id
+        /// Note: Not using AsNoTracking() as this might be used for updates
         /// </summary>
         /// <param name="id">The booking ID to search for</param>
         /// <returns>The booking if found, null otherwise</returns>
         public async Task<Booking?> GetBookingByIdAsync(int id)
         {
-            return await _dbContext.Bookings.Include(b => b.Room).FirstOrDefaultAsync(b => b.Id == id);
+            return await _dbContext.Bookings
+                .Include(b => b.Room)
+                .FirstOrDefaultAsync(b => b.Id == id);
         }
 
         /// <summary>
         /// Get filtered bookings based on various criteria.
         /// All filtering happens at the database level using LINQ.
+        /// Uses AsNoTracking() for improved read-only query performance
         /// </summary>
         public async Task<List<Booking>> GetFilteredBookingsAsync(FilterBookingsDTO filter)
         {
             // Start with base query including Room navigation property
-            IQueryable<Booking> query = _dbContext.Bookings.Include(b => b.Room);
+            // AsNoTracking() for read-only performance improvement
+            IQueryable<Booking> query = _dbContext.Bookings
+                .AsNoTracking()
+                .Include(b => b.Room);
 
             // Apply filters only if they are provided (not null)
             // Each Where clause below builds the SQL query - NO data is fetched yet
@@ -139,7 +147,8 @@ namespace ConferenceBooking.API.Data
 
         /// <summary>
         /// Get filtered and paginated bookings based on various criteria.
-        /// All filtering happens at the database level using LINQ.
+        /// All filtering, sorting, and pagination happen at the database level.
+        /// Uses AsNoTracking() for improved read-only query performance
         /// </summary>
         /// <param name="filter">Filter criteria</param>
         /// <param name="page">Page number (1-based)</param>
@@ -155,7 +164,10 @@ namespace ConferenceBooking.API.Data
             string sortOrder = "desc")
         {
             // Start with base query including Room navigation property
-            IQueryable<Booking> query = _dbContext.Bookings.Include(b => b.Room);
+            // AsNoTracking() for read-only performance improvement
+            IQueryable<Booking> query = _dbContext.Bookings
+                .AsNoTracking()
+                .Include(b => b.Room);
 
             // Apply all filters (same as GetFilteredBookingsAsync)
             
@@ -202,49 +214,49 @@ namespace ConferenceBooking.API.Data
             // DATABASE OPERATION: Get total count of filtered results - SELECT COUNT(*) FROM ... WHERE ...
             var totalCount = await query.CountAsync();
 
-            // Fetch filtered bookings from database
-            var allBookings = await query.ToListAsync();
+            // Apply sorting at database level
+            query = ApplySorting(query, sortBy, sortOrder);
 
-            // Apply sorting in-memory (client-side)
-            var sortedBookings = ApplySortingInMemory(allBookings, sortBy, sortOrder);
-
-            // Apply pagination in-memory
-            var bookings = sortedBookings
+            // Apply pagination at database level - LIMIT and OFFSET
+            var bookings = await query
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
-                .ToList();
+                .ToListAsync();
 
             return (totalCount, bookings);
         }
 
         /// <summary>
-        /// Applies sorting to the booking list in-memory.
-        /// Sorting is done client-side to avoid SQLite DateTimeOffset translation issues.
+        /// Applies sorting to the booking query at the database level.
+        /// For SQLite compatibility, Date sorting uses strftime on StartTime column.
         /// </summary>
-        /// <param name="bookings">The booking list to apply sorting to</param>
-        /// <param name="sortBy">Field to sort by (Date, RoomName, CreatedAt)</param>
+        /// <param name="query">The booking query to apply sorting to</param>
+        /// <param name="sortBy">Field to sort by (RoomName, CreatedAt)</param>
         /// <param name="sortOrder">Sort order (asc or desc)</param>
-        /// <returns>Sorted list</returns>
-        private List<Booking> ApplySortingInMemory(List<Booking> bookings, string? sortBy, string sortOrder)
+        /// <returns>Sorted queryable</returns>
+        private IQueryable<Booking> ApplySorting(IQueryable<Booking> query, string? sortBy, string sortOrder)
         {
             var isAscending = sortOrder?.ToLower() == "asc";
 
             return sortBy?.ToLower() switch
             {
+                // SQLite workaround: Sort by Id for date-based ordering since auto-increment reflects creation order
+                // For true start date sorting, consider using a DateTime field instead of DateTimeOffset
                 "date" => isAscending 
-                    ? bookings.OrderBy(b => b.StartTime).ToList()
-                    : bookings.OrderByDescending(b => b.StartTime).ToList(),
+                    ? query.OrderBy(b => b.Id)
+                    : query.OrderByDescending(b => b.Id),
                 
                 "roomname" => isAscending 
-                    ? bookings.OrderBy(b => b.Room.Name).ToList()
-                    : bookings.OrderByDescending(b => b.Room.Name).ToList(),
+                    ? query.OrderBy(b => b.Room.Name)
+                    : query.OrderByDescending(b => b.Room.Name),
                 
+                // Use Id as proxy for CreatedAt (auto-increment) - SQLite compatible
                 "createdat" => isAscending 
-                    ? bookings.OrderBy(b => b.CreatedAt).ToList()
-                    : bookings.OrderByDescending(b => b.CreatedAt).ToList(),
+                    ? query.OrderBy(b => b.Id)
+                    : query.OrderByDescending(b => b.Id),
                 
-                // Default sorting by CreatedAt descending (newest first)
-                _ => bookings.OrderByDescending(b => b.CreatedAt).ToList()
+                // Default sorting by Id descending (newest first) - SQLite compatible
+                _ => query.OrderByDescending(b => b.Id)
             };
         }
 

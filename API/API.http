@@ -35,31 +35,54 @@ Authorization: Bearer {{token}}
 
 ###
 
-### 3. GET ALL BOOKINGS - Test authenticated endpoint
-GET {{API_HostAddress}}/api/booking
+### 3. GET SORTING OPTIONS (No Auth Required)
+GET {{API_HostAddress}}/api/booking/sorting-options
+
+###
+
+### 4. GET ALL BOOKINGS - Default sorting (CreatedAt desc)
+GET {{API_HostAddress}}/api/booking?page=1&pageSize=5
 Authorization: Bearer {{token}}
 
 ###
 
-### 4. GET ALL ROOMS - Test public endpoint
+### 5. GET ALL BOOKINGS - Sort by Date ascending
+GET {{API_HostAddress}}/api/booking?page=1&pageSize=5&sortBy=Date&sortOrder=asc
+Authorization: Bearer {{token}}
+
+###
+
+### 6. GET ALL BOOKINGS - Sort by RoomName descending
+GET {{API_HostAddress}}/api/booking?page=1&pageSize=5&sortBy=RoomName&sortOrder=desc
+Authorization: Bearer {{token}}
+
+###
+
+### 7. GET ALL BOOKINGS - Sort by CreatedAt ascending
+GET {{API_HostAddress}}/api/booking?page=1&pageSize=5&sortBy=CreatedAt&sortOrder=asc
+Authorization: Bearer {{token}}
+
+###
+
+### 8. GET ALL ROOMS - Test public endpoint
 GET {{API_HostAddress}}/api/room
 Accept: application/json
 
 ###
 
-### 5. GET AVAILABLE ROOMS - Test session tracking
+### 9. GET AVAILABLE ROOMS - Test session tracking
 GET {{API_HostAddress}}/api/room/availability
 Authorization: Bearer {{token}}
 
 ###
 
-### 6. LOGOUT FROM CURRENT DEVICE - Revoke this session
+### 10. LOGOUT FROM CURRENT DEVICE - Revoke this session
 POST {{API_HostAddress}}/api/auth/logout
 Authorization: Bearer {{token}}
 
 ###
 
-### 7. LOGIN AGAIN (after logout to test)
+### 11. LOGIN AGAIN (after logout to test)
 POST {{API_HostAddress}}/api/auth/login
 Content-Type: application/json
 
@@ -70,13 +93,13 @@ Content-Type: application/json
 
 ###
 
-### 8. LOGOUT FROM ALL DEVICES - Revoke all sessions
+### 12. LOGOUT FROM ALL DEVICES - Revoke all sessions
 POST {{API_HostAddress}}/api/auth/logout-all
 Authorization: Bearer {{token}}
 
 ###
 
-### 9. REVOKE SPECIFIC SESSION BY ID
+### 13. REVOKE SPECIFIC SESSION BY ID
 DELETE {{API_HostAddress}}/api/auth/sessions/1
 Authorization: Bearer {{token}}
 
@@ -86,13 +109,13 @@ Authorization: Bearer {{token}}
 # CONFERENCE SESSION (EVENTS) TESTING
 ###############################################
 
-### 10. GET ALL CONFERENCE SESSIONS
+### 14. GET ALL CONFERENCE SESSIONS
 GET {{API_HostAddress}}/api/conferencesession
 Accept: application/json
 
 ###
 
-### 11. CREATE CONFERENCE SESSION
+### 15. CREATE CONFERENCE SESSION
 POST {{API_HostAddress}}/api/conferencesession
 Content-Type: application/json
 
@@ -107,7 +130,7 @@ Content-Type: application/json
 
 ###
 
-### 12. GET UNASSIGNED CONFERENCE SESSIONS
+### 16. GET UNASSIGNED CONFERENCE SESSIONS
 GET {{API_HostAddress}}/api/conferencesession/unassigned
 Accept: application/json
 
@@ -117,7 +140,7 @@ Accept: application/json
 # BOOKING TESTING
 ###############################################
 
-### 13. CREATE BOOKING
+### 17. CREATE BOOKING
 POST {{API_HostAddress}}/api/booking
 Authorization: Bearer {{token}}
 Content-Type: application/json

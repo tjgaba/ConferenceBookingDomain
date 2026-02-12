@@ -5,6 +5,7 @@ using ConferenceBooking.API.DTO;
 using ConferenceBooking.API.Auth;
 using ConferenceBooking.API.Entities;
 using ConferenceBooking.API.Models;
+using ConferenceBooking.API.Constants;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -48,15 +49,15 @@ namespace ConferenceBooking.API.Controllers
         [HttpGet]
         [HttpGet("all")]
         public async Task<IActionResult> GetAllBookings(
-            [FromQuery] int page = 1, 
-            [FromQuery] int pageSize = 10,
+            [FromQuery] int page = PaginationConstants.DefaultPage, 
+            [FromQuery] int pageSize = PaginationConstants.DefaultPageSize,
             [FromQuery] string? sortBy = null,
             [FromQuery] string sortOrder = "desc")
         {
             // Validate pagination parameters
-            if (page < 1) page = 1;
-            if (pageSize < 1) pageSize = 10;
-            if (pageSize > 100) pageSize = 100; // Max page size limit
+            if (page < PaginationConstants.MinPage) page = PaginationConstants.DefaultPage;
+            if (pageSize < PaginationConstants.MinPageSize) pageSize = PaginationConstants.DefaultPageSize;
+            if (pageSize > PaginationConstants.MaxPageSize) pageSize = PaginationConstants.MaxPageSize;
 
             // Get paginated bookings from repository with sorting
             var (totalCount, bookings) = await _bookingRepository.GetAllBookingsPaginatedAsync(page, pageSize, sortBy, sortOrder);
@@ -82,6 +83,8 @@ namespace ConferenceBooking.API.Controllers
                 PageSize = pageSize,
                 TotalRecords = totalCount,
                 TotalPages = totalPages,
+                SortBy = sortBy,
+                SortOrder = sortOrder,
                 Data = bookingDtos
             };
 
@@ -142,15 +145,15 @@ namespace ConferenceBooking.API.Controllers
         [HttpGet("filter")]
         public async Task<IActionResult> GetFilteredBookings(
             [FromQuery] FilterBookingsDTO filter, 
-            [FromQuery] int page = 1, 
-            [FromQuery] int pageSize = 10,
+            [FromQuery] int page = PaginationConstants.DefaultPage, 
+            [FromQuery] int pageSize = PaginationConstants.DefaultPageSize,
             [FromQuery] string? sortBy = null,
             [FromQuery] string sortOrder = "desc")
         {
             // Validate pagination parameters
-            if (page < 1) page = 1;
-            if (pageSize < 1) pageSize = 10;
-            if (pageSize > 100) pageSize = 100; // Max page size limit
+            if (page < PaginationConstants.MinPage) page = PaginationConstants.DefaultPage;
+            if (pageSize < PaginationConstants.MinPageSize) pageSize = PaginationConstants.DefaultPageSize;
+            if (pageSize > PaginationConstants.MaxPageSize) pageSize = PaginationConstants.MaxPageSize;
 
             _logger.LogInformation("Filtering bookings with criteria: RoomName={RoomName}, Location={Location}, StartDate={StartDate}, EndDate={EndDate}, IsActiveRoom={IsActiveRoom}, Status={Status}, Page={Page}, PageSize={PageSize}, SortBy={SortBy}, SortOrder={SortOrder}",
                 filter.RoomName, filter.Location, filter.StartDate, filter.EndDate, filter.IsActiveRoom, filter.Status, page, pageSize, sortBy, sortOrder);
@@ -182,10 +185,64 @@ namespace ConferenceBooking.API.Controllers
                 PageSize = pageSize,
                 TotalRecords = totalCount,
                 TotalPages = totalPages,
+                SortBy = sortBy,
+                SortOrder = sortOrder,
                 Data = bookingDtos
             };
 
             return Ok(response);
+        }
+
+        #endregion
+
+        #region Sorting Options
+
+        /// <summary>
+        /// Get available sorting options for bookings
+        /// </summary>
+        /// <returns>Available sorting fields and orders</returns>
+        [HttpGet("sorting-options")]
+        [AllowAnonymous]
+        public IActionResult GetSortingOptions()
+        {
+            var options = new SortingOptionsDTO
+            {
+                DefaultField = "CreatedAt",
+                DefaultOrder = "desc",
+                AvailableFields = new List<SortFieldDTO>
+                {
+                    new SortFieldDTO
+                    {
+                        Value = "Date",
+                        Description = "Sort by booking creation order (SQLite limitation: cannot sort by actual start date)"
+                    },
+                    new SortFieldDTO
+                    {
+                        Value = "RoomName",
+                        Description = "Sort by room name alphabetically"
+                    },
+                    new SortFieldDTO
+                    {
+                        Value = "CreatedAt",
+                        Description = "Sort by when the booking was created"
+                    }
+                },
+                AvailableOrders = new List<SortOrderDTO>
+                {
+                    new SortOrderDTO
+                    {
+                        Value = "asc",
+                        Description = "Ascending order (A to Z, oldest to newest)"
+                    },
+                    new SortOrderDTO
+                    {
+                        Value = "desc",
+                        Description = "Descending order (Z to A, newest to oldest)"
+                    }
+                }
+            };
+
+            return Ok(options);
         }
 
         #endregion
