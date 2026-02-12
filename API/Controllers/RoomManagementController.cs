@@ -123,8 +123,8 @@ namespace API.Controllers
             await _dbContext.SaveChangesAsync();
 
             return CreatedAtAction(
-                nameof(ListAllRoomsController.GetRoomById),
-                "ListAllRooms",
+                "GetRoomById",
+                "Room",
                 new { id = room.Id },
                 new
                 {

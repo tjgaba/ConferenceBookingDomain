@@ -48,8 +48,12 @@ namespace ConferenceBooking.API.Services
 
         public Booking? GetNextBookingForRoom(int roomId, DateTimeOffset atTime)
         {
-            return _dbContext.Bookings
+            // Load to memory first to avoid SQLite DateTimeOffset ordering limitation
+            var futureBookings = _dbContext.Bookings
                 .Where(b => b.RoomId == roomId && b.StartTime > atTime)
+                .ToList();
+            
+            return futureBookings
                 .OrderBy(b => b.StartTime)
                 .FirstOrDefault();
         }

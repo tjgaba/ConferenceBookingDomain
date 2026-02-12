@@ -30,6 +30,7 @@
     <Compile Include="Controllers\**\*.cs" />
     <Compile Include="Models\**\*.cs" />
     <Compile Include="Entities\**\*.cs" />
+    <Compile Include="Constants\**\*.cs" />
     <Compile Include="Program.cs" />
   </ItemGroup>
 
@@ -43,6 +44,7 @@
     <Compile Include="Exceptions\**\*.cs" />
     <Compile Include="domain\**\*.cs" />
     <Compile Include="Data\ConferenceRoomRepository.cs" />
+    <Compile Include="Data\BookingRepository.cs" />
     <Compile Include="Persistence\BookingFileStore.cs" />
     <Compile Include="Persistence\BookingPersistenceException.cs" />
     <Compile Include="Data\ApplicationDbContext.cs" />

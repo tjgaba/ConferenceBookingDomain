@@ -1,6 +1,304 @@
 @API_HostAddress = http://localhost:5230
+@token = 
 
-GET {{API_HostAddress}}/weatherforecast/
+###############################################
+# SESSION MANAGEMENT TESTING
+###############################################
+
+### 1. LOGIN - Create a session
+POST {{API_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "Admin",
+  "password": "Admin123!"
+}
+
+### Response will contain:
+# {
+#   "token": "eyJhbGc...",
+#   "refreshToken": "base64-refresh-token",
+#   "expiresAt": "2026-02-13T...",
+#   "user": {
+#     "username": "Admin",
+#     "email": "admin@domain.com",
+#     "roles": ["Admin"]
+#   }
+# }
+# Copy the token value and paste it in @token variable above
+
+###
+
+### 2. GET ALL ACTIVE SESSIONS - View where you're logged in
+GET {{API_HostAddress}}/api/auth/sessions
+Authorization: Bearer {{token}}
+
+###
+
+### 3. GET SORTING OPTIONS (No Auth Required)
+GET {{API_HostAddress}}/api/booking/sorting-options
+
+###
+
+### 4. GET ALL BOOKINGS - Default sorting (CreatedAt desc)
+GET {{API_HostAddress}}/api/booking?page=1&pageSize=5
+Authorization: Bearer {{token}}
+
+###
+
+### 5. GET ALL BOOKINGS - Sort by Date ascending
+GET {{API_HostAddress}}/api/booking?page=1&pageSize=5&sortBy=Date&sortOrder=asc
+Authorization: Bearer {{token}}
+
+###
+
+### 6. GET ALL BOOKINGS - Sort by RoomName descending
+GET {{API_HostAddress}}/api/booking?page=1&pageSize=5&sortBy=RoomName&sortOrder=desc
+Authorization: Bearer {{token}}
+
+###
+
+### 7. GET ALL BOOKINGS - Sort by CreatedAt ascending
+GET {{API_HostAddress}}/api/booking?page=1&pageSize=5&sortBy=CreatedAt&sortOrder=asc
+Authorization: Bearer {{token}}
+
+###
+
+### 8. GET ALL ROOMS - Test public endpoint
+GET {{API_HostAddress}}/api/room
+Accept: application/json
+
+###
+
+### 9. GET AVAILABLE ROOMS - Test session tracking
+GET {{API_HostAddress}}/api/room/availability
+Authorization: Bearer {{token}}
+
+###
+
+### 10. LOGOUT FROM CURRENT DEVICE - Revoke this session
+POST {{API_HostAddress}}/api/auth/logout
+Authorization: Bearer {{token}}
+
+###
+
+### 11. LOGIN AGAIN (after logout to test)
+POST {{API_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "Admin",
+  "password": "Admin123!"
+}
+
+###
+
+### 12. LOGOUT FROM ALL DEVICES - Revoke all sessions
+POST {{API_HostAddress}}/api/auth/logout-all
+Authorization: Bearer {{token}}
+
+###
+
+### 13. REVOKE SPECIFIC SESSION BY ID
+DELETE {{API_HostAddress}}/api/auth/sessions/1
+Authorization: Bearer {{token}}
+
+###
+
+###############################################
+# CONFERENCE SESSION (EVENTS) TESTING
+###############################################
+
+### 14. GET ALL CONFERENCE SESSIONS
+GET {{API_HostAddress}}/api/conferencesession
+Accept: application/json
+
+###
+
+### 15. CREATE CONFERENCE SESSION
+POST {{API_HostAddress}}/api/conferencesession
+Content-Type: application/json
+
+{
+  "title": "Q2 Planning Meeting",
+  "description": "Strategic planning for Q2 2026",
+  "capacity": 15,
+  "startTime": "2026-04-01T09:00:00Z",
+  "endTime": "2026-04-01T11:00:00Z",
+  "roomId": 6
+}
+
+###
+
+### 16. GET UNASSIGNED CONFERENCE SESSIONS
+GET {{API_HostAddress}}/api/conferencesession/unassigned
+Accept: application/json
+
+###
+
+###############################################
+# BOOKING TESTING
+###############################################
+
+### 17. CREATE BOOKING
+POST {{API_HostAddress}}/api/booking
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "bookingId": 2001,
+  "roomId": 6,
+  "startDate": "2026-02-15T10:00:00Z",
+  "endDate": "2026-02-15T12:00:00Z",
+  "location": "CapeTown",
+  "capacity": 10
+}
+
+###
+
+### 14. CONFIRM BOOKING (Receptionist/Admin only)
+PATCH {{API_HostAddress}}/api/booking/2001/confirm
+Authorization: Bearer {{token}}
+
+###
+
+### 15. GET BOOKING BY ID
+GET {{API_HostAddress}}/api/booking/2001
+Authorization: Bearer {{token}}
+
+###
+
+### 16. CANCEL BOOKING
+DELETE {{API_HostAddress}}/api/booking/2001/cancel
+Authorization: Bearer {{token}}
+
+###
+
+###############################################
+# BOOKING FILTERING (Database-Level Filtering)
+###############################################
+
+### 17. FILTER BOOKINGS BY ROOM NAME
+# Example: "All bookings for Room A"
+GET {{API_HostAddress}}/api/booking/filter?roomName=Room A&page=1&pageSize=10
+Authorization: Bearer {{token}}
+
+###
+
+### 18. FILTER BOOKINGS BY LOCATION
+# Example: "Bookings in Cape Town"
+GET {{API_HostAddress}}/api/booking/filter?location=CapeTown&page=1&pageSize=10
+Authorization: Bearer {{token}}
+
+###
+
+### 19. FILTER BOOKINGS BY DATE RANGE
+# Example: "Bookings between two dates"
+GET {{API_HostAddress}}/api/booking/filter?startDate=2026-02-01T00:00:00Z&endDate=2026-02-28T23:59:59Z&page=1&pageSize=10
+Authorization: Bearer {{token}}
+
+###
+
+### 20. FILTER BOOKINGS BY ACTIVE ROOMS ONLY
+# Example: "Bookings for active rooms only"
+GET {{API_HostAddress}}/api/booking/filter?isActiveRoom=true&page=1&pageSize=10
+Authorization: Bearer {{token}}
+
+###
+
+### 21. FILTER BOOKINGS BY ROOM AND LOCATION
+# Example: "All bookings for Room A in London"
+GET {{API_HostAddress}}/api/booking/filter?roomName=Room A&location=London&page=1&pageSize=10
+Authorization: Bearer {{token}}
+
+###
+
+### 22. FILTER BOOKINGS BY LOCATION AND DATE RANGE
+# Example: "Bookings in Johannesburg in February 2026"
+GET {{API_HostAddress}}/api/booking/filter?location=Johannesburg&startDate=2026-02-01T00:00:00Z&endDate=2026-02-28T23:59:59Z&page=1&pageSize=10
+Authorization: Bearer {{token}}
+
+###
+
+### 23. FILTER BOOKINGS BY STATUS
+# Example: "All confirmed bookings"
+GET {{API_HostAddress}}/api/booking/filter?status=Confirmed&page=1&pageSize=10
+Authorization: Bearer {{token}}
+
+###
+
+### 24. FILTER BOOKINGS - MULTIPLE CRITERIA
+# Example: "Active room bookings in Cape Town for Room B during February"
+GET {{API_HostAddress}}/api/booking/filter?roomName=Room B&location=CapeTown&startDate=2026-02-01T00:00:00Z&endDate=2026-02-28T23:59:59Z&isActiveRoom=true&page=1&pageSize=10
+Authorization: Bearer {{token}}
+
+###
+
+### 25. FILTER BOOKINGS - INACTIVE ROOMS ONLY
+# Example: "Bookings for inactive/deactivated rooms"
+GET {{API_HostAddress}}/api/booking/filter?isActiveRoom=false&page=1&pageSize=10
+Authorization: Bearer {{token}}
+
+###
+
+###############################################
+# PAGINATION EXAMPLES
+###############################################
+
+### 26. GET ALL BOOKINGS - PAGE 1 (DEFAULT PAGE SIZE = 10)
+GET {{API_HostAddress}}/api/booking?page=1
+Authorization: Bearer {{token}}
+
+###
+
+### 27. GET ALL BOOKINGS - PAGE 2 WITH CUSTOM PAGE SIZE
+GET {{API_HostAddress}}/api/booking?page=2&pageSize=20
+Authorization: Bearer {{token}}
+
+###
+
+### 28. GET ALL BOOKINGS - FIRST 5 ITEMS
+GET {{API_HostAddress}}/api/booking?page=1&pageSize=5
+Authorization: Bearer {{token}}
+
+###
+
+###############################################
+# ROOM FILTERING (Active/Inactive Status)
+###############################################
+
+### 26. GET ALL ROOMS (Active and Inactive)
+GET {{API_HostAddress}}/api/room
+Accept: application/json
+
+###
+
+### 27. GET ONLY ACTIVE ROOMS
+GET {{API_HostAddress}}/api/room?isActive=true
+Accept: application/json
+
+###
+
+### 28. GET ONLY INACTIVE ROOMS
+GET {{API_HostAddress}}/api/room?isActive=false
+Accept: application/json
+
+###
+
+### 29. GET ACTIVE ROOMS IN SPECIFIC LOCATION
+GET {{API_HostAddress}}/api/room?location=CapeTown&isActive=true
+Accept: application/json
+
+###
+
+### 30. GET INACTIVE ROOMS IN SPECIFIC LOCATION
+GET {{API_HostAddress}}/api/room?location=London&isActive=false
+Accept: application/json
+
+###
+
+### 31. GET ALL ROOMS IN LOCATION (Active + Inactive)
+GET {{API_HostAddress}}/api/room?location=Johannesburg
 Accept: application/json
 
 ###
