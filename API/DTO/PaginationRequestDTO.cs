@@ -14,5 +14,15 @@ namespace ConferenceBooking.API.DTO
         /// Number of items per page
         /// </summary>
         public int PageSize { get; set; } = 10;
+
+        /// <summary>
+        /// Field to sort by. Supported values: Date, RoomName, CreatedAt
+        /// </summary>
+        public string? SortBy { get; set; }
+
+        /// <summary>
+        /// Sort order: asc or desc (default: desc)
+        /// </summary>
+        public string SortOrder { get; set; } = "desc";
     }
 }

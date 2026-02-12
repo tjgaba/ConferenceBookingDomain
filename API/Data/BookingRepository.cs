@@ -38,18 +38,27 @@ namespace ConferenceBooking.API.Data
         /// </summary>
         /// <param name="page">Page number (1-based)</param>
         /// <param name="pageSize">Number of items per page</param>
+        /// <param name="sortBy">Field to sort by (Date, RoomName, CreatedAt)</param>
+        /// <param name="sortOrder">Sort order (asc or desc)</param>
         /// <returns>Tuple containing total count and paginated bookings</returns>
-        public async Task<(int totalCount, List<Booking> bookings)> GetAllBookingsPaginatedAsync(int page, int pageSize)
+        public async Task<(int totalCount, List<Booking> bookings)> GetAllBookingsPaginatedAsync(
+            int page, 
+            int pageSize, 
+            string? sortBy = null, 
+            string sortOrder = "desc")
         {
             // DATABASE OPERATION: Get total count - SELECT COUNT(*) FROM Bookings
             var totalCount = await _dbContext.Bookings.CountAsync();
 
+            // Start with base query
+            IQueryable<Booking> query = _dbContext.Bookings.Include(b => b.Room);
+
+            // Apply sorting before pagination
+            query = ApplySorting(query, sortBy, sortOrder);
+
             // DATABASE OPERATION: Get paginated results with SKIP and TAKE
             // Translates to SQL: SELECT * FROM Bookings LIMIT @pageSize OFFSET @skip
-            // Order by Id descending (newer bookings have higher IDs)
-            var bookings = await _dbContext.Bookings
-                .Include(b => b.Room)
-                .OrderByDescending(b => b.Id) // Order by ID instead of DateTimeOffset
+            var bookings = await query
                 .Skip((page - 1) * pageSize) // Skip previous pages
                 .Take(pageSize) // Take only current page items
                 .ToListAsync();
@@ -134,8 +143,15 @@ namespace ConferenceBooking.API.Data
         /// <param name="filter">Filter criteria</param>
         /// <param name="page">Page number (1-based)</param>
         /// <param name="pageSize">Number of items per page</param>
+        /// <param name="sortBy">Field to sort by (Date, RoomName, CreatedAt)</param>
+        /// <param name="sortOrder">Sort order (asc or desc)</param>
         /// <returns>Tuple containing total count and paginated filtered bookings</returns>
-        public async Task<(int totalCount, List<Booking> bookings)> GetFilteredBookingsPaginatedAsync(FilterBookingsDTO filter, int page, int pageSize)
+        public async Task<(int totalCount, List<Booking> bookings)> GetFilteredBookingsPaginatedAsync(
+            FilterBookingsDTO filter, 
+            int page, 
+            int pageSize,
+            string? sortBy = null,
+            string sortOrder = "desc")
         {
             // Start with base query including Room navigation property
             IQueryable<Booking> query = _dbContext.Bookings.Include(b => b.Room);
@@ -185,16 +201,48 @@ namespace ConferenceBooking.API.Data
             // DATABASE OPERATION: Get total count of filtered results - SELECT COUNT(*) FROM ... WHERE ...
             var totalCount = await query.CountAsync();
 
+            // Apply sorting before pagination
+            query = ApplySorting(query, sortBy, sortOrder);
+
             // DATABASE OPERATION: Apply pagination - LIMIT and OFFSET
             // Translates to SQL: SELECT * FROM ... WHERE ... ORDER BY ... LIMIT @pageSize OFFSET @skip
-            // Order by Id descending (newer bookings have higher IDs)
             var bookings = await query
-                .OrderByDescending(b => b.Id) // Order by ID instead of DateTimeOffset
                 .Skip((page - 1) * pageSize) // Skip previous pages
                 .Take(pageSize) // Take only current page items
                 .ToListAsync();
 
             return (totalCount, bookings);
+        }
+
+        /// <summary>
+        /// Applies sorting to the booking query based on the specified field and order.
+        /// Sorting is applied before pagination to ensure consistent results.
+        /// </summary>
+        /// <param name="query">The booking query to apply sorting to</param>
+        /// <param name="sortBy">Field to sort by (Date, RoomName, CreatedAt)</param>
+        /// <param name="sortOrder">Sort order (asc or desc)</param>
+        /// <returns>Sorted queryable</returns>
+        private IQueryable<Booking> ApplySorting(IQueryable<Booking> query, string? sortBy, string sortOrder)
+        {
+            var isAscending = sortOrder?.ToLower() == "asc";
+
+            return sortBy?.ToLower() switch
+            {
+                "date" => isAscending 
+                    ? query.OrderBy(b => b.StartTime) 
+                    : query.OrderByDescending(b => b.StartTime),
+                
+                "roomname" => isAscending 
+                    ? query.OrderBy(b => b.Room.Name) 
+                    : query.OrderByDescending(b => b.Room.Name),
+                
+                "createdat" => isAscending 
+                    ? query.OrderBy(b => b.CreatedAt) 
+                    : query.OrderByDescending(b => b.CreatedAt),
+                
+                // Default sorting by CreatedAt descending (newest first)
+                _ => query.OrderByDescending(b => b.CreatedAt)
+            };
         }
 
         /// <summary>
