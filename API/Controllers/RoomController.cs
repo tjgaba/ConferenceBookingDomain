@@ -76,7 +76,7 @@ namespace ConferenceBooking.API.Controllers
                 return NotFound(new { Message = $"Room with ID {id} not found." });
             }
 
-            var roomDto = new ListAllRoomsDTO
+            var roomDto = new RoomDetailDTO
             {
                 Id = room.Id,
                 Name = room.Name,

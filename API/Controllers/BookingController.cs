@@ -61,27 +61,22 @@ namespace ConferenceBooking.API.Controllers
             // Get paginated bookings from repository with sorting
             var (totalCount, bookings) = await _bookingRepository.GetAllBookingsPaginatedAsync(page, pageSize, sortBy, sortOrder);
 
-            // Map to DTOs
-            var bookingDtos = bookings.Select(b => new GetAllBookingsDTO
+            // Map to summary DTOs for list view
+            var bookingDtos = bookings.Select(b => new BookingSummaryDTO
             {
                 BookingId = b.Id,
                 RoomName = b.Room.Name,
-                RoomNumber = b.Room.Number,
+                Date = b.StartTime,
                 Location = b.Location.ToString(),
                 IsActive = b.Room.IsActive,
-                RequestedBy = b.RequestedBy,
-                StartTime = b.StartTime,
-                EndTime = b.EndTime,
-                Status = b.Status.ToString(),
-                CreatedAt = b.CreatedAt,
-                CancelledAt = b.CancelledAt
+                Status = b.Status.ToString()
             }).ToList();
 
             // Calculate total pages
             var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
 
             // Create paginated response
-            var response = new PaginatedResponseDTO<GetAllBookingsDTO>
+            var response = new PaginatedResponseDTO<BookingSummaryDTO>
             {
                 CurrentPage = page,
                 PageSize = pageSize,
@@ -102,17 +97,19 @@ namespace ConferenceBooking.API.Controllers
             var booking = await _dbContext.Bookings
                 .Include(b => b.Room)
                 .Where(b => b.Id == id)
-                .Select(b => new GetAllBookingsDTO
+                .Select(b => new BookingDetailDTO
                 {
                     BookingId = b.Id,
+                    RoomId = b.RoomId,
                     RoomName = b.Room.Name,
                     RoomNumber = b.Room.Number,
                     Location = b.Location.ToString(),
-                    IsActive = b.Room.IsActive,
+                    IsRoomActive = b.Room.IsActive,
                     RequestedBy = b.RequestedBy,
                     StartTime = b.StartTime,
                     EndTime = b.EndTime,
                     Status = b.Status.ToString(),
+                    Capacity = b.Capacity,
                     CreatedAt = b.CreatedAt,
                     CancelledAt = b.CancelledAt
                 })
@@ -161,20 +158,15 @@ namespace ConferenceBooking.API.Controllers
             // Get paginated filtered bookings from repository with sorting
             var (totalCount, bookings) = await _bookingRepository.GetFilteredBookingsPaginatedAsync(filter, page, pageSize, sortBy, sortOrder);
 
-            // Map to DTOs
-            var bookingDtos = bookings.Select(b => new GetAllBookingsDTO
+            // Map to summary DTOs for list view
+            var bookingDtos = bookings.Select(b => new BookingSummaryDTO
             {
                 BookingId = b.Id,
                 RoomName = b.Room.Name,
-                RoomNumber = b.Room.Number,
+                Date = b.StartTime,
                 Location = b.Location.ToString(),
                 IsActive = b.Room.IsActive,
-                RequestedBy = b.RequestedBy,
-                StartTime = b.StartTime,
-                EndTime = b.EndTime,
-                Status = b.Status.ToString(),
-                CreatedAt = b.CreatedAt,
-                CancelledAt = b.CancelledAt
+                Status = b.Status.ToString()
             }).ToList();
 
             _logger.LogInformation("Found {TotalCount} bookings matching the filter criteria, returning page {Page} of {TotalPages}", 
@@ -184,7 +176,7 @@ namespace ConferenceBooking.API.Controllers
             var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
 
             // Create paginated response
-            var response = new PaginatedResponseDTO<GetAllBookingsDTO>
+            var response = new PaginatedResponseDTO<BookingSummaryDTO>
             {
                 CurrentPage = page,
                 PageSize = pageSize,
@@ -280,8 +272,26 @@ namespace ConferenceBooking.API.Controllers
             await _dbContext.Bookings.AddAsync(booking);
             await _dbContext.SaveChangesAsync();
 
+            // Prepare detailed response DTO
+            var responseDto = new BookingDetailDTO
+            {
+                BookingId = booking.Id,
+                RoomId = booking.RoomId,
+                RoomName = booking.Room.Name,
+                RoomNumber = booking.Room.Number,
+                Location = booking.Location.ToString(),
+                IsRoomActive = booking.Room.IsActive,
+                RequestedBy = booking.RequestedBy,
+                StartTime = booking.StartTime,
+                EndTime = booking.EndTime,
+                Status = booking.Status.ToString(),
+                Capacity = booking.Capacity,
+                CreatedAt = booking.CreatedAt,
+                CancelledAt = booking.CancelledAt
+            };
+
             _logger.LogInformation("Booking created successfully with Pending status");
-            return Ok(new { Message = "Booking created and pending confirmation by receptionist.", Booking = booking });
+            return Ok(new { Message = "Booking created and pending confirmation by receptionist.", Booking = responseDto });
         }
 
         #endregion
@@ -434,16 +444,25 @@ namespace ConferenceBooking.API.Controllers
             // Save changes to database
             await _dbContext.SaveChangesAsync();
 
-            return Ok(new
+            // Prepare detailed response DTO
+            var responseDto = new BookingDetailDTO
             {
-                booking.Id,
-                booking.RoomId,
+                BookingId = booking.Id,
+                RoomId = booking.RoomId,
                 RoomName = booking.Room.Name,
-                booking.RequestedBy,
-                booking.StartTime,
-                booking.EndTime,
-                Status = booking.Status.ToString()
-            });
+                RoomNumber = booking.Room.Number,
+                Location = booking.Location.ToString(),
+                IsRoomActive = booking.Room.IsActive,
+                RequestedBy = booking.RequestedBy,
+                StartTime = booking.StartTime,
+                EndTime = booking.EndTime,
+                Status = booking.Status.ToString(),
+                Capacity = booking.Capacity,
+                CreatedAt = booking.CreatedAt,
+                CancelledAt = booking.CancelledAt
+            };
+
+            return Ok(responseDto);
         }
 
         /// <summary>
@@ -497,8 +516,26 @@ namespace ConferenceBooking.API.Controllers
             booking.Confirm();
             await _dbContext.SaveChangesAsync();
             
+            // Prepare detailed response DTO
+            var responseDto = new BookingDetailDTO
+            {
+                BookingId = booking.Id,
+                RoomId = booking.RoomId,
+                RoomName = booking.Room.Name,
+                RoomNumber = booking.Room.Number,
+                Location = booking.Location.ToString(),
+                IsRoomActive = booking.Room.IsActive,
+                RequestedBy = booking.RequestedBy,
+                StartTime = booking.StartTime,
+                EndTime = booking.EndTime,
+                Status = booking.Status.ToString(),
+                Capacity = booking.Capacity,
+                CreatedAt = booking.CreatedAt,
+                CancelledAt = booking.CancelledAt
+            };
+
             _logger.LogInformation($"Booking {id} confirmed by {User.Identity?.Name}");
-            return Ok(new { Message = "Booking confirmed successfully.", Booking = booking });
+            return Ok(new { Message = "Booking confirmed successfully.", Booking = responseDto });
         }
 
         /// <summary>
