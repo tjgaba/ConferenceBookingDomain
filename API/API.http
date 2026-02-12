@@ -150,3 +150,70 @@ DELETE {{API_HostAddress}}/api/booking/2001/cancel
 Authorization: Bearer {{token}}
 
 ###
+
+###############################################
+# BOOKING FILTERING (Database-Level Filtering)
+###############################################
+
+### 17. FILTER BOOKINGS BY ROOM NAME
+# Example: "All bookings for Room A"
+GET {{API_HostAddress}}/api/booking/filter?roomName=Room A
+Authorization: Bearer {{token}}
+
+###
+
+### 18. FILTER BOOKINGS BY LOCATION
+# Example: "Bookings in Cape Town"
+GET {{API_HostAddress}}/api/booking/filter?location=CapeTown
+Authorization: Bearer {{token}}
+
+###
+
+### 19. FILTER BOOKINGS BY DATE RANGE
+# Example: "Bookings between two dates"
+GET {{API_HostAddress}}/api/booking/filter?startDate=2026-02-01T00:00:00Z&endDate=2026-02-28T23:59:59Z
+Authorization: Bearer {{token}}
+
+###
+
+### 20. FILTER BOOKINGS BY ACTIVE ROOMS ONLY
+# Example: "Bookings for active rooms only"
+GET {{API_HostAddress}}/api/booking/filter?isActiveRoom=true
+Authorization: Bearer {{token}}
+
+###
+
+### 21. FILTER BOOKINGS BY ROOM AND LOCATION
+# Example: "All bookings for Room A in London"
+GET {{API_HostAddress}}/api/booking/filter?roomName=Room A&location=London
+Authorization: Bearer {{token}}
+
+###
+
+### 22. FILTER BOOKINGS BY LOCATION AND DATE RANGE
+# Example: "Bookings in Johannesburg in February 2026"
+GET {{API_HostAddress}}/api/booking/filter?location=Johannesburg&startDate=2026-02-01T00:00:00Z&endDate=2026-02-28T23:59:59Z
+Authorization: Bearer {{token}}
+
+###
+
+### 23. FILTER BOOKINGS BY STATUS
+# Example: "All confirmed bookings"
+GET {{API_HostAddress}}/api/booking/filter?status=Confirmed
+Authorization: Bearer {{token}}
+
+###
+
+### 24. FILTER BOOKINGS - MULTIPLE CRITERIA
+# Example: "Active room bookings in Cape Town for Room B during February"
+GET {{API_HostAddress}}/api/booking/filter?roomName=Room B&location=CapeTown&startDate=2026-02-01T00:00:00Z&endDate=2026-02-28T23:59:59Z&isActiveRoom=true
+Authorization: Bearer {{token}}
+
+###
+
+### 25. FILTER BOOKINGS - INACTIVE ROOMS ONLY
+# Example: "Bookings for inactive/deactivated rooms"
+GET {{API_HostAddress}}/api/booking/filter?isActiveRoom=false
+Authorization: Bearer {{token}}
+
+###

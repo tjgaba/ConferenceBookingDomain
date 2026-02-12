@@ -61,6 +61,9 @@ public partial class Program
 
         // Register BookingManager with ApplicationDbContext
         builder.Services.AddScoped<BookingManager>();
+        
+        // Register BookingRepository
+        builder.Services.AddScoped<BookingRepository>();
 
         // Seed roles and users
         var app = builder.Build();

@@ -22,15 +22,18 @@ namespace ConferenceBooking.API.Controllers
         private readonly ApplicationDbContext _dbContext;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly ILogger<BookingController> _logger;
+        private readonly BookingRepository _bookingRepository;
 
         public BookingController(
             ApplicationDbContext dbContext,
             UserManager<ApplicationUser> userManager,
-            ILogger<BookingController> logger)
+            ILogger<BookingController> logger,
+            BookingRepository bookingRepository)
         {
             _dbContext = dbContext;
             _userManager = userManager;
             _logger = logger;
+            _bookingRepository = bookingRepository;
         }
 
         #region GET Endpoints
@@ -48,6 +51,9 @@ namespace ConferenceBooking.API.Controllers
                 {
                     BookingId = b.Id,
                     RoomName = b.Room.Name,
+                    RoomNumber = b.Room.Number,
+                    Location = b.Location.ToString(),
+                    IsActive = b.Room.IsActive,
                     RequestedBy = b.RequestedBy,
                     StartTime = b.StartTime,
                     EndTime = b.EndTime,
@@ -73,6 +79,9 @@ namespace ConferenceBooking.API.Controllers
                 {
                     BookingId = b.Id,
                     RoomName = b.Room.Name,
+                    RoomNumber = b.Room.Number,
+                    Location = b.Location.ToString(),
+                    IsActive = b.Room.IsActive,
                     RequestedBy = b.RequestedBy,
                     StartTime = b.StartTime,
                     EndTime = b.EndTime,
@@ -88,6 +97,57 @@ namespace ConferenceBooking.API.Controllers
             }
 
             return Ok(booking);
+        }
+
+        /// <summary>
+        /// Get filtered bookings by room, location, date range, and/or room active status.
+        /// All filtering happens at the database level for optimal performance.
+        /// Examples:
+        /// - GET /api/booking/filter?roomName=Room A
+        /// - GET /api/booking/filter?location=CapeTown
+        /// - GET /api/booking/filter?startDate=2026-02-01&endDate=2026-02-28
+        /// - GET /api/booking/filter?isActiveRoom=true
+        /// - GET /api/booking/filter?roomName=Room A&location=London&isActiveRoom=true
+        /// </summary>
+        [HttpGet("filter")]
+        public async Task<IActionResult> GetFilteredBookings([FromQuery] FilterBookingsDTO filter)
+        {
+            _logger.LogInformation("Filtering bookings with criteria: RoomName={RoomName}, Location={Location}, StartDate={StartDate}, EndDate={EndDate}, IsActiveRoom={IsActiveRoom}, Status={Status}",
+                filter.RoomName, filter.Location, filter.StartDate, filter.EndDate, filter.IsActiveRoom, filter.Status);
+
+            var bookings = await _bookingRepository.GetFilteredBookingsAsync(filter);
+
+            var result = bookings.Select(b => new GetAllBookingsDTO
+            {
+                BookingId = b.Id,
+                RoomName = b.Room.Name,
+                RoomNumber = b.Room.Number,
+                Location = b.Location.ToString(),
+                IsActive = b.Room.IsActive,
+                RequestedBy = b.RequestedBy,
+                StartTime = b.StartTime,
+                EndTime = b.EndTime,
+                Status = b.Status.ToString(),
+                CreatedAt = b.CreatedAt,
+                CancelledAt = b.CancelledAt
+            }).ToList();
+
+            _logger.LogInformation("Found {Count} bookings matching the filter criteria", result.Count);
+
+            return Ok(new 
+            { 
+                Count = result.Count,
+                Filters = new 
+                {
+                    RoomName = filter.RoomName,
+                    Location = filter.Location?.ToString(),
+                    StartDate = filter.StartDate,
+                    EndDate = filter.EndDate,
+                    IsActiveRoom = filter.IsActiveRoom,
+                    Status = filter.Status
+                },
+                Bookings = result 
+            });
         }
 
         #endregion
@@ -220,15 +280,18 @@ namespace ConferenceBooking.API.Controllers
                     return BadRequest(new { Message = "The selected room is not currently available for booking." });
                 }
 
-                // Check for conflicts in the new room
+                // Check for conflicts in the new room - fetch and filter in memory to avoid LINQ translation issues
                 var startTime = dto.StartTime ?? booking.StartTime;
                 var endTime = dto.EndTime ?? booking.EndTime;
 
-                var hasConflict = await _dbContext.Bookings
+                var confirmedBookings = await _dbContext.Bookings
                     .Where(b => b.RoomId == dto.RoomId.Value && 
                                b.Id != id && 
                                b.Status == BookingStatus.Confirmed)
-                    .AnyAsync(b => b.EndTime > startTime && b.StartTime < endTime);
+                    .ToListAsync();
+
+                var hasConflict = confirmedBookings
+                    .Any(b => b.EndTime > startTime && b.StartTime < endTime);
 
                 if (hasConflict)
                 {
@@ -256,12 +319,15 @@ namespace ConferenceBooking.API.Controllers
                     return BadRequest(new { Message = "Start time must be before end time." });
                 }
 
-                // Check for conflicts with the new time
-                var hasConflict = await _dbContext.Bookings
+                // Check for conflicts with the new time - fetch and filter in memory to avoid LINQ translation issues
+                var confirmedBookings = await _dbContext.Bookings
                     .Where(b => b.RoomId == booking.RoomId && 
                                b.Id != id && 
                                b.Status == BookingStatus.Confirmed)
-                    .AnyAsync(b => b.EndTime > dto.StartTime.Value && b.StartTime < endTime);
+                    .ToListAsync();
+
+                var hasConflict = confirmedBookings
+                    .Any(b => b.EndTime > dto.StartTime.Value && b.StartTime < endTime);
 
                 if (hasConflict)
                 {
@@ -282,12 +348,15 @@ namespace ConferenceBooking.API.Controllers
                     return BadRequest(new { Message = "End time must be after start time." });
                 }
 
-                // Check for conflicts with the new time
-                var hasConflict = await _dbContext.Bookings
+                // Check for conflicts with the new time - fetch and filter in memory to avoid LINQ translation issues
+                var confirmedBookings = await _dbContext.Bookings
                     .Where(b => b.RoomId == booking.RoomId && 
                                b.Id != id && 
                                b.Status == BookingStatus.Confirmed)
-                    .AnyAsync(b => b.EndTime > startTime && b.StartTime < dto.EndTime.Value);
+                    .ToListAsync();
+
+                var hasConflict = confirmedBookings
+                    .Any(b => b.EndTime > startTime && b.StartTime < dto.EndTime.Value);
 
                 if (hasConflict)
                 {
@@ -295,6 +364,25 @@ namespace ConferenceBooking.API.Controllers
                 }
 
                 booking.EndTime = dto.EndTime.Value;
+            }
+
+            // Update status if provided
+            if (!string.IsNullOrWhiteSpace(dto.Status))
+            {
+                if (Enum.TryParse<BookingStatus>(dto.Status, true, out var newStatus))
+                {
+                    booking.Status = newStatus;
+                    
+                    // Set CancelledAt timestamp if status is changed to Cancelled
+                    if (newStatus == BookingStatus.Cancelled && !booking.CancelledAt.HasValue)
+                    {
+                        booking.CancelledAt = DateTimeOffset.UtcNow;
+                    }
+                }
+                else
+                {
+                    return BadRequest(new { Message = $"Invalid status. Valid values are: {string.Join(", ", Enum.GetNames(typeof(BookingStatus)))}" });
+                }
             }
 
             // Save changes to database
