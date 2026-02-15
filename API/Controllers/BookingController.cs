@@ -93,6 +93,7 @@ namespace ConferenceBooking.API.Controllers
         {
             var booking = await _dbContext.Bookings
                 .Include(b => b.Room)
+                .Include(b => b.User)
                 .Where(b => b.Id == id)
                 .Select(b => new BookingDetailDTO
                 {
@@ -102,7 +103,7 @@ namespace ConferenceBooking.API.Controllers
                     RoomNumber = b.Room.Number,
                     Location = b.Location.ToString(),
                     IsRoomActive = b.Room.IsActive,
-                    RequestedBy = b.RequestedBy,
+                    RequestedBy = b.User != null ? (b.User.UserName ?? "Unknown User") : "Unknown User",
                     StartTime = b.StartTime,
                     EndTime = b.EndTime,
                     Status = b.Status.ToString(),
@@ -262,12 +263,6 @@ namespace ConferenceBooking.API.Controllers
                 return Forbid(); // 403 Forbidden - user exists but is not allowed
             }
 
-            // Check if booking ID already exists
-            if (await _dbContext.Bookings.AnyAsync(b => b.Id == dto.BookingId))
-            {
-                return Conflict(new { Message = "A booking with this ID already exists. Please use a unique booking ID." });
-            }
-
             // Parse and validate location
             if (!Enum.TryParse<RoomLocation>(dto.Location, true, out var location))
             {
@@ -292,19 +287,25 @@ namespace ConferenceBooking.API.Controllers
 
             var room = validation.room!;
 
-            var booking = new Booking(
-                dto.BookingId,
-                room,
-                user.UserName ?? "Unknown User",
-                dto.StartDate,
-                dto.EndDate,
-                BookingStatus.Pending,
-                location,
-                dto.Capacity
-            );
+            // Create booking with auto-generated ID
+            var booking = new Booking
+            {
+                RoomId = room.Id,
+                UserId = user.Id,
+                StartTime = dto.StartDate,
+                EndTime = dto.EndDate,
+                Status = BookingStatus.Pending,
+                Location = location,
+                Capacity = dto.Capacity,
+                CreatedAt = DateTimeOffset.UtcNow
+            };
 
             await _dbContext.Bookings.AddAsync(booking);
             await _dbContext.SaveChangesAsync();
+            
+            // Reload the booking with navigation properties
+            await _dbContext.Entry(booking).Reference(b => b.Room).LoadAsync();
+            await _dbContext.Entry(booking).Reference(b => b.User).LoadAsync();
 
             // Prepare detailed response DTO
             var responseDto = new BookingDetailDTO
@@ -315,7 +316,7 @@ namespace ConferenceBooking.API.Controllers
                 RoomNumber = booking.Room.Number,
                 Location = booking.Location.ToString(),
                 IsRoomActive = booking.Room.IsActive,
-                RequestedBy = booking.RequestedBy,
+                RequestedBy = booking.User?.UserName ?? "Unknown User",
                 StartTime = booking.StartTime,
                 EndTime = booking.EndTime,
                 Status = booking.Status.ToString(),
@@ -406,12 +407,6 @@ namespace ConferenceBooking.API.Controllers
                 booking.Room = validatedRoom;
             }
 
-            // Update requested by if provided
-            if (!string.IsNullOrWhiteSpace(dto.RequestedBy))
-            {
-                booking.RequestedBy = dto.RequestedBy;
-            }
-
             // Update start time if provided
             if (dto.StartTime.HasValue)
             {
@@ -455,7 +450,7 @@ namespace ConferenceBooking.API.Controllers
                 RoomNumber = booking.Room.Number,
                 Location = booking.Location.ToString(),
                 IsRoomActive = booking.Room.IsActive,
-                RequestedBy = booking.RequestedBy,
+                RequestedBy = booking.User?.UserName ?? "Unknown User",
                 StartTime = booking.StartTime,
                 EndTime = booking.EndTime,
                 Status = booking.Status.ToString(),
@@ -527,7 +522,7 @@ namespace ConferenceBooking.API.Controllers
                 RoomNumber = booking.Room.Number,
                 Location = booking.Location.ToString(),
                 IsRoomActive = booking.Room.IsActive,
-                RequestedBy = booking.RequestedBy,
+                RequestedBy = booking.User?.UserName ?? "Unknown User",
                 StartTime = booking.StartTime,
                 EndTime = booking.EndTime,
                 Status = booking.Status.ToString(),

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ConferenceBooking.API.Constants;
 using ConferenceBooking.API.Data;
 using ConferenceBooking.API.DTO;
 using ConferenceBooking.API.Entities;
@@ -34,18 +35,18 @@ namespace ConferenceBooking.API.Controllers
         /// <param name="location">Filter by location (optional)</param>
         /// <param name="isActive">Filter by active status: true = active only (default), false = inactive only, null = all rooms (optional)</param>
         /// <param name="page">Page number (default: 1)</param>
-        /// <param name="pageSize">Items per page (default: 50, max: 100)</param>
+        /// <param name="pageSize">Items per page (default: 10, max: 100)</param>
         [HttpGet]
         public async Task<IActionResult> GetAllRooms(
             [FromQuery] RoomLocation? location, 
             [FromQuery] bool? isActive = true,
-            [FromQuery] int page = 1,
-            [FromQuery] int pageSize = 50)
+            [FromQuery] int page = PaginationConstants.DefaultPage,
+            [FromQuery] int pageSize = PaginationConstants.DefaultPageSize)
         {
             // Validate pagination parameters
-            if (page < 1) page = 1;
-            if (pageSize < 1) pageSize = 50;
-            if (pageSize > 100) pageSize = 100;
+            if (page < PaginationConstants.MinPage) page = PaginationConstants.DefaultPage;
+            if (pageSize < PaginationConstants.MinPageSize) pageSize = PaginationConstants.DefaultPageSize;
+            if (pageSize > PaginationConstants.MaxPageSize) pageSize = PaginationConstants.MaxPageSize;
 
             var query = _dbContext.ConferenceRooms
                 .AsNoTracking() // Read-only query optimization

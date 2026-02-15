@@ -53,7 +53,7 @@ namespace ConferenceBooking.API.Services
         {
             if (startTime >= endTime)
             {
-                return (false, "Invalid date range: Start time must be before end time.");
+                return (false, "Invalid date range: Start time (08:00) must be before end time (16:00).");
             }
 
             return (true, null);

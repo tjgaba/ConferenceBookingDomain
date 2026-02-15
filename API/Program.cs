@@ -108,10 +108,10 @@ public partial class Program
 
         app.UseAuthentication();
         
-        // Add SessionValidationMiddleware - must be after UseAuthentication
-        app.UseMiddleware<SessionValidationMiddleware>();
-        
         app.UseAuthorization();
+        
+        // Add SessionValidationMiddleware - after UseAuthorization to respect [AllowAnonymous]
+        app.UseMiddleware<SessionValidationMiddleware>();
 
         // Add ExceptionHandlingMiddleware
         app.UseMiddleware<ExceptionHandlingMiddleware>();

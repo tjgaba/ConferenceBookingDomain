@@ -43,7 +43,7 @@ namespace API.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("ConferenceRooms");
+                    b.ToTable("ConferenceRooms", (string)null);
 
                     b.HasData(
                         new
@@ -311,7 +311,7 @@ namespace API.Migrations
 
                     b.HasIndex("RoomId");
 
-                    b.ToTable("ConferenceSessions");
+                    b.ToTable("ConferenceSessions", (string)null);
 
                     b.HasData(
                         new
@@ -376,7 +376,7 @@ namespace API.Migrations
 
                     b.HasIndex("UserId", "IsRevoked", "ExpiresAt");
 
-                    b.ToTable("UserSessions");
+                    b.ToTable("UserSessions", (string)null);
                 });
 
             modelBuilder.Entity("ConferenceBooking.API.Entities.UserStatusHistory", b =>
@@ -421,7 +421,7 @@ namespace API.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("UserStatusHistories");
+                    b.ToTable("UserStatusHistories", (string)null);
                 });
 
             modelBuilder.Entity("ConferenceBooking.API.Models.Booking", b =>
@@ -470,7 +470,7 @@ namespace API.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Bookings");
+                    b.ToTable("Bookings", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>

@@ -61,6 +61,7 @@ namespace API.Controllers
         // - Credentials are being sent
  
         // - Sensitive data should not appear in URLs
+        [AllowAnonymous]
         [HttpPost("login")]
         public async Task<IActionResult> Login(LoginDto dto)
         {

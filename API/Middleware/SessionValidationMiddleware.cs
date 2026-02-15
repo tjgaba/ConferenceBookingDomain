@@ -24,7 +24,7 @@ namespace ConferenceBooking.API.Middleware
             var path = context.Request.Path.Value?.ToLower() ?? "";
             if (path.StartsWith("/api/auth/login") || 
                 path.StartsWith("/api/auth/register") ||
-                !context.User.Identity?.IsAuthenticated == true)
+                context.User.Identity?.IsAuthenticated != true)
             {
                 await _next(context);
                 return;

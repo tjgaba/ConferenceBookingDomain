@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ConferenceBooking.API.Auth;
+using ConferenceBooking.API.Constants;
 using ConferenceBooking.API.DTO;
 using ConferenceBooking.API.Entities;
 
@@ -150,7 +151,7 @@ public class UserManagementController : ControllerBase
     /// </summary>
     [HttpGet("fetch/true")]
     [Authorize(Roles = "Admin,FacilityManager")]
-    public async Task<ActionResult<PaginatedResponseDTO<UserResponseDTO>>> GetActiveUsers([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 50)
+    public async Task<ActionResult<PaginatedResponseDTO<UserResponseDTO>>> GetActiveUsers([FromQuery] int pageNumber = PaginationConstants.DefaultPage, [FromQuery] int pageSize = PaginationConstants.DefaultPageSize)
     {
         try
         {
@@ -217,7 +218,7 @@ public class UserManagementController : ControllerBase
     /// </summary>
     [HttpGet("fetch/false")]
     [Authorize(Roles = "Admin,FacilityManager")]
-    public async Task<ActionResult<PaginatedResponseDTO<UserResponseDTO>>> GetInactiveUsers([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 50)
+    public async Task<ActionResult<PaginatedResponseDTO<UserResponseDTO>>> GetInactiveUsers([FromQuery] int pageNumber = PaginationConstants.DefaultPage, [FromQuery] int pageSize = PaginationConstants.DefaultPageSize)
     {
         try
         {
@@ -787,7 +788,7 @@ public class UserManagementController : ControllerBase
     /// </summary>
     [HttpGet("history/all")]
     [Authorize(Roles = "Admin")]
-    public async Task<ActionResult<List<UserStatusHistoryDTO>>> GetAllStatusHistory([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 50)
+    public async Task<ActionResult<List<UserStatusHistoryDTO>>> GetAllStatusHistory([FromQuery] int pageNumber = PaginationConstants.DefaultPage, [FromQuery] int pageSize = PaginationConstants.DefaultPageSize)
     {
         try
         {
