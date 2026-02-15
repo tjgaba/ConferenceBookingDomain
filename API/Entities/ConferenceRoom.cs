@@ -8,6 +8,7 @@ namespace ConferenceBooking.API.Entities
         public int Number { get; set; }
         public RoomLocation Location { get; set; }
         public bool IsActive { get; set; } = true;
+        public DateTimeOffset? DeletedAt { get; set; } // Soft delete audit timestamp
 
         public ConferenceRoom()
         {
@@ -18,6 +19,7 @@ namespace ConferenceBooking.API.Entities
             Number = 0;
             Location = RoomLocation.London;
             IsActive = true;
+            DeletedAt = null;
         }
 
         public ConferenceRoom(int id, string name, int capacity, int number, RoomLocation location = RoomLocation.London, bool isActive = true)
@@ -28,6 +30,7 @@ namespace ConferenceBooking.API.Entities
             Number = number;
             Location = location;
             IsActive = isActive;
+            DeletedAt = null;
         }
     }
 }

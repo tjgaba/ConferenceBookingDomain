@@ -31,6 +31,31 @@ namespace API.Controllers
                 return NotFound(new { Message = $"Room with ID {id} not found." });
             }
 
+            // Prevent deactivation if there are future confirmed bookings
+            if (!request.IsActive && room.IsActive)
+            {
+                var hasFutureBookings = await _dbContext.Bookings
+                    .AnyAsync(b => b.RoomId == id && 
+                                  b.Status == BookingStatus.Confirmed && 
+                                  b.EndTime > DateTimeOffset.Now);
+
+                if (hasFutureBookings)
+                {
+                    return BadRequest(new 
+                    { 
+                        Message = "Cannot deactivate room with future confirmed bookings. Please cancel bookings first." 
+                    });
+                }
+
+                // Soft delete: set DeletedAt timestamp
+                room.DeletedAt = DateTimeOffset.UtcNow;
+            }
+            else if (request.IsActive && !room.IsActive)
+            {
+                // Reactivating: clear DeletedAt timestamp
+                room.DeletedAt = null;
+            }
+
             room.IsActive = request.IsActive;
             await _dbContext.SaveChangesAsync();
 
@@ -39,6 +64,7 @@ namespace API.Controllers
                 room.Id,
                 room.Name,
                 room.IsActive,
+                room.DeletedAt,
                 Message = $"Room status updated to {(room.IsActive ? "Active" : "Inactive")}"
             });
         }
@@ -77,6 +103,31 @@ namespace API.Controllers
 
             if (request.IsActive.HasValue)
             {
+                // Prevent deactivation if there are future confirmed bookings
+                if (!request.IsActive.Value && room.IsActive)
+                {
+                    var hasFutureBookings = await _dbContext.Bookings
+                        .AnyAsync(b => b.RoomId == id && 
+                                      b.Status == BookingStatus.Confirmed && 
+                                      b.EndTime > DateTimeOffset.Now);
+
+                    if (hasFutureBookings)
+                    {
+                        return BadRequest(new 
+                        { 
+                            Message = "Cannot deactivate room with future confirmed bookings. Please cancel bookings first." 
+                        });
+                    }
+
+                    // Soft delete: set DeletedAt timestamp
+                    room.DeletedAt = DateTimeOffset.UtcNow;
+                }
+                else if (request.IsActive.Value && !room.IsActive)
+                {
+                    // Reactivating: clear DeletedAt timestamp
+                    room.DeletedAt = null;
+                }
+
                 room.IsActive = request.IsActive.Value;
             }
 
@@ -164,7 +215,9 @@ namespace API.Controllers
                 });
             }
 
+            // Soft delete: Mark as inactive and record deletion timestamp
             room.IsActive = false;
+            room.DeletedAt = DateTimeOffset.UtcNow;
             await _dbContext.SaveChangesAsync();
 
             return Ok(new

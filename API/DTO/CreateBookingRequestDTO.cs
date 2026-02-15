@@ -16,9 +16,6 @@ namespace ConferenceBooking.API.DTO
         public DateTimeOffset EndDate { get; set; }
 
         [Required]
-        public int BookingId { get; set; }
-
-        [Required]
         public string Location { get; set; } = string.Empty;
 
         [Required]

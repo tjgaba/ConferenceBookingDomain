@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ConferenceBooking.API.Constants;
 using ConferenceBooking.API.Data;
 using ConferenceBooking.API.DTO;
 using ConferenceBooking.API.Entities;
@@ -27,16 +28,31 @@ namespace ConferenceBooking.API.Controllers
         #region GET Endpoints - Room Listing
 
         /// <summary>
-        /// Get all conference rooms with optional filtering
+        /// Get all conference rooms with optional filtering and pagination
+        /// By default, only active rooms are returned to prevent showing soft-deleted rooms
+        /// Query Discipline: Filters at database level, uses projection, supports pagination
         /// </summary>
         /// <param name="location">Filter by location (optional)</param>
-        /// <param name="isActive">Filter by active status: true = active only, false = inactive only, null = all rooms (optional)</param>
+        /// <param name="isActive">Filter by active status: true = active only (default), false = inactive only, null = all rooms (optional)</param>
+        /// <param name="page">Page number (default: 1)</param>
+        /// <param name="pageSize">Items per page (default: 10, max: 100)</param>
         [HttpGet]
-        public async Task<IActionResult> GetAllRooms([FromQuery] RoomLocation? location, [FromQuery] bool? isActive = null)
+        public async Task<IActionResult> GetAllRooms(
+            [FromQuery] RoomLocation? location, 
+            [FromQuery] bool? isActive = true,
+            [FromQuery] int page = PaginationConstants.DefaultPage,
+            [FromQuery] int pageSize = PaginationConstants.DefaultPageSize)
         {
-            var query = _dbContext.ConferenceRooms.AsQueryable();
+            // Validate pagination parameters
+            if (page < PaginationConstants.MinPage) page = PaginationConstants.DefaultPage;
+            if (pageSize < PaginationConstants.MinPageSize) pageSize = PaginationConstants.DefaultPageSize;
+            if (pageSize > PaginationConstants.MaxPageSize) pageSize = PaginationConstants.MaxPageSize;
 
-            // Filter by active status if specified
+            var query = _dbContext.ConferenceRooms
+                .AsNoTracking() // Read-only query optimization
+                .AsQueryable();
+
+            // Filter by active status - defaults to true (active only)
             if (isActive.HasValue)
             {
                 query = query.Where(r => r.IsActive == isActive.Value);
@@ -48,7 +64,15 @@ namespace ConferenceBooking.API.Controllers
                 query = query.Where(r => r.Location == location.Value);
             }
 
+            // Get total count for pagination
+            var totalCount = await query.CountAsync();
+
+            // Apply pagination and projection at database level
             var rooms = await query
+                .OrderBy(r => r.Location)
+                .ThenBy(r => r.Number)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .Select(r => new ListAllRoomsDTO
                 {
                     Id = r.Id,
@@ -56,11 +80,22 @@ namespace ConferenceBooking.API.Controllers
                     Capacity = r.Capacity,
                     Number = r.Number,
                     Location = r.Location.ToString(),
-                    IsActive = r.IsActive
+                    IsActive = r.IsActive,
+                    DeletedAt = r.DeletedAt
                 })
                 .ToListAsync();
 
-            return Ok(rooms);
+            // Return paginated response
+            var response = new PaginatedResponseDTO<ListAllRoomsDTO>
+            {
+                Data = rooms,
+                CurrentPage = page,
+                PageSize = pageSize,
+                TotalRecords = totalCount,
+                TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
+            };
+
+            return Ok(response);
         }
 
         /// <summary>
@@ -83,7 +118,8 @@ namespace ConferenceBooking.API.Controllers
                 Capacity = room.Capacity,
                 Number = room.Number,
                 Location = room.Location.ToString(),
-                IsActive = room.IsActive
+                IsActive = room.IsActive,
+                DeletedAt = room.DeletedAt
             };
 
             return Ok(roomDto);

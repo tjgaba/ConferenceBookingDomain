@@ -65,6 +65,9 @@ public partial class Program
         // Register BookingRepository
         builder.Services.AddScoped<BookingRepository>();
 
+        // Register BookingValidationService for domain rule enforcement
+        builder.Services.AddScoped<BookingValidationService>();
+
         // Seed roles and users
         var app = builder.Build();
 
@@ -105,10 +108,10 @@ public partial class Program
 
         app.UseAuthentication();
         
-        // Add SessionValidationMiddleware - must be after UseAuthentication
-        app.UseMiddleware<SessionValidationMiddleware>();
-        
         app.UseAuthorization();
+        
+        // Add SessionValidationMiddleware - after UseAuthorization to respect [AllowAnonymous]
+        app.UseMiddleware<SessionValidationMiddleware>();
 
         // Add ExceptionHandlingMiddleware
         app.UseMiddleware<ExceptionHandlingMiddleware>();

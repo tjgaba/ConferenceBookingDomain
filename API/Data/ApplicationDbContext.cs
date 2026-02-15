@@ -30,6 +30,13 @@ public class ApplicationDbContext : IdentityDbContext
             .HasForeignKey(b => b.RoomId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        // Configure Booking-User relationship
+        modelBuilder.Entity<Booking>()
+            .HasOne(b => b.User)
+            .WithMany(u => u.Bookings)
+            .HasForeignKey(b => b.UserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         // Configure Booking timestamps
         modelBuilder.Entity<Booking>()
             .Property(b => b.CreatedAt)
@@ -63,6 +70,47 @@ public class ApplicationDbContext : IdentityDbContext
         
         modelBuilder.Entity<UserSession>()
             .HasIndex(s => new { s.UserId, s.IsRevoked, s.ExpiresAt });
+
+        // Configure ApplicationUser properties
+        modelBuilder.Entity<ApplicationUser>()
+            .Property(u => u.CreatedAt)
+            .IsRequired();
+
+        modelBuilder.Entity<ApplicationUser>()
+            .Property(u => u.DateJoined)
+            .IsRequired();
+
+        modelBuilder.Entity<ApplicationUser>()
+            .Property(u => u.IsActive)
+            .IsRequired()
+            .HasDefaultValue(true);
+
+        // Index on EmployeeNumber for quick lookups
+        modelBuilder.Entity<ApplicationUser>()
+            .HasIndex(u => u.EmployeeNumber)
+            .IsUnique()
+            .HasFilter("EmployeeNumber IS NOT NULL");
+
+        // Index on IsActive for filtering active/inactive users
+        modelBuilder.Entity<ApplicationUser>()
+            .HasIndex(u => u.IsActive);
+
+        // Index on Department for filtering by department
+        modelBuilder.Entity<ApplicationUser>()
+            .HasIndex(u => u.Department);
+
+        // Configure UserStatusHistory
+        modelBuilder.Entity<UserStatusHistory>()
+            .HasOne(h => h.User)
+            .WithMany()
+            .HasForeignKey(h => h.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<UserStatusHistory>()
+            .HasIndex(h => h.UserId);
+
+        modelBuilder.Entity<UserStatusHistory>()
+            .HasIndex(h => h.ChangedAt);
 
         // Seed Conference Rooms - Each location has standardized room set
         modelBuilder.Entity<ConferenceRoom>().HasData(
@@ -124,24 +172,9 @@ public class ApplicationDbContext : IdentityDbContext
         );
 
         // REQUIREMENT: At least one booking in a non-default status
-        // Default status is "Pending", so we need a Confirmed or Cancelled booking
-        // This seeds a confirmed booking for testing the booking lifecycle
-        // Using high ID (9001) to avoid conflicts with user-created bookings - ensures repeatability
-        modelBuilder.Entity<Booking>().HasData(
-            new Booking 
-            { 
-                Id = 9001, // High ID to avoid conflicts - makes seeding repeatable without duplicates
-                RoomId = 6, // Cape Town Conference Room A (same room as session above)
-                RequestedBy = "seed.user@test.com", // Test user who created the booking
-                StartTime = new DateTimeOffset(2026, 2, 15, 14, 0, 0, TimeSpan.Zero), // Feb 15, 2026 2:00 PM UTC
-                EndTime = new DateTimeOffset(2026, 2, 15, 16, 0, 0, TimeSpan.Zero),   // Feb 15, 2026 4:00 PM UTC
-                Status = BookingStatus.Confirmed, // NON-DEFAULT STATUS (default would be Pending)
-                CreatedAt = new DateTimeOffset(2026, 2, 10, 10, 0, 0, TimeSpan.Zero), // When booking was created
-                CancelledAt = null, // Not cancelled
-                Location = RoomLocation.CapeTown, // Booking location matches room location
-                Capacity = 10 // Required capacity for this booking
-            }
-        );
+        // NOTE: Booking seed data removed because it requires UserId which is seeded at runtime
+        // Bookings will be created through IdentitySeeder or API endpoints instead
+        // This ensures proper foreign key relationship with ApplicationUser
     }
 
     public DbSet<ApplicationUser> ApplicationUsers { get; set; }
@@ -149,4 +182,5 @@ public class ApplicationDbContext : IdentityDbContext
     public DbSet<ConferenceRoom> ConferenceRooms { get; set; }
     public DbSet<ConferenceSession> ConferenceSessions { get; set; }
     public DbSet<UserSession> UserSessions { get; set; }
+    public DbSet<UserStatusHistory> UserStatusHistories { get; set; }
 }

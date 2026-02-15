@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -9,9 +10,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace API.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260215125453_AddDeletedAtToConferenceRoom")]
+    partial class AddDeletedAtToConferenceRoom
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.0");
@@ -43,7 +46,7 @@ namespace API.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("ConferenceRooms", (string)null);
+                    b.ToTable("ConferenceRooms");
 
                     b.HasData(
                         new
@@ -311,7 +314,7 @@ namespace API.Migrations
 
                     b.HasIndex("RoomId");
 
-                    b.ToTable("ConferenceSessions", (string)null);
+                    b.ToTable("ConferenceSessions");
 
                     b.HasData(
                         new
@@ -376,7 +379,7 @@ namespace API.Migrations
 
                     b.HasIndex("UserId", "IsRevoked", "ExpiresAt");
 
-                    b.ToTable("UserSessions", (string)null);
+                    b.ToTable("UserSessions");
                 });
 
             modelBuilder.Entity("ConferenceBooking.API.Entities.UserStatusHistory", b =>
@@ -421,7 +424,7 @@ namespace API.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("UserStatusHistories", (string)null);
+                    b.ToTable("UserStatusHistories");
                 });
 
             modelBuilder.Entity("ConferenceBooking.API.Models.Booking", b =>
@@ -470,7 +473,7 @@ namespace API.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Bookings", (string)null);
+                    b.ToTable("Bookings");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
