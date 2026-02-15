@@ -28,15 +28,16 @@ namespace ConferenceBooking.API.Controllers
 
         /// <summary>
         /// Get all conference rooms with optional filtering
+        /// By default, only active rooms are returned to prevent showing soft-deleted rooms
         /// </summary>
         /// <param name="location">Filter by location (optional)</param>
-        /// <param name="isActive">Filter by active status: true = active only, false = inactive only, null = all rooms (optional)</param>
+        /// <param name="isActive">Filter by active status: true = active only (default), false = inactive only, null = all rooms (optional)</param>
         [HttpGet]
-        public async Task<IActionResult> GetAllRooms([FromQuery] RoomLocation? location, [FromQuery] bool? isActive = null)
+        public async Task<IActionResult> GetAllRooms([FromQuery] RoomLocation? location, [FromQuery] bool? isActive = true)
         {
             var query = _dbContext.ConferenceRooms.AsQueryable();
 
-            // Filter by active status if specified
+            // Filter by active status - defaults to true (active only)
             if (isActive.HasValue)
             {
                 query = query.Where(r => r.IsActive == isActive.Value);
@@ -56,7 +57,8 @@ namespace ConferenceBooking.API.Controllers
                     Capacity = r.Capacity,
                     Number = r.Number,
                     Location = r.Location.ToString(),
-                    IsActive = r.IsActive
+                    IsActive = r.IsActive,
+                    DeletedAt = r.DeletedAt
                 })
                 .ToListAsync();
 
@@ -83,7 +85,8 @@ namespace ConferenceBooking.API.Controllers
                 Capacity = room.Capacity,
                 Number = room.Number,
                 Location = room.Location.ToString(),
-                IsActive = room.IsActive
+                IsActive = room.IsActive,
+                DeletedAt = room.DeletedAt
             };
 
             return Ok(roomDto);

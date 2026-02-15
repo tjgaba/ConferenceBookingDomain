@@ -53,6 +53,7 @@ public class UserManagementController : ControllerBase
 
     /// <summary>
     /// Get all users with optional filtering
+    /// By default, only active users are returned to prevent showing soft-deleted users
     /// </summary>
     [HttpGet("fetch")]
     [Authorize(Roles = "Admin,FacilityManager")]
@@ -63,10 +64,15 @@ public class UserManagementController : ControllerBase
             // Start with all users
             var query = _userManager.Users.AsQueryable();
 
-            // Apply IsActive filter
+            // Apply IsActive filter - defaults to true (active only) if not explicitly specified
             if (request.IsActive.HasValue)
             {
                 query = query.Where(u => u.IsActive == request.IsActive.Value);
+            }
+            else
+            {
+                // Default: only show active users in normal endpoint
+                query = query.Where(u => u.IsActive == true);
             }
 
             // Apply Department filter
