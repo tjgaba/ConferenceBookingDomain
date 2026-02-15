@@ -33,25 +33,28 @@ namespace ConferenceBooking.API.Data
         }
 
         /// <summary>
-        /// Retrieves paginated bookings from the database.
-        /// DATABASE OPERATION: All filtering, sorting, and pagination happen at database level
+        /// Retrieves paginated bookings from the database with database-level projection.
+        /// DATABASE OPERATION: All filtering, sorting, pagination, and projection happen at database level
         /// Uses AsNoTracking() for improved read-only query performance
+        /// Query Discipline: Filters inactive rooms, uses DTO projection, no in-memory operations
         /// </summary>
         /// <param name="page">Page number (1-based)</param>
         /// <param name="pageSize">Number of items per page</param>
         /// <param name="sortBy">Field to sort by (Date, RoomName, CreatedAt)</param>
         /// <param name="sortOrder">Sort order (asc or desc)</param>
-        /// <returns>Tuple containing total count and paginated bookings</returns>
-        public async Task<(int totalCount, List<Booking> bookings)> GetAllBookingsPaginatedAsync(
+        /// <returns>Tuple containing total count and paginated booking DTOs</returns>
+        public async Task<(int totalCount, List<BookingSummaryDTO> bookings)> GetAllBookingsPaginatedAsync(
             int page, 
             int pageSize, 
             string? sortBy = null, 
             string sortOrder = "desc")
         {
             // Start with base query - AsNoTracking() for read-only performance
+            // Only include Room for projection - minimal data loading
             IQueryable<Booking> query = _dbContext.Bookings
                 .AsNoTracking()
-                .Include(b => b.Room);
+                .Include(b => b.Room)
+                .Where(b => b.Room.IsActive == true); // Filter out bookings with inactive rooms
 
             // DATABASE OPERATION: Get total count - SELECT COUNT(*) FROM Bookings
             var totalCount = await query.CountAsync();
@@ -59,10 +62,19 @@ namespace ConferenceBooking.API.Data
             // Apply sorting at database level
             query = ApplySorting(query, sortBy, sortOrder);
 
-            // Apply pagination at database level - LIMIT and OFFSET
+            // Apply pagination and project to DTO at database level - LIMIT and OFFSET
             var bookings = await query
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
+                .Select(b => new BookingSummaryDTO
+                {
+                    BookingId = b.Id,
+                    RoomName = b.Room.Name,
+                    Date = b.StartTime,
+                    Location = b.Location.ToString(),
+                    IsActive = b.Room.IsActive,
+                    Status = b.Status.ToString()
+                })
                 .ToListAsync();
 
             return (totalCount, bookings);
@@ -147,16 +159,17 @@ namespace ConferenceBooking.API.Data
 
         /// <summary>
         /// Get filtered and paginated bookings based on various criteria.
-        /// All filtering, sorting, and pagination happen at the database level.
+        /// All filtering, sorting, pagination, and projection happen at the database level.
         /// Uses AsNoTracking() for improved read-only query performance
+        /// Query Discipline: Filters inactive rooms by default, uses DTO projection, no in-memory operations
         /// </summary>
         /// <param name="filter">Filter criteria</param>
         /// <param name="page">Page number (1-based)</param>
         /// <param name="pageSize">Number of items per page</param>
         /// <param name="sortBy">Field to sort by (Date, RoomName, CreatedAt)</param>
         /// <param name="sortOrder">Sort order (asc or desc)</param>
-        /// <returns>Tuple containing total count and paginated filtered bookings</returns>
-        public async Task<(int totalCount, List<Booking> bookings)> GetFilteredBookingsPaginatedAsync(
+        /// <returns>Tuple containing total count and paginated filtered booking DTOs</returns>
+        public async Task<(int totalCount, List<BookingSummaryDTO> bookings)> GetFilteredBookingsPaginatedAsync(
             FilterBookingsDTO filter, 
             int page, 
             int pageSize,
@@ -169,7 +182,17 @@ namespace ConferenceBooking.API.Data
                 .AsNoTracking()
                 .Include(b => b.Room);
 
-            // Apply all filters (same as GetFilteredBookingsAsync)
+            // DATABASE FILTER: Filter by room active status
+            // Default to active rooms only if not explicitly specified
+            if (filter.IsActiveRoom.HasValue)
+            {
+                query = query.Where(b => b.Room.IsActive == filter.IsActiveRoom.Value);
+            }
+            else
+            {
+                // Default: only show bookings for active rooms
+                query = query.Where(b => b.Room.IsActive == true);
+            }
             
             // DATABASE FILTER: Filter by room name using SQL LIKE
             if (!string.IsNullOrWhiteSpace(filter.RoomName))
@@ -196,12 +219,6 @@ namespace ConferenceBooking.API.Data
                 query = query.Where(b => b.StartTime.CompareTo(filterEndDate) <= 0); // Translates to SQL: WHERE StartTime <= @endDate
             }
 
-            // DATABASE FILTER: Filter by room active status using JOIN
-            if (filter.IsActiveRoom.HasValue)
-            {
-                query = query.Where(b => b.Room.IsActive == filter.IsActiveRoom.Value); // Translates to SQL: WHERE Room.IsActive = @isActive
-            }
-
             // DATABASE FILTER: Filter by booking status
             if (!string.IsNullOrWhiteSpace(filter.Status))
             {
@@ -217,10 +234,19 @@ namespace ConferenceBooking.API.Data
             // Apply sorting at database level
             query = ApplySorting(query, sortBy, sortOrder);
 
-            // Apply pagination at database level - LIMIT and OFFSET
+            // Apply pagination and project to DTO at database level - LIMIT and OFFSET
             var bookings = await query
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
+                .Select(b => new BookingSummaryDTO
+                {
+                    BookingId = b.Id,
+                    RoomName = b.Room.Name,
+                    Date = b.StartTime,
+                    Location = b.Location.ToString(),
+                    IsActive = b.Room.IsActive,
+                    Status = b.Status.ToString()
+                })
                 .ToListAsync();
 
             return (totalCount, bookings);

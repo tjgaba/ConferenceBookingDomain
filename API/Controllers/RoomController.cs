@@ -27,15 +27,29 @@ namespace ConferenceBooking.API.Controllers
         #region GET Endpoints - Room Listing
 
         /// <summary>
-        /// Get all conference rooms with optional filtering
+        /// Get all conference rooms with optional filtering and pagination
         /// By default, only active rooms are returned to prevent showing soft-deleted rooms
+        /// Query Discipline: Filters at database level, uses projection, supports pagination
         /// </summary>
         /// <param name="location">Filter by location (optional)</param>
         /// <param name="isActive">Filter by active status: true = active only (default), false = inactive only, null = all rooms (optional)</param>
+        /// <param name="page">Page number (default: 1)</param>
+        /// <param name="pageSize">Items per page (default: 50, max: 100)</param>
         [HttpGet]
-        public async Task<IActionResult> GetAllRooms([FromQuery] RoomLocation? location, [FromQuery] bool? isActive = true)
+        public async Task<IActionResult> GetAllRooms(
+            [FromQuery] RoomLocation? location, 
+            [FromQuery] bool? isActive = true,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 50)
         {
-            var query = _dbContext.ConferenceRooms.AsQueryable();
+            // Validate pagination parameters
+            if (page < 1) page = 1;
+            if (pageSize < 1) pageSize = 50;
+            if (pageSize > 100) pageSize = 100;
+
+            var query = _dbContext.ConferenceRooms
+                .AsNoTracking() // Read-only query optimization
+                .AsQueryable();
 
             // Filter by active status - defaults to true (active only)
             if (isActive.HasValue)
@@ -49,7 +63,15 @@ namespace ConferenceBooking.API.Controllers
                 query = query.Where(r => r.Location == location.Value);
             }
 
+            // Get total count for pagination
+            var totalCount = await query.CountAsync();
+
+            // Apply pagination and projection at database level
             var rooms = await query
+                .OrderBy(r => r.Location)
+                .ThenBy(r => r.Number)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .Select(r => new ListAllRoomsDTO
                 {
                     Id = r.Id,
@@ -62,7 +84,17 @@ namespace ConferenceBooking.API.Controllers
                 })
                 .ToListAsync();
 
-            return Ok(rooms);
+            // Return paginated response
+            var response = new PaginatedResponseDTO<ListAllRoomsDTO>
+            {
+                Data = rooms,
+                CurrentPage = page,
+                PageSize = pageSize,
+                TotalRecords = totalCount,
+                TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
+            };
+
+            return Ok(response);
         }
 
         /// <summary>

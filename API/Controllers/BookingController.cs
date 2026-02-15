@@ -60,18 +60,8 @@ namespace ConferenceBooking.API.Controllers
             if (pageSize > PaginationConstants.MaxPageSize) pageSize = PaginationConstants.MaxPageSize;
 
             // Get paginated bookings from repository with sorting
-            var (totalCount, bookings) = await _bookingRepository.GetAllBookingsPaginatedAsync(page, pageSize, sortBy, sortOrder);
-
-            // Map to summary DTOs for list view
-            var bookingDtos = bookings.Select(b => new BookingSummaryDTO
-            {
-                BookingId = b.Id,
-                RoomName = b.Room.Name,
-                Date = b.StartTime,
-                Location = b.Location.ToString(),
-                IsActive = b.Room.IsActive,
-                Status = b.Status.ToString()
-            }).ToList();
+            // Repository now returns DTOs directly with database-level projection
+            var (totalCount, bookingDtos) = await _bookingRepository.GetAllBookingsPaginatedAsync(page, pageSize, sortBy, sortOrder);
 
             // Calculate total pages
             var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
@@ -159,18 +149,8 @@ namespace ConferenceBooking.API.Controllers
                 filter.RoomName, filter.Location, filter.StartDate, filter.EndDate, filter.IsActiveRoom, filter.Status, page, pageSize, sortBy, sortOrder);
 
             // Get paginated filtered bookings from repository with sorting
-            var (totalCount, bookings) = await _bookingRepository.GetFilteredBookingsPaginatedAsync(filter, page, pageSize, sortBy, sortOrder);
-
-            // Map to summary DTOs for list view
-            var bookingDtos = bookings.Select(b => new BookingSummaryDTO
-            {
-                BookingId = b.Id,
-                RoomName = b.Room.Name,
-                Date = b.StartTime,
-                Location = b.Location.ToString(),
-                IsActive = b.Room.IsActive,
-                Status = b.Status.ToString()
-            }).ToList();
+            // Repository now returns DTOs directly with database-level projection
+            var (totalCount, bookingDtos) = await _bookingRepository.GetFilteredBookingsPaginatedAsync(filter, page, pageSize, sortBy, sortOrder);
 
             _logger.LogInformation("Found {TotalCount} bookings matching the filter criteria, returning page {Page} of {TotalPages}", 
                 totalCount, page, (int)Math.Ceiling(totalCount / (double)pageSize));
