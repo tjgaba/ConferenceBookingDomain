@@ -31,6 +31,23 @@ namespace API.Controllers
                 return NotFound(new { Message = $"Room with ID {id} not found." });
             }
 
+            // Prevent deactivation if there are future confirmed bookings
+            if (!request.IsActive && room.IsActive)
+            {
+                var hasFutureBookings = await _dbContext.Bookings
+                    .AnyAsync(b => b.RoomId == id && 
+                                  b.Status == BookingStatus.Confirmed && 
+                                  b.EndTime > DateTimeOffset.Now);
+
+                if (hasFutureBookings)
+                {
+                    return BadRequest(new 
+                    { 
+                        Message = "Cannot deactivate room with future confirmed bookings. Please cancel bookings first." 
+                    });
+                }
+            }
+
             room.IsActive = request.IsActive;
             await _dbContext.SaveChangesAsync();
 
@@ -77,6 +94,23 @@ namespace API.Controllers
 
             if (request.IsActive.HasValue)
             {
+                // Prevent deactivation if there are future confirmed bookings
+                if (!request.IsActive.Value && room.IsActive)
+                {
+                    var hasFutureBookings = await _dbContext.Bookings
+                        .AnyAsync(b => b.RoomId == id && 
+                                      b.Status == BookingStatus.Confirmed && 
+                                      b.EndTime > DateTimeOffset.Now);
+
+                    if (hasFutureBookings)
+                    {
+                        return BadRequest(new 
+                        { 
+                            Message = "Cannot deactivate room with future confirmed bookings. Please cancel bookings first." 
+                        });
+                    }
+                }
+
                 room.IsActive = request.IsActive.Value;
             }
 

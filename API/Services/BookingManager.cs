@@ -78,6 +78,12 @@ namespace ConferenceBooking.API.Services
                 throw new InvalidOperationException("Room cannot be null when creating a booking.");
             }
 
+            // Enforce relationship integrity: Cannot book an inactive/deleted room
+            if (!room.IsActive)
+            {
+                return Resulting<Booking>.Failure("This room is not currently available for booking.");
+            }
+
             var endTime = startTime + duration;
 
             // Check for overlapping bookings - load to memory first to avoid EF Core translation issues

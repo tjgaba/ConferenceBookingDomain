@@ -271,6 +271,13 @@ namespace ConferenceBooking.API.Controllers
                 return Unauthorized();
             }
 
+            // Enforce relationship integrity: Only active users can create bookings
+            if (!user.IsActive)
+            {
+                _logger.LogWarning("Inactive user attempted to create booking: {UserId}", user.Id);
+                return Forbid(); // 403 Forbidden - user exists but is not allowed
+            }
+
             // Check if room exists
             if (!await _dbContext.ConferenceRooms.AnyAsync(r => r.Id == dto.RoomId))
             {
@@ -362,6 +369,25 @@ namespace ConferenceBooking.API.Controllers
         [HttpPut("update/{id}")]
         public async Task<IActionResult> UpdateBooking(int id, [FromBody] UpdateBookingDTO dto)
         {
+            // Validate authenticated user
+            if (User.Identity?.Name == null)
+            {
+                return Unauthorized();
+            }
+
+            var user = await _userManager.FindByNameAsync(User.Identity.Name);
+            if (user == null)
+            {
+                return Unauthorized();
+            }
+
+            // Enforce relationship integrity: Only active users can update bookings
+            if (!user.IsActive)
+            {
+                _logger.LogWarning("Inactive user attempted to update booking: {UserId}", user.Id);
+                return Forbid(); // 403 Forbidden - user exists but is not allowed
+            }
+
             // Validate that the booking ID in the URL matches the DTO
             if (id != dto.BookingId)
             {
