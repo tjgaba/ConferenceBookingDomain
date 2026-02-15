@@ -6,13 +6,17 @@
 ###############################################
 # Available Endpoints:
 # 1. Login - Get JWT token
-# 2-6. GET Users - With various filters
-# 7. GET Single User
-# 8. POST Create User
-# 9. PUT Update User
-# 10. DELETE Soft Delete (via DELETE method)
-# 11. POST Reactivate User
-# 12. PATCH Change User Status (Activate/Deactivate)
+# 2. GET All Users (paginated)
+# 3. GET Active Users (dedicated endpoint)
+# 4. GET Inactive Users (dedicated endpoint)
+# 5-7. GET Users - With various filters
+# 8. GET Single User
+# 9. POST Create User
+# 10. PUT Update User
+# 11. DELETE Soft Delete (via DELETE method)
+# 12. POST Reactivate User
+# 13. PATCH Change User Status (Activate/Deactivate)
+# 14. GET User Status History
 ###############################################
 
 ### 1. Login as Admin (to get access token)
@@ -28,27 +32,35 @@ Content-Type: application/json
 GET {{baseUrl}}/UserManagement/fetch?PageNumber=1&PageSize=50
 Authorization: Bearer {{adminToken}}
 
-### 3. Get All Active Users Only
+### 3. Get All Active Users (Dedicated Endpoint)
+GET {{baseUrl}}/UserManagement/fetch/true?PageNumber=1&PageSize=50
+Authorization: Bearer {{adminToken}}
+
+### 4. Get All Inactive Users (Dedicated Endpoint)
+GET {{baseUrl}}/UserManagement/fetch/false?PageNumber=1&PageSize=50
+Authorization: Bearer {{adminToken}}
+
+### 5. Get All Active Users (Using Query Parameter - Alternative)
 GET {{baseUrl}}/UserManagement/fetch?IsActive=true&PageNumber=1&PageSize=50
 Authorization: Bearer {{adminToken}}
 
-### 4. Get All Inactive Users Only
+### 6. Get All Inactive Users (Using Query Parameter - Alternative)
 GET {{baseUrl}}/UserManagement/fetch?IsActive=false&PageNumber=1&PageSize=50
 Authorization: Bearer {{adminToken}}
 
-### 5. Get Users by Role (e.g., Employee)
+### 7. Get Users by Role (e.g., Employee)
 GET {{baseUrl}}/UserManagement/fetch?Role=Employee&PageNumber=1&PageSize=50
 Authorization: Bearer {{adminToken}}
 
-### 6. Get Users by Department
+### 8. Get Users by Department
 GET {{baseUrl}}/UserManagement/fetch?Department=Sales&PageNumber=1&PageSize=50
 Authorization: Bearer {{adminToken}}
 
-### 7. Get Specific User by ID
+### 9. Get Specific User by ID
 GET {{baseUrl}}/UserManagement/USER_ID_HERE
 Authorization: Bearer {{adminToken}}
 
-### 8. Create New User
+### 10. Create New User
 POST {{baseUrl}}/UserManagement/create
 Authorization: Bearer {{adminToken}}
 Content-Type: application/json
@@ -67,7 +79,7 @@ Content-Type: application/json
   "notificationPreferences": "Email"
 }
 
-### 9. Update User
+### 11. Update User
 PUT {{baseUrl}}/UserManagement/USER_ID_HERE/update
 Authorization: Bearer {{adminToken}}
 Content-Type: application/json
@@ -83,21 +95,20 @@ Content-Type: application/json
   "notificationPreferences": "Both"
 }
 
-### 10. Soft Delete User (Mark as Inactive)
-DELETE {{baseUrl}}/UserManagement/USER_ID_HERE/delete
+### 12. Soft Delete User (Mark as Inactive)
+DELETE {{baseUrl}}/UserManagement/USER_ID_HERE/deactivate
 Authorization: Bearer {{adminToken}}
 Content-Type: application/json
 
 {
-  "userId": "USER_ID_HERE",
   "reason": "Employee resigned"
 }
 
-### 11. Reactivate Soft-Deleted User
+### 13. Reactivate Soft-Deleted User
 POST {{baseUrl}}/UserManagement/USER_ID_HERE/reactivate
 Authorization: Bearer {{adminToken}}
 
-### 12. Change User Active Status (Activate or Deactivate)
+### 14. Change User Active Status (Activate or Deactivate)
 PATCH {{baseUrl}}/UserManagement/USER_ID_HERE/status
 Authorization: Bearer {{adminToken}}
 Content-Type: application/json
@@ -108,7 +119,7 @@ Content-Type: application/json
   "reason": "Employee returned from leave"
 }
 
-### 12b. Deactivate User (Alternative to DELETE)
+### 14b. Deactivate User (Alternative to DELETE)
 PATCH {{baseUrl}}/UserManagement/USER_ID_HERE/status
 Authorization: Bearer {{adminToken}}
 Content-Type: application/json
@@ -118,6 +129,14 @@ Content-Type: application/json
   "isActive": false,
   "reason": "Employee on long-term leave"
 }
+
+### 15. Get User Status Change History
+GET {{baseUrl}}/UserManagement/USER_ID_HERE/history
+Authorization: Bearer {{adminToken}}
+
+### 16. Get All Status Changes (All Users)
+GET {{baseUrl}}/UserManagement/history/all?pageNumber=1&pageSize=50
+Authorization: Bearer {{adminToken}}
 
 ### RoomLocation Values (use string names)
 # - London

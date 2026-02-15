@@ -99,6 +99,18 @@ public class ApplicationDbContext : IdentityDbContext
         modelBuilder.Entity<ApplicationUser>()
             .HasIndex(u => u.Department);
 
+        // Configure UserStatusHistory
+        modelBuilder.Entity<UserStatusHistory>()
+            .HasOne(h => h.User)
+            .WithMany()
+            .HasForeignKey(h => h.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<UserStatusHistory>()
+            .HasIndex(h => h.UserId);
+
+        modelBuilder.Entity<UserStatusHistory>()
+            .HasIndex(h => h.ChangedAt);
 
         // Seed Conference Rooms - Each location has standardized room set
         modelBuilder.Entity<ConferenceRoom>().HasData(
@@ -170,4 +182,5 @@ public class ApplicationDbContext : IdentityDbContext
     public DbSet<ConferenceRoom> ConferenceRooms { get; set; }
     public DbSet<ConferenceSession> ConferenceSessions { get; set; }
     public DbSet<UserSession> UserSessions { get; set; }
+    public DbSet<UserStatusHistory> UserStatusHistories { get; set; }
 }

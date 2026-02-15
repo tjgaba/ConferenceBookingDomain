@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ConferenceBooking.API.Auth;
 using ConferenceBooking.API.DTO;
+using ConferenceBooking.API.Entities;
 
 namespace ConferenceBooking.API.Controllers;
 
@@ -15,15 +16,39 @@ public class UserManagementController : ControllerBase
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly RoleManager<IdentityRole> _roleManager;
     private readonly ILogger<UserManagementController> _logger;
+    private readonly ApplicationDbContext _context;
 
     public UserManagementController(
         UserManager<ApplicationUser> userManager,
         RoleManager<IdentityRole> roleManager,
-        ILogger<UserManagementController> logger)
+        ILogger<UserManagementController> logger,
+        ApplicationDbContext context)
     {
         _userManager = userManager;
         _roleManager = roleManager;
         _logger = logger;
+        _context = context;
+    }
+
+    /// <summary>
+    /// Helper method to log status changes to history
+    /// </summary>
+    private async Task LogStatusChange(string userId, bool oldStatus, bool newStatus, string action, string? reason = null)
+    {
+        var history = new UserStatusHistory
+        {
+            UserId = userId,
+            OldStatus = oldStatus,
+            NewStatus = newStatus,
+            ChangedBy = User.Identity?.Name ?? "System",
+            ChangedAt = DateTime.UtcNow,
+            Reason = reason,
+            Action = action,
+            IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString()
+        };
+
+        _context.UserStatusHistories.Add(history);
+        await _context.SaveChangesAsync();
     }
 
     /// <summary>
@@ -111,6 +136,140 @@ public class UserManagementController : ControllerBase
         {
             _logger.LogError(ex, "Error retrieving users");
             return StatusCode(500, new { message = "An error occurred while retrieving users" });
+        }
+    }
+
+    /// <summary>
+    /// Get all active users (IsActive = true)
+    /// </summary>
+    [HttpGet("fetch/true")]
+    [Authorize(Roles = "Admin,FacilityManager")]
+    public async Task<ActionResult<PaginatedResponseDTO<UserResponseDTO>>> GetActiveUsers([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 50)
+    {
+        try
+        {
+            // Get only active users
+            var query = _userManager.Users.Where(u => u.IsActive == true);
+
+            var totalCount = await query.CountAsync();
+
+            var users = await query
+                .OrderBy(u => u.LastName)
+                .ThenBy(u => u.FirstName)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var userDtos = new List<UserResponseDTO>();
+            foreach (var user in users)
+            {
+                var roles = await _userManager.GetRolesAsync(user);
+
+                userDtos.Add(new UserResponseDTO
+                {
+                    Id = user.Id,
+                    FirstName = user.FirstName,
+                    LastName = user.LastName,
+                    FullName = user.FullName,
+                    Email = user.Email ?? string.Empty,
+                    PhoneNumber = user.PhoneNumber,
+                    Department = user.Department,
+                    EmployeeNumber = user.EmployeeNumber,
+                    PrimaryLocation = user.PrimaryLocation,
+                    PreferredLocation = user.PreferredLocation,
+                    NotificationPreferences = user.NotificationPreferences,
+                    IsActive = user.IsActive,
+                    Roles = roles.ToList(),
+                    DateJoined = user.DateJoined,
+                    LastLoginDate = user.LastLoginDate,
+                    CreatedAt = user.CreatedAt,
+                    UpdatedAt = user.UpdatedAt,
+                    DeletedAt = user.DeletedAt
+                });
+            }
+
+            var response = new PaginatedResponseDTO<UserResponseDTO>
+            {
+                Data = userDtos,
+                CurrentPage = pageNumber,
+                PageSize = pageSize,
+                TotalRecords = totalCount,
+                TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
+            };
+
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving active users");
+            return StatusCode(500, new { message = "An error occurred while retrieving active users" });
+        }
+    }
+
+    /// <summary>
+    /// Get all inactive users (IsActive = false)
+    /// </summary>
+    [HttpGet("fetch/false")]
+    [Authorize(Roles = "Admin,FacilityManager")]
+    public async Task<ActionResult<PaginatedResponseDTO<UserResponseDTO>>> GetInactiveUsers([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 50)
+    {
+        try
+        {
+            // Get only inactive users
+            var query = _userManager.Users.Where(u => u.IsActive == false);
+
+            var totalCount = await query.CountAsync();
+
+            var users = await query
+                .OrderBy(u => u.LastName)
+                .ThenBy(u => u.FirstName)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var userDtos = new List<UserResponseDTO>();
+            foreach (var user in users)
+            {
+                var roles = await _userManager.GetRolesAsync(user);
+
+                userDtos.Add(new UserResponseDTO
+                {
+                    Id = user.Id,
+                    FirstName = user.FirstName,
+                    LastName = user.LastName,
+                    FullName = user.FullName,
+                    Email = user.Email ?? string.Empty,
+                    PhoneNumber = user.PhoneNumber,
+                    Department = user.Department,
+                    EmployeeNumber = user.EmployeeNumber,
+                    PrimaryLocation = user.PrimaryLocation,
+                    PreferredLocation = user.PreferredLocation,
+                    NotificationPreferences = user.NotificationPreferences,
+                    IsActive = user.IsActive,
+                    Roles = roles.ToList(),
+                    DateJoined = user.DateJoined,
+                    LastLoginDate = user.LastLoginDate,
+                    CreatedAt = user.CreatedAt,
+                    UpdatedAt = user.UpdatedAt,
+                    DeletedAt = user.DeletedAt
+                });
+            }
+
+            var response = new PaginatedResponseDTO<UserResponseDTO>
+            {
+                Data = userDtos,
+                CurrentPage = pageNumber,
+                PageSize = pageSize,
+                TotalRecords = totalCount,
+                TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
+            };
+
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving inactive users");
+            return StatusCode(500, new { message = "An error occurred while retrieving inactive users" });
         }
     }
 
@@ -361,7 +520,7 @@ public class UserManagementController : ControllerBase
     /// <summary>
     /// Soft delete a user (marks as inactive)
     /// </summary>
-    [HttpDelete("{userId}/delete")]
+    [HttpDelete("{userId}/deactivate")]
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult> DeleteUser(string userId, [FromBody] DeleteUserDTO? request = null)
     {
@@ -388,6 +547,9 @@ public class UserManagementController : ControllerBase
             {
                 return BadRequest(new { message = "Failed to deactivate user", errors = result.Errors });
             }
+
+            // Log status change to history
+            await LogStatusChange(userId, true, false, "Soft Deleted", request?.Reason);
 
             _logger.LogInformation(
                 "User {UserId} ({Email}) soft deleted by {Admin}. Reason: {Reason}",
@@ -436,6 +598,9 @@ public class UserManagementController : ControllerBase
             {
                 return BadRequest(new { message = "Failed to reactivate user", errors = result.Errors });
             }
+
+            // Log status change to history
+            await LogStatusChange(userId, false, true, "Reactivated", "User reactivated");
 
             _logger.LogInformation("User {UserId} ({Email}) reactivated by {Admin}", userId, user.Email, User.Identity?.Name);
 
@@ -533,6 +698,10 @@ public class UserManagementController : ControllerBase
                 return BadRequest(new { message = "Failed to update user status", errors = result.Errors });
             }
 
+            // Log status change to history
+            var action = request.IsActive ? "Activated" : "Deactivated";
+            await LogStatusChange(userId, !request.IsActive, request.IsActive, action, request.Reason);
+
             var roles = await _userManager.GetRolesAsync(user);
             var userDto = new UserResponseDTO
             {
@@ -562,6 +731,95 @@ public class UserManagementController : ControllerBase
         {
             _logger.LogError(ex, "Error changing status for user {UserId}", userId);
             return StatusCode(500, new { message = "An error occurred while changing the user status" });
+        }
+    }
+
+    /// <summary>
+    /// Get status change history for a specific user
+    /// </summary>
+    [HttpGet("{userId}/history")]
+    [Authorize(Roles = "Admin,FacilityManager")]
+    public async Task<ActionResult<List<UserStatusHistoryDTO>>> GetUserStatusHistory(string userId)
+    {
+        try
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
+            {
+                return NotFound(new { message = "User not found" });
+            }
+
+            var history = await _context.UserStatusHistories
+                .Where(h => h.UserId == userId)
+                .OrderByDescending(h => h.ChangedAt)
+                .Select(h => new UserStatusHistoryDTO
+                {
+                    Id = h.Id,
+                    UserId = h.UserId,
+                    UserFullName = user.FullName,
+                    OldStatus = h.OldStatus,
+                    NewStatus = h.NewStatus,
+                    ChangedBy = h.ChangedBy,
+                    ChangedAt = h.ChangedAt,
+                    Reason = h.Reason,
+                    Action = h.Action,
+                    IpAddress = h.IpAddress
+                })
+                .ToListAsync();
+
+            return Ok(history);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving status history for user {UserId}", userId);
+            return StatusCode(500, new { message = "An error occurred while retrieving status history" });
+        }
+    }
+
+    /// <summary>
+    /// Get all status changes across all users
+    /// </summary>
+    [HttpGet("history/all")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<List<UserStatusHistoryDTO>>> GetAllStatusHistory([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 50)
+    {
+        try
+        {
+            var totalCount = await _context.UserStatusHistories.CountAsync();
+
+            var history = await _context.UserStatusHistories
+                .Include(h => h.User)
+                .OrderByDescending(h => h.ChangedAt)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(h => new UserStatusHistoryDTO
+                {
+                    Id = h.Id,
+                    UserId = h.UserId,
+                    UserFullName = h.User != null ? h.User.FullName : "Unknown",
+                    OldStatus = h.OldStatus,
+                    NewStatus = h.NewStatus,
+                    ChangedBy = h.ChangedBy,
+                    ChangedAt = h.ChangedAt,
+                    Reason = h.Reason,
+                    Action = h.Action,
+                    IpAddress = h.IpAddress
+                })
+                .ToListAsync();
+
+            return Ok(new 
+            { 
+                data = history, 
+                totalCount = totalCount,
+                currentPage = pageNumber,
+                pageSize = pageSize,
+                totalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving all status history");
+            return StatusCode(500, new { message = "An error occurred while retrieving status history" });
         }
     }
 }
