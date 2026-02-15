@@ -1,0 +1,139 @@
+### User Management API Endpoints
+### Base URL
+@baseUrl = http://localhost:5000/api
+@adminToken = YOUR_JWT_TOKEN_HERE
+
+###############################################
+# Available Endpoints:
+# 1. Login - Get JWT token
+# 2-6. GET Users - With various filters
+# 7. GET Single User
+# 8. POST Create User
+# 9. PUT Update User
+# 10. DELETE Soft Delete (via DELETE method)
+# 11. POST Reactivate User
+# 12. PATCH Change User Status (Activate/Deactivate)
+###############################################
+
+### 1. Login as Admin (to get access token)
+POST {{baseUrl}}/Auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@domain.com",
+  "password": "Admin123!"
+}
+
+### 2. Get All Users (Active and Inactive)
+GET {{baseUrl}}/UserManagement/fetch?PageNumber=1&PageSize=50
+Authorization: Bearer {{adminToken}}
+
+### 3. Get All Active Users Only
+GET {{baseUrl}}/UserManagement/fetch?IsActive=true&PageNumber=1&PageSize=50
+Authorization: Bearer {{adminToken}}
+
+### 4. Get All Inactive Users Only
+GET {{baseUrl}}/UserManagement/fetch?IsActive=false&PageNumber=1&PageSize=50
+Authorization: Bearer {{adminToken}}
+
+### 5. Get Users by Role (e.g., Employee)
+GET {{baseUrl}}/UserManagement/fetch?Role=Employee&PageNumber=1&PageSize=50
+Authorization: Bearer {{adminToken}}
+
+### 6. Get Users by Department
+GET {{baseUrl}}/UserManagement/fetch?Department=Sales&PageNumber=1&PageSize=50
+Authorization: Bearer {{adminToken}}
+
+### 7. Get Specific User by ID
+GET {{baseUrl}}/UserManagement/USER_ID_HERE
+Authorization: Bearer {{adminToken}}
+
+### 8. Create New User
+POST {{baseUrl}}/UserManagement/create
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "firstName": "Alice",
+  "lastName": "Williams",
+  "email": "alice.williams@domain.com",
+  "phoneNumber": "+27123456789",
+  "password": "Alice123!",
+  "role": "Employee",
+  "department": "Marketing",
+  "employeeNumber": "EMP006",
+  "primaryLocation": "London",
+  "preferredLocation": "London",
+  "notificationPreferences": "Email"
+}
+
+### 9. Update User
+PUT {{baseUrl}}/UserManagement/USER_ID_HERE/update
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "userId": "USER_ID_HERE",
+  "firstName": "Alice",
+  "lastName": "Johnson",
+  "email": "alice.johnson@domain.com",
+  "phoneNumber": "+27987654321",
+  "department": "Sales",
+  "primaryLocation": "CapeTown",
+  "notificationPreferences": "Both"
+}
+
+### 10. Soft Delete User (Mark as Inactive)
+DELETE {{baseUrl}}/UserManagement/USER_ID_HERE/delete
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "userId": "USER_ID_HERE",
+  "reason": "Employee resigned"
+}
+
+### 11. Reactivate Soft-Deleted User
+POST {{baseUrl}}/UserManagement/USER_ID_HERE/reactivate
+Authorization: Bearer {{adminToken}}
+
+### 12. Change User Active Status (Activate or Deactivate)
+PATCH {{baseUrl}}/UserManagement/USER_ID_HERE/status
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "userId": "USER_ID_HERE",
+  "isActive": true,
+  "reason": "Employee returned from leave"
+}
+
+### 12b. Deactivate User (Alternative to DELETE)
+PATCH {{baseUrl}}/UserManagement/USER_ID_HERE/status
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "userId": "USER_ID_HERE",
+  "isActive": false,
+  "reason": "Employee on long-term leave"
+}
+
+### RoomLocation Values (use string names)
+# - London
+# - CapeTown
+# - Johannesburg
+# - Bloemfontein
+# - Durban
+
+### Available Roles
+# - Admin
+# - FacilityManager
+# - Receptionist
+# - Employee
+
+### NotificationPreferences Options
+# - Email
+# - SMS
+# - Both
+# - None

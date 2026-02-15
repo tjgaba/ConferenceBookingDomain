@@ -1,6 +1,7 @@
 using System;
 using System.Text.Json.Serialization;
 using ConferenceBooking.API.Entities;
+using ConferenceBooking.API.Auth;
 namespace ConferenceBooking.API.Models;
 
 
@@ -9,7 +10,13 @@ public class Booking
     public int Id { get; set; }
     public int RoomId { get; set; } // Foreign key
     public ConferenceRoom Room { get; set; }
-    public string RequestedBy { get; set; }
+    
+    public string UserId { get; set; } = string.Empty; // Foreign key to ApplicationUser
+    public ApplicationUser? User { get; set; } // Navigation property
+    
+    [Obsolete("Use UserId and User navigation property instead")]
+    public string RequestedBy { get; set; } // Kept for backward compatibility, populate from User.FullName
+    
     public DateTimeOffset StartTime { get; set; }
     public DateTimeOffset EndTime { get; set; }
     public BookingStatus Status { get; set; }
