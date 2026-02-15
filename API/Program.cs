@@ -65,6 +65,9 @@ public partial class Program
         // Register BookingRepository
         builder.Services.AddScoped<BookingRepository>();
 
+        // Register BookingValidationService for domain rule enforcement
+        builder.Services.AddScoped<BookingValidationService>();
+
         // Seed roles and users
         var app = builder.Build();
 

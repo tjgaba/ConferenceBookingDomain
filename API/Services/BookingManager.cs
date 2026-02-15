@@ -16,10 +16,12 @@ namespace ConferenceBooking.API.Services
     public class BookingManager
     {
         private readonly ApplicationDbContext _dbContext;
+        private readonly BookingValidationService _validationService;
 
-        public BookingManager(ApplicationDbContext dbContext)
+        public BookingManager(ApplicationDbContext dbContext, BookingValidationService validationService)
         {
             _dbContext = dbContext;
+            _validationService = validationService;
         }
 
         public IEnumerable<ConferenceRoom> GetAvailableRooms(DateTimeOffset atTime)
@@ -67,38 +69,24 @@ namespace ConferenceBooking.API.Services
             RoomLocation location,
             int capacity)
         {
-            if (!await _dbContext.ConferenceRooms.AnyAsync(r => r.Id == roomId))
-            {
-                return Resulting<Booking>.Failure("Room does not exist.");
-            }
-
-            var room = await _dbContext.ConferenceRooms.FirstOrDefaultAsync(r => r.Id == roomId);
-            if (room == null)
-            {
-                throw new InvalidOperationException("Room cannot be null when creating a booking.");
-            }
-
-            // Enforce relationship integrity: Cannot book an inactive/deleted room
-            if (!room.IsActive)
-            {
-                return Resulting<Booking>.Failure("This room is not currently available for booking.");
-            }
-
             var endTime = startTime + duration;
 
-            // Check for overlapping bookings - load to memory first to avoid EF Core translation issues
-            var conflictingBookings = await _dbContext.Bookings
-                .Where(b => b.RoomId == roomId)
-                .ToListAsync();
+            // ============================================================
+            // DOMAIN RULE ENFORCEMENT (Service Layer)
+            // All business logic validations delegated to validation service
+            // ============================================================
+            var validation = await _validationService.ValidateBookingCreationAsync(
+                roomId,
+                startTime,
+                endTime,
+                capacity);
 
-            var hasConflict = conflictingBookings
-                .Where(b => b.Status == BookingStatus.Confirmed)
-                .Any(b => b.EndTime > startTime && b.StartTime < endTime);
-
-            if (hasConflict)
+            if (!validation.isValid)
             {
-                return Resulting<Booking>.Failure("Room is not available during the requested time.");
+                return Resulting<Booking>.Failure(validation.errorMessage!);
             }
+
+            var room = validation.room!;
 
             var booking = new Booking(
                 bookingId,

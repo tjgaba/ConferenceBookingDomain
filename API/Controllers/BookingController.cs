@@ -6,6 +6,7 @@ using ConferenceBooking.API.Auth;
 using ConferenceBooking.API.Entities;
 using ConferenceBooking.API.Models;
 using ConferenceBooking.API.Constants;
+using ConferenceBooking.API.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -24,17 +25,20 @@ namespace ConferenceBooking.API.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly ILogger<BookingController> _logger;
         private readonly BookingRepository _bookingRepository;
+        private readonly BookingValidationService _validationService;
 
         public BookingController(
             ApplicationDbContext dbContext,
             UserManager<ApplicationUser> userManager,
             ILogger<BookingController> logger,
-            BookingRepository bookingRepository)
+            BookingRepository bookingRepository,
+            BookingValidationService validationService)
         {
             _dbContext = dbContext;
             _userManager = userManager;
             _logger = logger;
             _bookingRepository = bookingRepository;
+            _validationService = validationService;
         }
 
         #region GET Endpoints
@@ -258,38 +262,6 @@ namespace ConferenceBooking.API.Controllers
                 return Forbid(); // 403 Forbidden - user exists but is not allowed
             }
 
-            // Check if room exists
-            if (!await _dbContext.ConferenceRooms.AnyAsync(r => r.Id == dto.RoomId))
-            {
-                return Conflict(new { Message = "Room does not exist." });
-            }
-
-            var room = await _dbContext.ConferenceRooms.FirstOrDefaultAsync(r => r.Id == dto.RoomId);
-            if (room == null)
-            {
-                return Conflict(new { Message = "Room cannot be null when creating a booking." });
-            }
-
-            // Check if room is active
-            if (!room.IsActive)
-            {
-                return BadRequest(new { Message = "This room is not currently available for booking." });
-            }
-
-            // Check for overlapping bookings - fetch and filter in memory to avoid LINQ translation issues
-            var confirmedBookings = await _dbContext.Bookings
-                .Where(b => b.RoomId == dto.RoomId && b.Status == BookingStatus.Confirmed)
-                .ToListAsync();
-            
-            var hasConflict = confirmedBookings
-                .Any(b => b.EndTime > dto.StartDate && b.StartTime < dto.EndDate);
-
-            if (hasConflict)
-            {
-                _logger.LogWarning("Booking creation failed: Room is not available during the requested time.");
-                return Conflict(new { Message = "Room is not available during the requested time." });
-            }
-
             // Check if booking ID already exists
             if (await _dbContext.Bookings.AnyAsync(b => b.Id == dto.BookingId))
             {
@@ -301,6 +273,24 @@ namespace ConferenceBooking.API.Controllers
             {
                 return BadRequest(new { Message = $"Invalid location. Valid values are: {string.Join(", ", Enum.GetNames(typeof(RoomLocation)))}" });
             }
+
+            // ============================================================
+            // DOMAIN RULE ENFORCEMENT (Service Layer)
+            // All business logic validations are delegated to the service
+            // ============================================================
+            var validation = await _validationService.ValidateBookingCreationAsync(
+                dto.RoomId,
+                dto.StartDate,
+                dto.EndDate,
+                dto.Capacity);
+
+            if (!validation.isValid)
+            {
+                _logger.LogWarning("Booking validation failed: {ErrorMessage}", validation.errorMessage);
+                return BadRequest(new { Message = validation.errorMessage });
+            }
+
+            var room = validation.room!;
 
             var booking = new Booking(
                 dto.BookingId,
@@ -384,41 +374,36 @@ namespace ConferenceBooking.API.Controllers
                 return NotFound(new { Message = $"Booking with ID {id} not found." });
             }
 
-            // Update room if provided
+            // Determine the final values after update (use new values if provided, otherwise keep existing)
+            var finalRoomId = dto.RoomId ?? booking.RoomId;
+            var finalStartTime = dto.StartTime ?? booking.StartTime;
+            var finalEndTime = dto.EndTime ?? booking.EndTime;
+            var finalCapacity = booking.Capacity; // Capacity not updated in this DTO
+
+            // ============================================================
+            // DOMAIN RULE ENFORCEMENT (Service Layer)
+            // All business logic validations are delegated to the service
+            // ============================================================
+            var validation = await _validationService.ValidateBookingUpdateAsync(
+                id,
+                finalRoomId,
+                finalStartTime,
+                finalEndTime,
+                finalCapacity);
+
+            if (!validation.isValid)
+            {
+                _logger.LogWarning("Booking update validation failed: {ErrorMessage}", validation.errorMessage);
+                return BadRequest(new { Message = validation.errorMessage });
+            }
+
+            var validatedRoom = validation.room!;
+
+            // Apply updates
             if (dto.RoomId.HasValue && dto.RoomId.Value != booking.RoomId)
             {
-                var newRoom = await _dbContext.ConferenceRooms.FindAsync(dto.RoomId.Value);
-                if (newRoom == null)
-                {
-                    return BadRequest(new { Message = $"Room with ID {dto.RoomId.Value} not found." });
-                }
-
-                // Check if new room is active
-                if (!newRoom.IsActive)
-                {
-                    return BadRequest(new { Message = "The selected room is not currently available for booking." });
-                }
-
-                // Check for conflicts in the new room - fetch and filter in memory to avoid LINQ translation issues
-                var startTime = dto.StartTime ?? booking.StartTime;
-                var endTime = dto.EndTime ?? booking.EndTime;
-
-                var confirmedBookings = await _dbContext.Bookings
-                    .Where(b => b.RoomId == dto.RoomId.Value && 
-                               b.Id != id && 
-                               b.Status == BookingStatus.Confirmed)
-                    .ToListAsync();
-
-                var hasConflict = confirmedBookings
-                    .Any(b => b.EndTime > startTime && b.StartTime < endTime);
-
-                if (hasConflict)
-                {
-                    return Conflict(new { Message = "The new room is not available during the requested time." });
-                }
-
                 booking.RoomId = dto.RoomId.Value;
-                booking.Room = newRoom;
+                booking.Room = validatedRoom;
             }
 
             // Update requested by if provided
@@ -430,58 +415,12 @@ namespace ConferenceBooking.API.Controllers
             // Update start time if provided
             if (dto.StartTime.HasValue)
             {
-                var endTime = dto.EndTime ?? booking.EndTime;
-                
-                // Validate that start time is before end time
-                if (dto.StartTime.Value >= endTime)
-                {
-                    return BadRequest(new { Message = "Start time must be before end time." });
-                }
-
-                // Check for conflicts with the new time - fetch and filter in memory to avoid LINQ translation issues
-                var confirmedBookings = await _dbContext.Bookings
-                    .Where(b => b.RoomId == booking.RoomId && 
-                               b.Id != id && 
-                               b.Status == BookingStatus.Confirmed)
-                    .ToListAsync();
-
-                var hasConflict = confirmedBookings
-                    .Any(b => b.EndTime > dto.StartTime.Value && b.StartTime < endTime);
-
-                if (hasConflict)
-                {
-                    return Conflict(new { Message = "Room is not available during the new requested time." });
-                }
-
                 booking.StartTime = dto.StartTime.Value;
             }
 
             // Update end time if provided
             if (dto.EndTime.HasValue)
             {
-                var startTime = dto.StartTime ?? booking.StartTime;
-                
-                // Validate that end time is after start time
-                if (dto.EndTime.Value <= startTime)
-                {
-                    return BadRequest(new { Message = "End time must be after start time." });
-                }
-
-                // Check for conflicts with the new time - fetch and filter in memory to avoid LINQ translation issues
-                var confirmedBookings = await _dbContext.Bookings
-                    .Where(b => b.RoomId == booking.RoomId && 
-                               b.Id != id && 
-                               b.Status == BookingStatus.Confirmed)
-                    .ToListAsync();
-
-                var hasConflict = confirmedBookings
-                    .Any(b => b.EndTime > startTime && b.StartTime < dto.EndTime.Value);
-
-                if (hasConflict)
-                {
-                    return Conflict(new { Message = "Room is not available during the new requested time." });
-                }
-
                 booking.EndTime = dto.EndTime.Value;
             }
 
