@@ -9,7 +9,7 @@ public class Booking
 {
     public int Id { get; set; }
     public int RoomId { get; set; } // Foreign key
-    public ConferenceRoom Room { get; set; }
+    public ConferenceRoom Room { get; set; } // Navigation property
     
     public string UserId { get; set; } = string.Empty; // Foreign key to ApplicationUser
     public ApplicationUser? User { get; set; } // Navigation property

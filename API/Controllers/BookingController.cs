@@ -26,19 +26,22 @@ namespace ConferenceBooking.API.Controllers
         private readonly ILogger<BookingController> _logger;
         private readonly BookingRepository _bookingRepository;
         private readonly BookingValidationService _validationService;
+        private readonly BookingManagementService _bookingManagementService;
 
         public BookingController(
             ApplicationDbContext dbContext,
             UserManager<ApplicationUser> userManager,
             ILogger<BookingController> logger,
             BookingRepository bookingRepository,
-            BookingValidationService validationService)
+            BookingValidationService validationService,
+            BookingManagementService bookingManagementService)
         {
             _dbContext = dbContext;
             _userManager = userManager;
             _logger = logger;
             _bookingRepository = bookingRepository;
             _validationService = validationService;
+            _bookingManagementService = bookingManagementService;
         }
 
         #region GET Endpoints
@@ -243,31 +246,19 @@ namespace ConferenceBooking.API.Controllers
         {
             _logger.LogInformation("CreateBooking endpoint hit");
 
-            if (User.Identity?.Name == null)
+            var userValidation = await _bookingManagementService.ValidateCurrentUserAsync(User.Identity?.Name);
+            if (!userValidation.isValid)
             {
-                _logger.LogWarning("User.Identity.Name is null");
-                return Unauthorized();
+                _logger.LogWarning("User validation failed: {ErrorMessage}", userValidation.errorMessage);
+                return userValidation.errorMessage == "User account is inactive" ? Forbid() : Unauthorized();
             }
 
-            var user = await _userManager.FindByNameAsync(User.Identity.Name);
-            if (user == null)
-            {
-                _logger.LogWarning("User not found or unauthorized");
-                return Unauthorized();
-            }
+            var user = userValidation.user!;
 
-            // Enforce relationship integrity: Only active users can create bookings
-            if (!user.IsActive)
-            {
-                _logger.LogWarning("Inactive user attempted to create booking: {UserId}", user.Id);
-                return Forbid(); // 403 Forbidden - user exists but is not allowed
-            }
+            var locationValidation = _bookingManagementService.ValidateLocation(dto.Location);
+            if (!locationValidation.isValid) return BadRequest(new { message = locationValidation.errorMessage });
 
-            // Parse and validate location
-            if (!Enum.TryParse<RoomLocation>(dto.Location, true, out var location))
-            {
-                return BadRequest(new { Message = $"Invalid location. Valid values are: {string.Join(", ", Enum.GetNames(typeof(RoomLocation)))}" });
-            }
+            var location = locationValidation.location!.Value;
 
             // ============================================================
             // DOMAIN RULE ENFORCEMENT (Service Layer)
@@ -282,7 +273,7 @@ namespace ConferenceBooking.API.Controllers
             if (!validation.isValid)
             {
                 _logger.LogWarning("Booking validation failed: {ErrorMessage}", validation.errorMessage);
-                return BadRequest(new { Message = validation.errorMessage });
+                return BadRequest(new { message = validation.errorMessage });
             }
 
             var room = validation.room!;
@@ -307,26 +298,10 @@ namespace ConferenceBooking.API.Controllers
             await _dbContext.Entry(booking).Reference(b => b.Room).LoadAsync();
             await _dbContext.Entry(booking).Reference(b => b.User).LoadAsync();
 
-            // Prepare detailed response DTO
-            var responseDto = new BookingDetailDTO
-            {
-                BookingId = booking.Id,
-                RoomId = booking.RoomId,
-                RoomName = booking.Room.Name,
-                RoomNumber = booking.Room.Number,
-                Location = booking.Location.ToString(),
-                IsRoomActive = booking.Room.IsActive,
-                RequestedBy = booking.User?.UserName ?? "Unknown User",
-                StartTime = booking.StartTime,
-                EndTime = booking.EndTime,
-                Status = booking.Status.ToString(),
-                Capacity = booking.Capacity,
-                CreatedAt = booking.CreatedAt,
-                CancelledAt = booking.CancelledAt
-            };
+            var responseDto = _bookingManagementService.MapToDetailDto(booking);
 
             _logger.LogInformation("Booking created successfully with Pending status");
-            return Ok(new { Message = "Booking created and pending confirmation by receptionist.", Booking = responseDto });
+            return Ok(new { message = "Booking created and pending confirmation by receptionist.", booking = responseDto });
         }
 
         #endregion
@@ -340,30 +315,12 @@ namespace ConferenceBooking.API.Controllers
         [HttpPut("update/{id}")]
         public async Task<IActionResult> UpdateBooking(int id, [FromBody] UpdateBookingDTO dto)
         {
-            // Validate authenticated user
-            if (User.Identity?.Name == null)
-            {
-                return Unauthorized();
-            }
+            var userValidation = await _bookingManagementService.ValidateCurrentUserAsync(User.Identity?.Name);
+            if (!userValidation.isValid)
+                return userValidation.errorMessage == "User account is inactive" ? Forbid() : Unauthorized();
 
-            var user = await _userManager.FindByNameAsync(User.Identity.Name);
-            if (user == null)
-            {
-                return Unauthorized();
-            }
-
-            // Enforce relationship integrity: Only active users can update bookings
-            if (!user.IsActive)
-            {
-                _logger.LogWarning("Inactive user attempted to update booking: {UserId}", user.Id);
-                return Forbid(); // 403 Forbidden - user exists but is not allowed
-            }
-
-            // Validate that the booking ID in the URL matches the DTO
-            if (id != dto.BookingId)
-            {
-                return BadRequest(new { Message = "Booking ID in URL does not match the request body." });
-            }
+            var idValidation = _bookingManagementService.ValidateIdMatch(id, dto.BookingId);
+            if (!idValidation.isValid) return BadRequest(new { message = idValidation.errorMessage });
 
             // Find the existing booking
             var booking = await _dbContext.Bookings
@@ -372,7 +329,7 @@ namespace ConferenceBooking.API.Controllers
 
             if (booking == null)
             {
-                return NotFound(new { Message = $"Booking with ID {id} not found." });
+                return NotFound(new { message = $"Booking with ID {id} not found." });
             }
 
             // Determine the final values after update (use new values if provided, otherwise keep existing)
@@ -395,69 +352,28 @@ namespace ConferenceBooking.API.Controllers
             if (!validation.isValid)
             {
                 _logger.LogWarning("Booking update validation failed: {ErrorMessage}", validation.errorMessage);
-                return BadRequest(new { Message = validation.errorMessage });
+                return BadRequest(new { message = validation.errorMessage });
             }
 
             var validatedRoom = validation.room!;
 
             // Apply updates
-            if (dto.RoomId.HasValue && dto.RoomId.Value != booking.RoomId)
-            {
-                booking.RoomId = dto.RoomId.Value;
-                booking.Room = validatedRoom;
-            }
-
-            // Update start time if provided
-            if (dto.StartTime.HasValue)
-            {
-                booking.StartTime = dto.StartTime.Value;
-            }
-
-            // Update end time if provided
-            if (dto.EndTime.HasValue)
-            {
-                booking.EndTime = dto.EndTime.Value;
-            }
+            _bookingManagementService.ApplyBookingUpdates(booking, dto, validatedRoom);
 
             // Update status if provided
             if (!string.IsNullOrWhiteSpace(dto.Status))
             {
-                if (Enum.TryParse<BookingStatus>(dto.Status, true, out var newStatus))
-                {
-                    booking.Status = newStatus;
-                    
-                    // Set CancelledAt timestamp if status is changed to Cancelled
-                    if (newStatus == BookingStatus.Cancelled && !booking.CancelledAt.HasValue)
-                    {
-                        booking.CancelledAt = DateTimeOffset.UtcNow;
-                    }
-                }
-                else
-                {
-                    return BadRequest(new { Message = $"Invalid status. Valid values are: {string.Join(", ", Enum.GetNames(typeof(BookingStatus)))}" });
-                }
+                var statusValidation = _bookingManagementService.ValidateBookingStatus(dto.Status);
+                if (!statusValidation.isValid) return BadRequest(new { message = statusValidation.errorMessage });
+
+                if (statusValidation.status.HasValue)
+                    _bookingManagementService.ApplyStatusChange(booking, statusValidation.status.Value);
             }
 
             // Save changes to database
             await _dbContext.SaveChangesAsync();
 
-            // Prepare detailed response DTO
-            var responseDto = new BookingDetailDTO
-            {
-                BookingId = booking.Id,
-                RoomId = booking.RoomId,
-                RoomName = booking.Room.Name,
-                RoomNumber = booking.Room.Number,
-                Location = booking.Location.ToString(),
-                IsRoomActive = booking.Room.IsActive,
-                RequestedBy = booking.User?.UserName ?? "Unknown User",
-                StartTime = booking.StartTime,
-                EndTime = booking.EndTime,
-                Status = booking.Status.ToString(),
-                Capacity = booking.Capacity,
-                CreatedAt = booking.CreatedAt,
-                CancelledAt = booking.CancelledAt
-            };
+            var responseDto = _bookingManagementService.MapToDetailDto(booking);
 
             return Ok(responseDto);
         }
@@ -478,61 +394,25 @@ namespace ConferenceBooking.API.Controllers
         [Authorize(Roles = "Receptionist,Admin")]
         public async Task<IActionResult> ConfirmBooking(int id)
         {
-            var booking = await _dbContext.Bookings
-                .Include(b => b.Room)
-                .FirstOrDefaultAsync(b => b.Id == id);
-                
-            if (booking == null)
+            var validation = await _bookingManagementService.ValidateBookingConfirmationAsync(id);
+            if (!validation.isValid) 
             {
-                return NotFound(new { Message = "Booking not found." });
+                return validation.errorMessage == "Booking not found" 
+                    ? NotFound(new { message = validation.errorMessage })
+                    : validation.errorMessage!.Contains("not available") 
+                        ? Conflict(new { message = validation.errorMessage })
+                        : BadRequest(new { message = validation.errorMessage });
             }
 
-            if (booking.Status == BookingStatus.Confirmed)
-            {
-                return BadRequest(new { Message = "Booking is already confirmed." });
-            }
-
-            if (booking.Status == BookingStatus.Cancelled)
-            {
-                return BadRequest(new { Message = "Cannot confirm a cancelled booking." });
-            }
-
-            // Check for conflicts with confirmed bookings before confirming
-            var confirmedBookings = await _dbContext.Bookings
-                .Where(b => b.RoomId == booking.RoomId && b.Status == BookingStatus.Confirmed)
-                .ToListAsync();
-            
-            var hasConflict = confirmedBookings
-                .Any(b => b.EndTime > booking.StartTime && b.StartTime < booking.EndTime);
-
-            if (hasConflict)
-            {
-                return Conflict(new { Message = "Cannot confirm: Room is not available during the requested time." });
-            }
+            var booking = validation.booking!;
 
             booking.Confirm();
             await _dbContext.SaveChangesAsync();
             
-            // Prepare detailed response DTO
-            var responseDto = new BookingDetailDTO
-            {
-                BookingId = booking.Id,
-                RoomId = booking.RoomId,
-                RoomName = booking.Room.Name,
-                RoomNumber = booking.Room.Number,
-                Location = booking.Location.ToString(),
-                IsRoomActive = booking.Room.IsActive,
-                RequestedBy = booking.User?.UserName ?? "Unknown User",
-                StartTime = booking.StartTime,
-                EndTime = booking.EndTime,
-                Status = booking.Status.ToString(),
-                Capacity = booking.Capacity,
-                CreatedAt = booking.CreatedAt,
-                CancelledAt = booking.CancelledAt
-            };
+            var responseDto = _bookingManagementService.MapToDetailDto(booking);
 
             _logger.LogInformation($"Booking {id} confirmed by {User.Identity?.Name}");
-            return Ok(new { Message = "Booking confirmed successfully.", Booking = responseDto });
+            return Ok(new { message = "Booking confirmed successfully.", booking = responseDto });
         }
 
         /// <summary>
@@ -556,16 +436,13 @@ namespace ConferenceBooking.API.Controllers
         [HttpDelete("cancel/{id}")]
         public async Task<IActionResult> CancelBooking(int id)
         {
-            var booking = await _dbContext.Bookings.FirstOrDefaultAsync(b => b.Id == id);
-            if (booking == null)
-            {
-                return NotFound(new { Message = "Booking not found." });
-            }
+            var validation = await _bookingManagementService.ValidateBookingCancellationAsync(id);
+            if (!validation.isValid)
+                return validation.errorMessage == "Booking not found" 
+                    ? NotFound(new { message = validation.errorMessage })
+                    : BadRequest(new { message = validation.errorMessage });
 
-            if (booking.Status == BookingStatus.Cancelled)
-            {
-                return BadRequest(new { Message = "Booking is already cancelled." });
-            }
+            var booking = validation.booking!;
 
             booking.Cancel();
             await _dbContext.SaveChangesAsync();
@@ -592,7 +469,7 @@ namespace ConferenceBooking.API.Controllers
             var booking = await _dbContext.Bookings.FirstOrDefaultAsync(b => b.Id == id);
             if (booking == null)
             {
-                return NotFound(new { Message = $"Booking with ID {id} not found." });
+                return NotFound(new { message = $"Booking with ID {id} not found." });
             }
 
             _dbContext.Bookings.Remove(booking);

@@ -15,7 +15,6 @@ namespace ConferenceBooking.API.Services
     {
         private readonly ApplicationDbContext _dbContext;
 
-        // Business hours: 08:00 AM to 4:00 PM
         private const int BusinessHoursStart = 8;
         private const int BusinessHoursEnd = 16;
 

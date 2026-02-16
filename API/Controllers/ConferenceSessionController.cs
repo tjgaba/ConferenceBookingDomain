@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ConferenceBooking.API.DTO;
 using ConferenceBooking.API.Entities;
+using ConferenceBooking.API.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,10 +15,12 @@ namespace ConferenceBooking.API.Controllers
     public class ConferenceSessionController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
+        private readonly SessionManagementService _sessionService;
 
-        public ConferenceSessionController(ApplicationDbContext context)
+        public ConferenceSessionController(ApplicationDbContext context, SessionManagementService sessionService)
         {
             _context = context;
+            _sessionService = sessionService;
         }
 
         /// <summary>
@@ -82,25 +85,10 @@ namespace ConferenceBooking.API.Controllers
         [HttpPost]
         public async Task<ActionResult<SessionResponseDTO>> CreateSession([FromBody] CreateSessionDTO dto)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
+            if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            if (dto.EndTime <= dto.StartTime)
-            {
-                return BadRequest(new { message = "End time must be after start time" });
-            }
-
-            // Verify room exists if RoomId is provided
-            if (dto.RoomId.HasValue)
-            {
-                var roomExists = await _context.ConferenceRooms.AnyAsync(r => r.Id == dto.RoomId.Value);
-                if (!roomExists)
-                {
-                    return BadRequest(new { message = $"Room with ID {dto.RoomId.Value} not found" });
-                }
-            }
+            var validation = await _sessionService.ValidateSessionCreationAsync(dto);
+            if (!validation.isValid) return BadRequest(new { message = validation.errorMessage });
 
             var session = new ConferenceSession
             {
@@ -143,36 +131,12 @@ namespace ConferenceBooking.API.Controllers
         [HttpPut("{id}")]
         public async Task<ActionResult<SessionResponseDTO>> UpdateSession(int id, [FromBody] UpdateSessionDTO dto)
         {
-            if (id != dto.Id)
-            {
-                return BadRequest(new { message = "ID mismatch" });
-            }
+            if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            if (dto.EndTime <= dto.StartTime)
-            {
-                return BadRequest(new { message = "End time must be after start time" });
-            }
+            var validation = await _sessionService.ValidateSessionUpdateAsync(id, dto);
+            if (!validation.isValid) return BadRequest(new { message = validation.errorMessage });
 
             var session = await _context.ConferenceSessions.FindAsync(id);
-            if (session == null)
-            {
-                return NotFound(new { message = $"Session with ID {id} not found" });
-            }
-
-            // Verify room exists if RoomId is provided
-            if (dto.RoomId.HasValue)
-            {
-                var roomExists = await _context.ConferenceRooms.AnyAsync(r => r.Id == dto.RoomId.Value);
-                if (!roomExists)
-                {
-                    return BadRequest(new { message = $"Room with ID {dto.RoomId.Value} not found" });
-                }
-            }
 
             session.Title = dto.Title;
             session.Description = dto.Description;
@@ -211,11 +175,10 @@ namespace ConferenceBooking.API.Controllers
         [HttpDelete("{id}")]
         public async Task<ActionResult> DeleteSession(int id)
         {
+            var validation = await _sessionService.ValidateSessionDeletionAsync(id);
+            if (!validation.isValid) return NotFound(new { message = validation.errorMessage });
+
             var session = await _context.ConferenceSessions.FindAsync(id);
-            if (session == null)
-            {
-                return NotFound(new { message = $"Session with ID {id} not found" });
-            }
 
             _context.ConferenceSessions.Remove(session);
             await _context.SaveChangesAsync();
@@ -229,11 +192,8 @@ namespace ConferenceBooking.API.Controllers
         [HttpGet("room/{roomId}")]
         public async Task<ActionResult<IEnumerable<SessionResponseDTO>>> GetSessionsByRoom(int roomId)
         {
-            var roomExists = await _context.ConferenceRooms.AnyAsync(r => r.Id == roomId);
-            if (!roomExists)
-            {
-                return NotFound(new { message = $"Room with ID {roomId} not found" });
-            }
+            var validation = await _sessionService.ValidateRoomExistsAsync(roomId);
+            if (!validation.isValid) return NotFound(new { message = validation.errorMessage });
 
             var sessions = await _context.ConferenceSessions
                 .Include(s => s.Room)

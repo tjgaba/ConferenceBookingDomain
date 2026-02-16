@@ -108,7 +108,7 @@ namespace ConferenceBooking.API.Controllers
             
             if (room == null)
             {
-                return NotFound(new { Message = $"Room with ID {id} not found." });
+                return NotFound(new { message = $"Room with ID {id} not found." });
             }
 
             var roomDto = new RoomDetailDTO
@@ -141,18 +141,18 @@ namespace ConferenceBooking.API.Controllers
             
             if (targetRoomId == 0)
             {
-                return BadRequest(new { Message = "Room ID is required." });
+                return BadRequest(new { message = "Room ID is required." });
             }
 
             var room = await _dbContext.ConferenceRooms.FindAsync(targetRoomId);
             if (room == null)
             {
-                return NotFound(new { Message = $"Room with ID {targetRoomId} not found." });
+                return NotFound(new { message = $"Room with ID {targetRoomId} not found." });
             }
 
             if (!room.IsActive)
             {
-                return BadRequest(new { Message = "This room is not currently active." });
+                return BadRequest(new { message = "This room is not currently active." });
             }
 
             var isAvailable = !await _dbContext.Bookings.AnyAsync(b =>

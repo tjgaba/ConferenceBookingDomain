@@ -4,8 +4,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ConferenceBooking.API.Auth;
 using ConferenceBooking.API.Constants;
+using ConferenceBooking.API.Data;
 using ConferenceBooking.API.DTO;
 using ConferenceBooking.API.Entities;
+using ConferenceBooking.API.Services;
 
 namespace ConferenceBooking.API.Controllers;
 
@@ -18,17 +20,20 @@ public class UserManagementController : ControllerBase
     private readonly RoleManager<IdentityRole> _roleManager;
     private readonly ILogger<UserManagementController> _logger;
     private readonly ApplicationDbContext _context;
+    private readonly UserManagementService _userManagementService;
 
     public UserManagementController(
         UserManager<ApplicationUser> userManager,
         RoleManager<IdentityRole> roleManager,
         ILogger<UserManagementController> logger,
-        ApplicationDbContext context)
+        ApplicationDbContext context,
+        UserManagementService userManagementService)
     {
         _userManager = userManager;
         _roleManager = roleManager;
         _logger = logger;
         _context = context;
+        _userManagementService = userManagementService;
     }
 
     /// <summary>
@@ -290,35 +295,9 @@ public class UserManagementController : ControllerBase
         try
         {
             var user = await _userManager.FindByIdAsync(userId);
-            if (user == null)
-            {
-                return NotFound(new { message = "User not found" });
-            }
+            if (user == null) return NotFound(new { message = "User not found" });
 
-            var roles = await _userManager.GetRolesAsync(user);
-
-            var userDto = new UserResponseDTO
-            {
-                Id = user.Id,
-                FirstName = user.FirstName,
-                LastName = user.LastName,
-                FullName = user.FullName,
-                Email = user.Email ?? string.Empty,
-                PhoneNumber = user.PhoneNumber,
-                Department = user.Department,
-                EmployeeNumber = user.EmployeeNumber,
-                PrimaryLocation = user.PrimaryLocation,
-                PreferredLocation = user.PreferredLocation,
-                NotificationPreferences = user.NotificationPreferences,
-                IsActive = user.IsActive,
-                Roles = roles.ToList(),
-                DateJoined = user.DateJoined,
-                LastLoginDate = user.LastLoginDate,
-                CreatedAt = user.CreatedAt,
-                UpdatedAt = user.UpdatedAt,
-                DeletedAt = user.DeletedAt
-            };
-
+            var userDto = await _userManagementService.MapToResponseDto(user);
             return Ok(userDto);
         }
         catch (Exception ex)
@@ -337,37 +316,15 @@ public class UserManagementController : ControllerBase
     {
         try
         {
-            // Check if email already exists
-            var existingUser = await _userManager.FindByEmailAsync(request.Email);
-            if (existingUser != null)
+            // Validate request using service
+            var validation = await _userManagementService.ValidateUserCreationAsync(request);
+            if (!validation.isValid)
             {
-                return BadRequest(new { message = "A user with this email already exists" });
+                return BadRequest(new { message = validation.errorMessage });
             }
 
-            // Ensure the role exists
-            if (!await _roleManager.RoleExistsAsync(request.Role))
-            {
-                return BadRequest(new { message = $"Role '{request.Role}' does not exist" });
-            }
-
-            // Create the user
-            var user = new ApplicationUser
-            {
-                UserName = request.Email,
-                Email = request.Email,
-                FirstName = request.FirstName,
-                LastName = request.LastName,
-                PhoneNumber = request.PhoneNumber,
-                Department = request.Department,
-                EmployeeNumber = request.EmployeeNumber,
-                PrimaryLocation = request.PrimaryLocation,
-                PreferredLocation = request.PreferredLocation,
-                NotificationPreferences = request.NotificationPreferences,
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow,
-                DateJoined = DateTime.UtcNow,
-                EmailConfirmed = true // Auto-confirm for admin-created users
-            };
+            // Create user using service
+            var user = _userManagementService.CreateUserFromDto(request);
 
             var result = await _userManager.CreateAsync(user, request.Password);
             if (!result.Succeeded)
@@ -375,33 +332,11 @@ public class UserManagementController : ControllerBase
                 return BadRequest(new { message = "Failed to create user", errors = result.Errors });
             }
 
-            // Assign role
             await _userManager.AddToRoleAsync(user, request.Role);
-
             _logger.LogInformation("User {Email} created successfully by {Admin}", request.Email, User.Identity?.Name);
 
-            var roles = await _userManager.GetRolesAsync(user);
-            var userDto = new UserResponseDTO
-            {
-                Id = user.Id,
-                FirstName = user.FirstName,
-                LastName = user.LastName,
-                FullName = user.FullName,
-                Email = user.Email ?? string.Empty,
-                PhoneNumber = user.PhoneNumber,
-                Department = user.Department,
-                EmployeeNumber = user.EmployeeNumber,
-                PrimaryLocation = user.PrimaryLocation,
-                PreferredLocation = user.PreferredLocation,
-                NotificationPreferences = user.NotificationPreferences,
-                IsActive = user.IsActive,
-                Roles = roles.ToList(),
-                DateJoined = user.DateJoined,
-                LastLoginDate = user.LastLoginDate,
-                CreatedAt = user.CreatedAt,
-                UpdatedAt = user.UpdatedAt,
-                DeletedAt = user.DeletedAt
-            };
+            // Map to DTO using service
+            var userDto = await _userManagementService.MapToResponseDto(user);
 
             return CreatedAtAction(nameof(GetUser), new { userId = user.Id }, userDto);
         }
@@ -421,100 +356,21 @@ public class UserManagementController : ControllerBase
     {
         try
         {
-            if (userId != request.UserId)
-            {
-                return BadRequest(new { message = "User ID mismatch" });
-            }
+            var validation = await _userManagementService.ValidateUserUpdateAsync(userId, request, User.IsInRole("Admin"));
+            if (!validation.isValid) return BadRequest(new { message = validation.errorMessage });
 
             var user = await _userManager.FindByIdAsync(userId);
-            if (user == null)
-            {
-                return NotFound(new { message = "User not found" });
-            }
+            _userManagementService.ApplyUserUpdates(user!, request);
 
-            // Update fields if provided
-            if (!string.IsNullOrWhiteSpace(request.FirstName))
-                user.FirstName = request.FirstName;
+            var result = await _userManager.UpdateAsync(user!);
+            if (!result.Succeeded) return BadRequest(new { message = "Failed to update user", errors = result.Errors });
 
-            if (!string.IsNullOrWhiteSpace(request.LastName))
-                user.LastName = request.LastName;
-
-            if (!string.IsNullOrWhiteSpace(request.Email))
-            {
-                // Check if new email already exists
-                var existingUser = await _userManager.FindByEmailAsync(request.Email);
-                if (existingUser != null && existingUser.Id != userId)
-                {
-                    return BadRequest(new { message = "Email already in use by another user" });
-                }
-                user.Email = request.Email;
-                user.UserName = request.Email;
-            }
-
-            if (request.PhoneNumber != null)
-                user.PhoneNumber = request.PhoneNumber;
-
-            if (request.Department != null)
-                user.Department = request.Department;
-
-            if (request.EmployeeNumber != null)
-                user.EmployeeNumber = request.EmployeeNumber;
-
-            if (request.PrimaryLocation.HasValue)
-                user.PrimaryLocation = request.PrimaryLocation;
-
-            if (request.PreferredLocation.HasValue)
-                user.PreferredLocation = request.PreferredLocation;
-
-            if (!string.IsNullOrWhiteSpace(request.NotificationPreferences))
-                user.NotificationPreferences = request.NotificationPreferences;
-
-            user.UpdatedAt = DateTime.UtcNow;
-
-            var result = await _userManager.UpdateAsync(user);
-            if (!result.Succeeded)
-            {
-                return BadRequest(new { message = "Failed to update user", errors = result.Errors });
-            }
-
-            // Update role if provided and user is Admin
-            if (!string.IsNullOrWhiteSpace(request.Role) && User.IsInRole("Admin"))
-            {
-                if (!await _roleManager.RoleExistsAsync(request.Role))
-                {
-                    return BadRequest(new { message = $"Role '{request.Role}' does not exist" });
-                }
-
-                var currentRoles = await _userManager.GetRolesAsync(user);
-                await _userManager.RemoveFromRolesAsync(user, currentRoles);
-                await _userManager.AddToRoleAsync(user, request.Role);
-            }
+            var roleResult = await _userManagementService.UpdateUserRoleAsync(user!, request.Role!, User.IsInRole("Admin"));
+            if (!roleResult.Succeeded) return BadRequest(new { message = "Failed to update role", errors = roleResult.Errors });
 
             _logger.LogInformation("User {UserId} updated successfully by {Admin}", userId, User.Identity?.Name);
 
-            var roles = await _userManager.GetRolesAsync(user);
-            var userDto = new UserResponseDTO
-            {
-                Id = user.Id,
-                FirstName = user.FirstName,
-                LastName = user.LastName,
-                FullName = user.FullName,
-                Email = user.Email ?? string.Empty,
-                PhoneNumber = user.PhoneNumber,
-                Department = user.Department,
-                EmployeeNumber = user.EmployeeNumber,
-                PrimaryLocation = user.PrimaryLocation,
-                PreferredLocation = user.PreferredLocation,
-                NotificationPreferences = user.NotificationPreferences,
-                IsActive = user.IsActive,
-                Roles = roles.ToList(),
-                DateJoined = user.DateJoined,
-                LastLoginDate = user.LastLoginDate,
-                CreatedAt = user.CreatedAt,
-                UpdatedAt = user.UpdatedAt,
-                DeletedAt = user.DeletedAt
-            };
-
+            var userDto = await _userManagementService.MapToResponseDto(user!);
             return Ok(userDto);
         }
         catch (Exception ex)
@@ -533,37 +389,19 @@ public class UserManagementController : ControllerBase
     {
         try
         {
-            var user = await _userManager.FindByIdAsync(userId);
-            if (user == null)
-            {
-                return NotFound(new { message = "User not found" });
-            }
+            var validation = await _userManagementService.ValidateAndPrepareDeleteAsync(userId);
+            if (!validation.isValid) return BadRequest(new { message = validation.errorMessage });
 
-            if (!user.IsActive)
-            {
-                return BadRequest(new { message = "User is already inactive" });
-            }
-
-            // Soft delete - mark as inactive
-            user.IsActive = false;
-            user.DeletedAt = DateTime.UtcNow;
-            user.UpdatedAt = DateTime.UtcNow;
+            var user = validation.user!;
+            _userManagementService.ApplyStatusChange(user, false);
 
             var result = await _userManager.UpdateAsync(user);
-            if (!result.Succeeded)
-            {
-                return BadRequest(new { message = "Failed to deactivate user", errors = result.Errors });
-            }
+            if (!result.Succeeded) return BadRequest(new { message = "Failed to deactivate user", errors = result.Errors });
 
-            // Log status change to history
             await LogStatusChange(userId, true, false, "Soft Deleted", request?.Reason);
-
             _logger.LogInformation(
                 "User {UserId} ({Email}) soft deleted by {Admin}. Reason: {Reason}",
-                userId,
-                user.Email,
-                User.Identity?.Name,
-                request?.Reason ?? "Not specified"
+                userId, user.Email, User.Identity?.Name, request?.Reason ?? "Not specified"
             );
 
             return Ok(new { message = "User deactivated successfully", deletedAt = user.DeletedAt });
@@ -584,56 +422,19 @@ public class UserManagementController : ControllerBase
     {
         try
         {
-            var user = await _userManager.FindByIdAsync(userId);
-            if (user == null)
-            {
-                return NotFound(new { message = "User not found" });
-            }
+            var validation = await _userManagementService.ValidateAndPrepareReactivationAsync(userId);
+            if (!validation.isValid) return BadRequest(new { message = validation.errorMessage });
 
-            if (user.IsActive)
-            {
-                return BadRequest(new { message = "User is already active" });
-            }
-
-            // Reactivate user
-            user.IsActive = true;
-            user.DeletedAt = null;
-            user.UpdatedAt = DateTime.UtcNow;
+            var user = validation.user!;
+            _userManagementService.ApplyStatusChange(user, true);
 
             var result = await _userManager.UpdateAsync(user);
-            if (!result.Succeeded)
-            {
-                return BadRequest(new { message = "Failed to reactivate user", errors = result.Errors });
-            }
+            if (!result.Succeeded) return BadRequest(new { message = "Failed to reactivate user", errors = result.Errors });
 
-            // Log status change to history
             await LogStatusChange(userId, false, true, "Reactivated", "User reactivated");
-
             _logger.LogInformation("User {UserId} ({Email}) reactivated by {Admin}", userId, user.Email, User.Identity?.Name);
 
-            var roles = await _userManager.GetRolesAsync(user);
-            var userDto = new UserResponseDTO
-            {
-                Id = user.Id,
-                FirstName = user.FirstName,
-                LastName = user.LastName,
-                FullName = user.FullName,
-                Email = user.Email ?? string.Empty,
-                PhoneNumber = user.PhoneNumber,
-                Department = user.Department,
-                EmployeeNumber = user.EmployeeNumber,
-                PrimaryLocation = user.PrimaryLocation,
-                PreferredLocation = user.PreferredLocation,
-                NotificationPreferences = user.NotificationPreferences,
-                IsActive = user.IsActive,
-                Roles = roles.ToList(),
-                DateJoined = user.DateJoined,
-                LastLoginDate = user.LastLoginDate,
-                CreatedAt = user.CreatedAt,
-                UpdatedAt = user.UpdatedAt,
-                DeletedAt = user.DeletedAt
-            };
-
+            var userDto = await _userManagementService.MapToResponseDto(user);
             return Ok(userDto);
         }
         catch (Exception ex)
@@ -652,86 +453,23 @@ public class UserManagementController : ControllerBase
     {
         try
         {
-            if (userId != request.UserId)
-            {
-                return BadRequest(new { message = "User ID mismatch" });
-            }
+            var validation = await _userManagementService.ValidateStatusChangeAsync(userId, request.IsActive);
+            if (!validation.isValid) return BadRequest(new { message = validation.errorMessage });
 
-            var user = await _userManager.FindByIdAsync(userId);
-            if (user == null)
-            {
-                return NotFound(new { message = "User not found" });
-            }
-
-            // Check if status is already the desired value
-            if (user.IsActive == request.IsActive)
-            {
-                var status = request.IsActive ? "active" : "inactive";
-                return BadRequest(new { message = $"User is already {status}" });
-            }
-
-            // Update status
-            user.IsActive = request.IsActive;
-            user.UpdatedAt = DateTime.UtcNow;
-
-            if (request.IsActive)
-            {
-                // Reactivating - clear DeletedAt
-                user.DeletedAt = null;
-                _logger.LogInformation(
-                    "User {UserId} ({Email}) activated by {Admin}. Reason: {Reason}",
-                    userId,
-                    user.Email,
-                    User.Identity?.Name,
-                    request.Reason ?? "Not specified"
-                );
-            }
-            else
-            {
-                // Deactivating - set DeletedAt
-                user.DeletedAt = DateTime.UtcNow;
-                _logger.LogInformation(
-                    "User {UserId} ({Email}) deactivated by {Admin}. Reason: {Reason}",
-                    userId,
-                    user.Email,
-                    User.Identity?.Name,
-                    request.Reason ?? "Not specified"
-                );
-            }
+            var user = validation.user!;
+            _userManagementService.ApplyStatusChange(user, request.IsActive);
 
             var result = await _userManager.UpdateAsync(user);
-            if (!result.Succeeded)
-            {
-                return BadRequest(new { message = "Failed to update user status", errors = result.Errors });
-            }
+            if (!result.Succeeded) return BadRequest(new { message = "Failed to update user status", errors = result.Errors });
 
-            // Log status change to history
             var action = request.IsActive ? "Activated" : "Deactivated";
             await LogStatusChange(userId, !request.IsActive, request.IsActive, action, request.Reason);
+            _logger.LogInformation(
+                "User {UserId} ({Email}) {Action} by {Admin}. Reason: {Reason}",
+                userId, user.Email, action.ToLower(), User.Identity?.Name, request.Reason ?? "Not specified"
+            );
 
-            var roles = await _userManager.GetRolesAsync(user);
-            var userDto = new UserResponseDTO
-            {
-                Id = user.Id,
-                FirstName = user.FirstName,
-                LastName = user.LastName,
-                FullName = user.FullName,
-                Email = user.Email ?? string.Empty,
-                PhoneNumber = user.PhoneNumber,
-                Department = user.Department,
-                EmployeeNumber = user.EmployeeNumber,
-                PrimaryLocation = user.PrimaryLocation,
-                PreferredLocation = user.PreferredLocation,
-                NotificationPreferences = user.NotificationPreferences,
-                IsActive = user.IsActive,
-                Roles = roles.ToList(),
-                DateJoined = user.DateJoined,
-                LastLoginDate = user.LastLoginDate,
-                CreatedAt = user.CreatedAt,
-                UpdatedAt = user.UpdatedAt,
-                DeletedAt = user.DeletedAt
-            };
-
+            var userDto = await _userManagementService.MapToResponseDto(user);
             return Ok(userDto);
         }
         catch (Exception ex)
