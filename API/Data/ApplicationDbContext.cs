@@ -115,39 +115,39 @@ public class ApplicationDbContext : IdentityDbContext
         // Seed Conference Rooms - Each location has standardized room set
         modelBuilder.Entity<ConferenceRoom>().HasData(
             // London rooms
-            new ConferenceRoom { Id = 1, Name = "Conference Room A", Capacity = 10, Number = 101, Location = RoomLocation.London, IsActive = true },
-            new ConferenceRoom { Id = 2, Name = "Conference Room B", Capacity = 8, Number = 102, Location = RoomLocation.London, IsActive = true },
-            new ConferenceRoom { Id = 3, Name = "Conference Room C", Capacity = 15, Number = 103, Location = RoomLocation.London, IsActive = true },
-            new ConferenceRoom { Id = 4, Name = "Board Room", Capacity = 20, Number = 104, Location = RoomLocation.London, IsActive = true },
-            new ConferenceRoom { Id = 5, Name = "Meeting Room 1", Capacity = 6, Number = 105, Location = RoomLocation.London, IsActive = true },
+            new ConferenceRoom { Id = 1, Name = "Room A", Capacity = 10, Number = 101, Location = RoomLocation.London, IsActive = true },
+            new ConferenceRoom { Id = 2, Name = "Room B", Capacity = 8, Number = 102, Location = RoomLocation.London, IsActive = true },
+            new ConferenceRoom { Id = 3, Name = "Room C", Capacity = 15, Number = 103, Location = RoomLocation.London, IsActive = true },
+            new ConferenceRoom { Id = 4, Name = "Room D", Capacity = 20, Number = 104, Location = RoomLocation.London, IsActive = true },
+            new ConferenceRoom { Id = 5, Name = "Room E", Capacity = 6, Number = 105, Location = RoomLocation.London, IsActive = true },
             
             // Cape Town rooms
-            new ConferenceRoom { Id = 6, Name = "Conference Room A", Capacity = 10, Number = 201, Location = RoomLocation.CapeTown, IsActive = true },
-            new ConferenceRoom { Id = 7, Name = "Conference Room B", Capacity = 8, Number = 202, Location = RoomLocation.CapeTown, IsActive = true },
-            new ConferenceRoom { Id = 8, Name = "Conference Room C", Capacity = 15, Number = 203, Location = RoomLocation.CapeTown, IsActive = true },
-            new ConferenceRoom { Id = 9, Name = "Board Room", Capacity = 20, Number = 204, Location = RoomLocation.CapeTown, IsActive = true },
-            new ConferenceRoom { Id = 10, Name = "Meeting Room 1", Capacity = 6, Number = 205, Location = RoomLocation.CapeTown, IsActive = true },
+            new ConferenceRoom { Id = 6, Name = "Room A", Capacity = 10, Number = 201, Location = RoomLocation.CapeTown, IsActive = true },
+            new ConferenceRoom { Id = 7, Name = "Room B", Capacity = 8, Number = 202, Location = RoomLocation.CapeTown, IsActive = true },
+            new ConferenceRoom { Id = 8, Name = "Room C", Capacity = 15, Number = 203, Location = RoomLocation.CapeTown, IsActive = true },
+            new ConferenceRoom { Id = 9, Name = "Room D", Capacity = 20, Number = 204, Location = RoomLocation.CapeTown, IsActive = true },
+            new ConferenceRoom { Id = 10, Name = "Room E", Capacity = 6, Number = 205, Location = RoomLocation.CapeTown, IsActive = true },
             
             // Johannesburg rooms
-            new ConferenceRoom { Id = 11, Name = "Conference Room A", Capacity = 10, Number = 301, Location = RoomLocation.Johannesburg, IsActive = true },
-            new ConferenceRoom { Id = 12, Name = "Conference Room B", Capacity = 8, Number = 302, Location = RoomLocation.Johannesburg, IsActive = true },
-            new ConferenceRoom { Id = 13, Name = "Conference Room C", Capacity = 15, Number = 303, Location = RoomLocation.Johannesburg, IsActive = true },
-            new ConferenceRoom { Id = 14, Name = "Board Room", Capacity = 20, Number = 304, Location = RoomLocation.Johannesburg, IsActive = true },
-            new ConferenceRoom { Id = 15, Name = "Meeting Room 1", Capacity = 6, Number = 305, Location = RoomLocation.Johannesburg, IsActive = true },
+            new ConferenceRoom { Id = 11, Name = "Room A", Capacity = 10, Number = 301, Location = RoomLocation.Johannesburg, IsActive = true },
+            new ConferenceRoom { Id = 12, Name = "Room B", Capacity = 8, Number = 302, Location = RoomLocation.Johannesburg, IsActive = true },
+            new ConferenceRoom { Id = 13, Name = "Room C", Capacity = 15, Number = 303, Location = RoomLocation.Johannesburg, IsActive = true },
+            new ConferenceRoom { Id = 14, Name = "Room D", Capacity = 20, Number = 304, Location = RoomLocation.Johannesburg, IsActive = true },
+            new ConferenceRoom { Id = 15, Name = "Room E", Capacity = 6, Number = 305, Location = RoomLocation.Johannesburg, IsActive = true },
             
             // Bloemfontein rooms
-            new ConferenceRoom { Id = 16, Name = "Conference Room A", Capacity = 10, Number = 401, Location = RoomLocation.Bloemfontein, IsActive = true },
-            new ConferenceRoom { Id = 17, Name = "Conference Room B", Capacity = 8, Number = 402, Location = RoomLocation.Bloemfontein, IsActive = true },
-            new ConferenceRoom { Id = 18, Name = "Conference Room C", Capacity = 15, Number = 403, Location = RoomLocation.Bloemfontein, IsActive = true },
-            new ConferenceRoom { Id = 19, Name = "Board Room", Capacity = 20, Number = 404, Location = RoomLocation.Bloemfontein, IsActive = true },
-            new ConferenceRoom { Id = 20, Name = "Meeting Room 1", Capacity = 6, Number = 405, Location = RoomLocation.Bloemfontein, IsActive = true },
+            new ConferenceRoom { Id = 16, Name = "Room A", Capacity = 10, Number = 401, Location = RoomLocation.Bloemfontein, IsActive = true },
+            new ConferenceRoom { Id = 17, Name = "Room B", Capacity = 8, Number = 402, Location = RoomLocation.Bloemfontein, IsActive = true },
+            new ConferenceRoom { Id = 18, Name = "Room C", Capacity = 15, Number = 403, Location = RoomLocation.Bloemfontein, IsActive = true },
+            new ConferenceRoom { Id = 19, Name = "Room D", Capacity = 20, Number = 404, Location = RoomLocation.Bloemfontein, IsActive = true },
+            new ConferenceRoom { Id = 20, Name = "Room E", Capacity = 6, Number = 405, Location = RoomLocation.Bloemfontein, IsActive = true },
             
             // Durban rooms
-            new ConferenceRoom { Id = 21, Name = "Conference Room A", Capacity = 10, Number = 501, Location = RoomLocation.Durban, IsActive = true },
-            new ConferenceRoom { Id = 22, Name = "Conference Room B", Capacity = 8, Number = 502, Location = RoomLocation.Durban, IsActive = true },
-            new ConferenceRoom { Id = 23, Name = "Conference Room C", Capacity = 15, Number = 503, Location = RoomLocation.Durban, IsActive = true },
-            new ConferenceRoom { Id = 24, Name = "Board Room", Capacity = 20, Number = 504, Location = RoomLocation.Durban, IsActive = true },
-            new ConferenceRoom { Id = 25, Name = "Meeting Room 1", Capacity = 6, Number = 505, Location = RoomLocation.Durban, IsActive = true },
+            new ConferenceRoom { Id = 21, Name = "Room A", Capacity = 10, Number = 501, Location = RoomLocation.Durban, IsActive = true },
+            new ConferenceRoom { Id = 22, Name = "Room B", Capacity = 8, Number = 502, Location = RoomLocation.Durban, IsActive = true },
+            new ConferenceRoom { Id = 23, Name = "Room C", Capacity = 15, Number = 503, Location = RoomLocation.Durban, IsActive = true },
+            new ConferenceRoom { Id = 24, Name = "Room D", Capacity = 20, Number = 504, Location = RoomLocation.Durban, IsActive = true },
+            new ConferenceRoom { Id = 25, Name = "Room E", Capacity = 6, Number = 505, Location = RoomLocation.Durban, IsActive = true },
             
             // REQUIREMENT: At least one inactive room (soft-deleted/deactivated)
             // Room 26 is marked as inactive for testing deactivation functionality
