@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ConferenceBooking.API.Data;
+using ConferenceBooking.API.DTO;
 using ConferenceBooking.API.Entities;
+using ConferenceBooking.API.Services;
 using Microsoft.EntityFrameworkCore;
 using System.Threading.Tasks;
 
@@ -13,50 +15,25 @@ namespace API.Controllers
     public class RoomManagementController : ControllerBase
     {
         private readonly ApplicationDbContext _dbContext;
+        private readonly RoomManagementService _roomManagementService;
 
-        public RoomManagementController(ApplicationDbContext dbContext)
+        public RoomManagementController(ApplicationDbContext dbContext, RoomManagementService roomManagementService)
         {
             _dbContext = dbContext;
+            _roomManagementService = roomManagementService;
         }
 
         /// <summary>
         /// Update a room's active status
         /// </summary>
         [HttpPatch("{id}/status")]
-        public async Task<IActionResult> UpdateRoomStatus(int id, [FromBody] UpdateRoomStatusRequest request)
+        public async Task<IActionResult> UpdateRoomStatus(int id, [FromBody] UpdateRoomStatusDTO request)
         {
-            var room = await _dbContext.ConferenceRooms.FindAsync(id);
-            if (room == null)
-            {
-                return NotFound(new { Message = $"Room with ID {id} not found." });
-            }
+            var validation = await _roomManagementService.ValidateRoomStatusChangeAsync(id, request.IsActive);
+            if (!validation.isValid) return BadRequest(new { message = validation.errorMessage });
 
-            // Prevent deactivation if there are future confirmed bookings
-            if (!request.IsActive && room.IsActive)
-            {
-                var hasFutureBookings = await _dbContext.Bookings
-                    .AnyAsync(b => b.RoomId == id && 
-                                  b.Status == BookingStatus.Confirmed && 
-                                  b.EndTime > DateTimeOffset.Now);
-
-                if (hasFutureBookings)
-                {
-                    return BadRequest(new 
-                    { 
-                        Message = "Cannot deactivate room with future confirmed bookings. Please cancel bookings first." 
-                    });
-                }
-
-                // Soft delete: set DeletedAt timestamp
-                room.DeletedAt = DateTimeOffset.UtcNow;
-            }
-            else if (request.IsActive && !room.IsActive)
-            {
-                // Reactivating: clear DeletedAt timestamp
-                room.DeletedAt = null;
-            }
-
-            room.IsActive = request.IsActive;
+            var room = validation.room!;
+            _roomManagementService.ApplyStatusChange(room, request.IsActive);
             await _dbContext.SaveChangesAsync();
 
             return Ok(new
@@ -65,7 +42,7 @@ namespace API.Controllers
                 room.Name,
                 room.IsActive,
                 room.DeletedAt,
-                Message = $"Room status updated to {(room.IsActive ? "Active" : "Inactive")}"
+                message = $"Room status updated to {(room.IsActive ? "Active" : "Inactive")}"
             });
         }
 
@@ -73,63 +50,14 @@ namespace API.Controllers
         /// Update room details
         /// </summary>
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateRoom(int id, [FromBody] UpdateRoomRequest request)
+        public async Task<IActionResult> UpdateRoom(int id, [FromBody] UpdateRoomDTO request)
         {
-            var room = await _dbContext.ConferenceRooms.FindAsync(id);
-            if (room == null)
-            {
-                return NotFound(new { Message = $"Room with ID {id} not found." });
-            }
+            var validation = await _roomManagementService.ValidateRoomUpdateAsync(id);
+            if (!validation.isValid) return NotFound(new { message = validation.errorMessage });
 
-            if (!string.IsNullOrWhiteSpace(request.Name))
-            {
-                room.Name = request.Name;
-            }
-
-            if (request.Capacity.HasValue && request.Capacity.Value > 0)
-            {
-                room.Capacity = request.Capacity.Value;
-            }
-
-            if (request.Number.HasValue)
-            {
-                room.Number = request.Number.Value;
-            }
-
-            if (request.Location.HasValue)
-            {
-                room.Location = request.Location.Value;
-            }
-
-            if (request.IsActive.HasValue)
-            {
-                // Prevent deactivation if there are future confirmed bookings
-                if (!request.IsActive.Value && room.IsActive)
-                {
-                    var hasFutureBookings = await _dbContext.Bookings
-                        .AnyAsync(b => b.RoomId == id && 
-                                      b.Status == BookingStatus.Confirmed && 
-                                      b.EndTime > DateTimeOffset.Now);
-
-                    if (hasFutureBookings)
-                    {
-                        return BadRequest(new 
-                        { 
-                            Message = "Cannot deactivate room with future confirmed bookings. Please cancel bookings first." 
-                        });
-                    }
-
-                    // Soft delete: set DeletedAt timestamp
-                    room.DeletedAt = DateTimeOffset.UtcNow;
-                }
-                else if (request.IsActive.Value && !room.IsActive)
-                {
-                    // Reactivating: clear DeletedAt timestamp
-                    room.DeletedAt = null;
-                }
-
-                room.IsActive = request.IsActive.Value;
-            }
+            var room = validation.room!;
+            var updateResult = await _roomManagementService.ApplyRoomUpdates(room, request);
+            if (!updateResult.isValid) return BadRequest(new { message = updateResult.errorMessage });
 
             await _dbContext.SaveChangesAsync();
 
@@ -141,7 +69,7 @@ namespace API.Controllers
                 room.Number,
                 Location = room.Location.ToString(),
                 room.IsActive,
-                Message = "Room updated successfully"
+                message = "Room updated successfully"
             });
         }
 
@@ -149,17 +77,10 @@ namespace API.Controllers
         /// Create a new conference room
         /// </summary>
         [HttpPost]
-        public async Task<IActionResult> CreateRoom([FromBody] CreateRoomRequest request)
+        public async Task<IActionResult> CreateRoom([FromBody] CreateRoomDTO request)
         {
-            if (string.IsNullOrWhiteSpace(request.Name))
-            {
-                return BadRequest(new { Message = "Room name is required." });
-            }
-
-            if (request.Capacity <= 0)
-            {
-                return BadRequest(new { Message = "Room capacity must be greater than 0." });
-            }
+            var validation = _roomManagementService.ValidateRoomCreation(request.Name, request.Capacity);
+            if (!validation.isValid) return BadRequest(new { message = validation.errorMessage });
 
             var room = new ConferenceRoom
             {
@@ -167,7 +88,7 @@ namespace API.Controllers
                 Capacity = request.Capacity,
                 Number = request.Number,
                 Location = request.Location,
-                IsActive = request.IsActive ?? true
+                IsActive = request.IsActive
             };
 
             await _dbContext.ConferenceRooms.AddAsync(room);
@@ -185,7 +106,7 @@ namespace API.Controllers
                     room.Number,
                     Location = room.Location.ToString(),
                     room.IsActive,
-                    Message = "Room created successfully"
+                    message = "Room created successfully"
                 });
         }
 
@@ -195,29 +116,11 @@ namespace API.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeactivateRoom(int id)
         {
-            var room = await _dbContext.ConferenceRooms.FindAsync(id);
-            if (room == null)
-            {
-                return NotFound(new { Message = $"Room with ID {id} not found." });
-            }
+            var validation = await _roomManagementService.ValidateRoomStatusChangeAsync(id, false);
+            if (!validation.isValid) return BadRequest(new { message = validation.errorMessage });
 
-            // Check if there are any active bookings for this room
-            var hasActiveBookings = await _dbContext.Bookings
-                .AnyAsync(b => b.RoomId == id && 
-                              b.Status == BookingStatus.Confirmed && 
-                              b.EndTime > DateTimeOffset.Now);
-
-            if (hasActiveBookings)
-            {
-                return BadRequest(new 
-                { 
-                    Message = "Cannot deactivate room with active bookings. Please cancel or wait for bookings to complete." 
-                });
-            }
-
-            // Soft delete: Mark as inactive and record deletion timestamp
-            room.IsActive = false;
-            room.DeletedAt = DateTimeOffset.UtcNow;
+            var room = validation.room!;
+            _roomManagementService.ApplyStatusChange(room, false);
             await _dbContext.SaveChangesAsync();
 
             return Ok(new
@@ -225,32 +128,8 @@ namespace API.Controllers
                 room.Id,
                 room.Name,
                 room.IsActive,
-                Message = "Room deactivated successfully"
+                message = "Room deactivated successfully"
             });
         }
-    }
-
-    // DTOs for room management
-    public class UpdateRoomStatusRequest
-    {
-        public bool IsActive { get; set; }
-    }
-
-    public class UpdateRoomRequest
-    {
-        public string? Name { get; set; }
-        public int? Capacity { get; set; }
-        public int? Number { get; set; }
-        public RoomLocation? Location { get; set; }
-        public bool? IsActive { get; set; }
-    }
-
-    public class CreateRoomRequest
-    {
-        public string Name { get; set; } = string.Empty;
-        public int Capacity { get; set; }
-        public int Number { get; set; }
-        public RoomLocation Location { get; set; }
-        public bool? IsActive { get; set; }
     }
 }
