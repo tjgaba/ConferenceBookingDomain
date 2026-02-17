@@ -1,23 +1,38 @@
-// Header.jsx — A simple presentational component.
+// Header.jsx — A presentational component with user info and actions.
 // Components are functions that return JSX.
 // JSX looks like HTML but is actually JavaScript syntax that React transforms into DOM elements.
-// This component takes no props — it just renders a static header with navigation links.
+// This component now includes user information, logout, and create user functionality.
 
 import "./Header.css";
+import UserInfo from "./UserInfo";
+import LogoutButton from "./LogoutButton";
+import CreateUserButton from "./CreateUserButton";
+import { currentUser } from "../Data/mockData";
 
 function Header() {
   return (
     <header>
-      <h1>Conference Booking Dashboard</h1>
+      <div className="header-left">
+        <h1>Conference Booking Dashboard</h1>
+        <p>
+          Manage conference room bookings and availability
+        </p>
+      </div>
+      
       <nav>
         <a href="#">Home</a>
         <a href="#">Bookings</a>
         <a href="#">Rooms</a>
         <a href="#">About</a>
       </nav>
-      <p>
-        Manage conference room bookings and availability
-      </p>
+      
+      <div className="header-right">
+        <UserInfo user={currentUser} />
+        <div className="header-actions">
+          <CreateUserButton />
+          <LogoutButton />
+        </div>
+      </div>
     </header>
   );
 }

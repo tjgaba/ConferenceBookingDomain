@@ -22,8 +22,8 @@ import BookingList from "./components/BookingList";
 import RoomList from "./components/RoomList";
 import Button from "./components/Button";
 import Footer from "./components/Footer";
-import { bookings } from "./mockData";
-import { rooms } from "./mockData";
+import { bookings } from "./Data/mockData";
+import { rooms } from "./Data/mockData";
 import "./App.css";
 
 function App() {

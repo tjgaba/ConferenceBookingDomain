@@ -51,3 +51,12 @@ export const rooms = [
   { id: 3, name: "Room C", capacity: 15, location: "Cape Town", number: 201 },
   { id: 4, name: "Room D", capacity: 20, location: "Johannesburg", number: 301 },
 ];
+
+// Mock current user — simulates a logged-in user
+// In a real app, this would come from authentication context/state
+export const currentUser = {
+  id: 1,
+  name: "John Smith",
+  email: "john.smith@company.com",
+  role: "Admin"
+};
