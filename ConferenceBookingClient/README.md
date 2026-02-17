@@ -12,20 +12,34 @@ This is a basic React + Vite frontend for the Conference Booking System.
 
 ```
 ConferenceBookingClient/
-├── index.html              # Entry HTML file
-├── package.json            # Dependencies and scripts
-├── vite.config.js          # Vite configuration
-├── eslint.config.js        # ESLint configuration
-└── src/
-    ├── main.jsx            # React entry point
-    ├── App.jsx             # Root component with static data
-    └── components/
-        ├── Header.jsx      # Dashboard header
-        ├── Button.jsx      # Reusable button component
-        ├── BookingList.jsx # List of bookings
-        ├── BookingCard.jsx # Individual booking display
-        ├── RoomList.jsx    # List of rooms
-        └── RoomCard.jsx    # Individual room display
+├── .gitignore                # Git ignore rules
+├── eslint.config.js          # ESLint configuration
+├── index.html                # Entry HTML file
+├── package.json              # Dependencies and scripts
+├── package-lock.json         # Lockfile
+├── README.md                 # Project documentation
+├── vite.config.js            # Vite configuration
+├── src/
+│   ├── App.css               # App-level styles
+│   ├── App.jsx               # Root component
+│   ├── index.css             # Global styles
+│   ├── main.jsx              # React entry point
+│   ├── mockData.js           # Static mock data
+│   └── components/
+│       ├── BookingCard.css   # BookingCard styles
+│       ├── BookingCard.jsx   # Individual booking display
+│       ├── BookingList.css   # BookingList styles
+│       ├── BookingList.jsx   # List of bookings
+│       ├── Button.css        # Button styles
+│       ├── Button.jsx        # Reusable button component
+│       ├── Footer.css        # Footer styles
+│       ├── Footer.jsx        # Footer component
+│       ├── Header.css        # Header styles
+│       ├── Header.jsx        # Dashboard header
+│       ├── RoomCard.css      # RoomCard styles
+│       ├── RoomCard.jsx      # Individual room display
+│       ├── RoomList.css      # RoomList styles
+│       ├── RoomList.jsx      # List of rooms
 ```
 
 ## Current Features

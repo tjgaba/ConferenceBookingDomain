@@ -372,6 +372,18 @@
 			],
 			"isBackground": false,
 			"group": "build"
+		},
+		{
+			"label": "Build and Run API",
+			"type": "shell",
+			"command": "dotnet",
+			"args": [
+				"run",
+				"--project",
+				"API/API.csproj"
+			],
+			"isBackground": false,
+			"group": "build"
 		}
 	]
 }
