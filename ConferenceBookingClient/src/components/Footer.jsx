@@ -2,6 +2,8 @@
 // This is a presentational component that displays at the bottom of the page.
 // Like Header, it takes no props and just renders static content.
 
+import "./Footer.css";
+
 function Footer() {
   return (
     <footer>

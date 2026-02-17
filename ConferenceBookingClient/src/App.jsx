@@ -24,13 +24,14 @@ import Button from "./components/Button";
 import Footer from "./components/Footer";
 import { bookings } from "./mockData";
 import { rooms } from "./mockData";
+import "./App.css";
 
 function App() {
   // Mock data is imported from mockData.js
   // This simulates what will later come from the backend API via fetch/axios calls
 
   return (
-    <div>
+    <div className="app-container">
       {/* Header component — no props needed, just renders a title */}
       <Header />
 

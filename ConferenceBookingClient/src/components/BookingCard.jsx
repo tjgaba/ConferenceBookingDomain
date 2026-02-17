@@ -5,13 +5,14 @@
 // No state, no side effects — just a function that transforms data into UI.
 
 import Button from "./Button";
+import "./BookingCard.css";
 
 function BookingCard({ booking }) {
   // We destructure { booking } from props.
   // This is the same as writing: function BookingCard(props) { const booking = props.booking; }
 
   return (
-    <div>
+    <div className="booking-card">
       <h3>
         {booking.roomName} - {booking.location}
       </h3>
@@ -22,11 +23,11 @@ function BookingCard({ booking }) {
         <strong>Time:</strong> {booking.startTime} to {booking.endTime}
       </p>
       <p>
-        <span>
+        <span className={`booking-status status-${booking.status.toLowerCase()}`}>
           {booking.status}
         </span>
       </p>
-      <div>
+      <div className="booking-card-actions">
         <Button label="Edit" />
         <Button label="Cancel" />
       </div>

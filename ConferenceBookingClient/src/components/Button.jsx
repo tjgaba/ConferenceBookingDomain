@@ -4,6 +4,8 @@
 // instead of writing <button> tags everywhere, we create one Button component
 // and use it wherever we need a button, passing different labels (and later, onClick handlers).
 
+import "./Button.css";
+
 function Button({ label }) {
   return (
     <button>
