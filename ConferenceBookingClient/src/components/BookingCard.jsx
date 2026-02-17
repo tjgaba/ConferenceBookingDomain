@@ -4,6 +4,8 @@
 // Components should be "pure" — given the same props, they always render the same output.
 // No state, no side effects — just a function that transforms data into UI.
 
+import Button from "./Button";
+
 function BookingCard({ booking }) {
   // We destructure { booking } from props.
   // This is the same as writing: function BookingCard(props) { const booking = props.booking; }
@@ -24,6 +26,10 @@ function BookingCard({ booking }) {
           {booking.status}
         </span>
       </p>
+      <div>
+        <Button label="Edit" />
+        <Button label="Cancel" />
+      </div>
     </div>
   );
 }
