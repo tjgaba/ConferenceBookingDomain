@@ -1,0 +1,16 @@
+/* App.css — Styles for the main App component layout */
+
+.app-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  flex: 1;
+}
+
+.section {
+  margin-bottom: 30px;
+}
+
+.button-group {
+  margin: 20px 0;
+}
