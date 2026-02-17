@@ -21,6 +21,7 @@ import Header from "./components/Header";
 import BookingList from "./components/BookingList";
 import RoomList from "./components/RoomList";
 import Button from "./components/Button";
+import Footer from "./components/Footer";
 
 function App() {
   // Static data simulating what will later come from the backend API.
@@ -78,6 +79,9 @@ function App() {
 
       {/* Another button example showing reusability */}
       <Button label="Add Room" />
+
+      {/* Footer component — displays copyright information */}
+      <Footer />
     </div>
   );
 }
