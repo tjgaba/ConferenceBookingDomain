@@ -92,7 +92,7 @@ function App() {
           setIsLoading(false);
          } // Fecth is done, whether success or error, stop loading state
       }
-    };
+    } ;
 
     fetchInitialData();
 
@@ -238,7 +238,7 @@ function App() {
   // Show full-screen loader during initial data fetch
   if (isLoading) {
     return <LoadingSpinner overlay message="Loading dashboard..." />;
-  }
+   } // Show error state if initial fetch failed and we have no data to display
 
   // Show error state if initial fetch failed
   if (error && bookings.length === 0 && rooms.length === 0) {
@@ -251,7 +251,7 @@ function App() {
           onDismiss={handleDismissError}
         />
       </div>
-    );
+     );// Show error banner if we have data but an operation failed (handled in main render below)
   }
 
   return (
