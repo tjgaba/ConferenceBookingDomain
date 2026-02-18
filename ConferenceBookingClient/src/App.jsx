@@ -32,6 +32,7 @@ import Button from "./components/Button";
 import Footer from "./components/Footer";
 import LoadingSpinner from "./components/LoadingSpinner";
 import ErrorMessage from "./components/ErrorMessage";
+import Toast from "./components/Toast";
 import * as bookingService from "./services/bookingService";
 import * as roomService from "./services/roomService";
 import "./App.css";
@@ -58,6 +59,9 @@ function App() {
   
   // Error state
   const [error, setError] = useState(null);
+  
+  // Toast notification state
+  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
   
   // UI state  
   const [showBookingForm, setShowBookingForm] = useState(false);
@@ -92,6 +96,13 @@ function App() {
           setFilteredBookings(bookingsData); // Initially show all bookings
           setAllRooms(roomsData); // Store complete unfiltered room data
           setFilteredRooms(roomsData); // Initially show all rooms
+          
+          // Show success toast notification
+          setToast({
+            show: true,
+            message: `Data Sync Successful! Loaded ${bookingsData.length} bookings and ${roomsData.length} rooms.`,
+            type: 'success'
+          });
         }
       } catch (err) {
         // Only set error if component is still mounted
@@ -222,10 +233,12 @@ function App() {
           b.id === updated.id ? updated : b
         ));
         setEditingBooking(null);
+        setToast({ show: true, message: 'Booking updated successfully!', type: 'success' });
       } else {
         // Create new booking
         const created = await bookingService.createBooking(bookingData);
         setAllBookings([...allBookings, created]);
+        setToast({ show: true, message: 'Booking created successfully!', type: 'success' });
       }
       
       setShowBookingForm(false);
@@ -250,6 +263,7 @@ function App() {
       
       // Optimistic update: remove from UI immediately
       setAllBookings(allBookings.filter(b => b.id !== bookingId));
+      setToast({ show: true, message: 'Booking deleted successfully!', type: 'success' });
     } catch (err) {
       setError(err);
       console.error('Delete booking failed:', err);
@@ -276,10 +290,12 @@ function App() {
           r.id === updated.id ? updated : r
         ));
         setEditingRoom(null);
+        setToast({ show: true, message: 'Room updated successfully!', type: 'success' });
       } else {
         // Create new room
         const created = await roomService.createRoom(roomData);
         setAllRooms([...allRooms, created]);
+        setToast({ show: true, message: 'Room created successfully!', type: 'success' });
       }
       
       setShowRoomForm(false);
@@ -302,6 +318,7 @@ function App() {
       await roomService.deleteRoom(roomId);
       
       setAllRooms(allRooms.filter(r => r.id !== roomId));
+      setToast({ show: true, message: 'Room deleted successfully!', type: 'success' });
     } catch (err) {
       setError(err);
       console.error('Delete room failed:', err);
@@ -335,6 +352,11 @@ function App() {
     setError(null);
   };
 
+  // HANDLER: Close toast notification
+  const handleCloseToast = () => {
+    setToast({ ...toast, show: false });
+  };
+
   // ==================== RENDER ====================
 
   // Show full-screen loader during initial data fetch
@@ -359,6 +381,15 @@ function App() {
   return (
     <div className="app-container">
       <Header />
+
+      {/* Toast Notification - Shows on successful operations */}
+      {toast.show && (
+        <Toast 
+          message={toast.message}
+          type={toast.type}
+          onClose={handleCloseToast}
+        />
+      )}
 
       {/* Show error banner if operations fail (but data exists) */}
       {error && (
