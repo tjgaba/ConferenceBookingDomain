@@ -37,11 +37,10 @@ function App() {
   // STATE: Managing rooms array
   const [rooms, setRooms] = useState(initialRooms);
   
-  // STATE: Controlling form visibility
+  // STATE: Controlling form visibility  
+  // STATE: Tracking which item is being edited (null = not editing)
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [showRoomForm, setShowRoomForm] = useState(false);
-  
-  // STATE: Tracking which item is being edited (null = not editing)
   const [editingBooking, setEditingBooking] = useState(null);
   const [editingRoom, setEditingRoom] = useState(null);
 
