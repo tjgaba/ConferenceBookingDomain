@@ -17,8 +17,13 @@
 //   - Enable interactive behavior
 //
 // Data flow: User Action → Event Handler → State Update → Re-render → UI Update
+//
+// PERSISTENCE (localStorage):
+//   - Data is saved to browser's localStorage on every change
+//   - Data is loaded from localStorage on app mount
+//   - Survives page refresh and browser restart
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Header from "./components/Header";
 import BookingList from "./components/BookingList";
 import RoomList from "./components/RoomList";
@@ -27,15 +32,28 @@ import RoomForm from "./components/RoomForm";
 import Button from "./components/Button";
 import Footer from "./components/Footer";
 import { bookings as initialBookings, rooms as initialRooms } from "./Data/mockData";
+import { loadBookings, saveBookings, loadRooms, saveRooms } from "./Data/localStorage";
 import "./App.css";
 
 function App() {
   // STATE: Managing bookings array
-  // useState returns [currentValue, setterFunction]
-  const [bookings, setBookings] = useState(initialBookings);
+  // Initialize from localStorage, fallback to mockData if nothing stored
+  const [bookings, setBookings] = useState(() => loadBookings(initialBookings));
   
   // STATE: Managing rooms array
-  const [rooms, setRooms] = useState(initialRooms);
+  // Initialize from localStorage, fallback to mockData if nothing stored
+  const [rooms, setRooms] = useState(() => loadRooms(initialRooms));
+  
+  // EFFECT: Save bookings to localStorage whenever they change
+  // useEffect runs AFTER render, perfect for side effects like storage
+  useEffect(() => {
+    saveBookings(bookings);
+  }, [bookings]); // Dependency array: run when bookings changes
+  
+  // EFFECT: Save rooms to localStorage whenever they change
+  useEffect(() => {
+    saveRooms(rooms);
+  }, [rooms]); // Dependency array: run when rooms changes
   
   // STATE: Controlling form visibility  
   // STATE: Tracking which item is being edited (null = not editing)
