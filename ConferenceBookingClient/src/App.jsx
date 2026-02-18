@@ -103,6 +103,18 @@ function App() {
     <div className="app-container">
       <Header />
 
+      {/* Dashboard Statistics - Derived State */}
+      <div className="dashboard-stats">
+        <div className="stat-card">
+          <h3>Total Bookings</h3>
+          <p className="stat-number">{bookings.length}</p>
+        </div>
+        <div className="stat-card">
+          <h3>Total Available Rooms</h3>
+          <p className="stat-number">{rooms.length}</p>
+        </div>
+      </div>
+
       {/* Bookings Section */}
       <section className="section">
         <div className="section-header">

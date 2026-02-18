@@ -53,7 +53,7 @@ function BookingForm({ onSubmit, onCancel, rooms, initialData = null }) {
     };
 
     // Call parent's onSubmit handler (lifting state up)
-    onSubmit(bookingData);
+    onSubmit(bookingData); //Form's onSubmit Handler Calls Prop-Function 
     
     // Reset form fields
     setRoomId("");
