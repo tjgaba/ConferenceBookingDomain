@@ -29,14 +29,19 @@ ConferenceBookingClient/
 │   │   ├── BookingForm.jsx   # Create/edit booking form
 │   │   ├── BookingList.jsx   # List of bookings
 │   │   ├── Button.jsx        # Reusable button component
+│   │   ├── ErrorMessage.jsx  # Error display with retry
 │   │   ├── Footer.jsx        # Footer component
 │   │   ├── Header.jsx        # Dashboard header
+│   │   ├── LoadingSpinner.jsx # Loading state indicator
 │   │   ├── RoomCard.jsx      # Individual room display
 │   │   ├── RoomForm.jsx      # Create/edit room form
 │   │   └── RoomList.jsx      # List of rooms
-│   └── Data/
-│       ├── mockData.js       # Initial data for bookings/rooms
-│       └── localStorage.js   # Browser storage utilities
+│   ├── Data/
+│   │   ├── localStorage.js   # Browser storage utilities
+│   │   └── mockData.js       # Initial data for bookings/rooms
+│   └── services/
+│       ├── bookingService.js # Async booking API with fetchAllBookings()
+│       └── roomService.js    # Async room API with fetchAllRooms()
 ```
 
 ## Current Features
@@ -51,6 +56,182 @@ ConferenceBookingClient/
 - ✅ Interactive state management (add, update, delete bookings/rooms)
 - ✅ Controlled form components
 - ✅ Data persistence with localStorage (survives page refresh)
+- ✅ **Async data fetching with useEffect**
+- ✅ **Component lifecycle management (mount, update, unmount)**
+- ✅ **Resilient state pattern (data + loading + error)**
+- ✅ **Network latency and failure simulation**
+- ✅ **Memory safety with cleanup functions**
+- ✅ **Race condition prevention with AbortController**
+
+## Asynchronous Operations & Component Lifecycle
+
+This application demonstrates **production-ready async state management** with proper error handling, loading states, and memory safety.
+
+### Network Simulation
+
+**API Services:** [`src/services/bookingService.js`](src/services/bookingService.js) & [`src/services/roomService.js`](src/services/roomService.js)
+
+The app simulates real-world API behavior:
+- **Random Latency**: 500-2500ms delay per operation (using `setTimeout`)
+- **Random Failures**: 20% chance of network/server errors (promise rejection)
+- **Async/Await**: All operations return Promises
+- **Console Logging**: See API calls in browser DevTools
+
+**Key Function:** `fetchAllBookings()` returns a Promise that:
+- Resolves after random delay (500-2500ms) 
+- Rejects 20% of the time with random error messages
+- Simulates "flaky API" conditions for robust error handling
+
+This simulates what would happen with actual `fetch()` calls to a backend server.
+
+### Resilient State Pattern
+
+**Implementation:** [App.jsx](src/App.jsx#L40-L56)
+
+Instead of just storing data, each resource maintains:
+```javascript
+// Data state
+const [bookings, setBookings] = useState([]);
+const [rooms, setRooms] = useState([]);
+
+// Loading states
+const [isLoading, setIsLoading] = useState(true);
+const [isSubmitting, setIsSubmitting] = useState(false);
+
+// Error state
+const [error, setError] = useState(null);
+```
+
+**State Transitions:**
+1. **Initial**: `{ data: [], loading: true, error: null }`
+2. **Success**: `{ data: [...], loading: false, error: null }`
+3. **Failure**: `{ data: [], loading: false, error: Error }`
+
+### Component Lifecycle with useEffect
+
+**Initial Data Fetch:** [App.jsx](src/App.jsx#L61-L92)
+
+```javascript
+useEffect(() => {
+  const abortController = new AbortController();
+  let isMounted = true;
+
+  const fetchInitialData = async () => {
+    try {
+      setIsLoading(true);
+      const [bookingsData, roomsData] = await Promise.all([
+        api.fetchBookings(),
+        api.fetchRooms()
+      ]);
+      
+      if (isMounted && !abortController.signal.aborted) {
+        setBookings(bookingsData);
+        setRooms(roomsData);
+      }
+    } catch (err) {
+      if (isMounted) setError(err);
+    } finally {
+      if (isMounted) setIsLoading(false);
+    }
+  };
+
+  fetchInitialData();
+
+  // Cleanup function prevents memory leaks
+  return () => {
+    isMounted = false;
+    abortController.abort();
+  };
+}, []); // Empty array = run once on mount
+```
+
+**Key Patterns:**
+
+1. **AbortController** - Cancels fetch if component unmounts
+2. **isMounted Flag** - Prevents state updates after unmount  
+3. **Cleanup Function** - Runs when component unmounts, stops background processes
+4. **Empty Dependency Array** - Effect runs only once (on mount)
+5. **Promise.all** - Parallel fetching for better performance
+
+### Memory Safety & Cleanup
+
+**Why Cleanup Matters:**
+
+Without cleanup, if the component unmounts while an async operation is in progress:
+- ❌ "Can't perform state update on unmounted component" warning
+- ❌ Memory leak (operation continues in background)
+- ❌ Race conditions (late responses overwrite newer data)
+
+**With Cleanup:**
+```javascript
+return () => {
+  isMounted = false;          // Prevent state updates
+  abortController.abort();     // Cancel pending requests
+};
+```
+
+✅ Operations stop immediately on unmount  
+✅ No memory leaks  
+✅ No React warnings
+
+### The Cloudflare Incident: Preventing Infinite Loops
+
+**The Real-World Disaster:**
+
+In July 2019, Cloudflare experienced a massive global outage that took down millions of websites. The cause was a single regular pattern that got stuck in an infinite loop. This pattern was deployed to every server processing web traffic, and because it never finished executing, the servers consumed all available CPU resources. The entire network ground to a halt because one small piece of code that couldn't stop running.
+
+**The Lesson:** Never create code that loops forever without a way to exit the condition.
+
+**How Our Code Prevents This:**
+
+React's `useEffect` hook can easily create infinite loops so to negate this, the app follows the **dependency array discipline**, here is an example below:
+
+**❌ Dangerous Pattern (Infinite Loop):**
+```javascript
+useEffect(() => {
+  setFilteredBookings(allBookings.filter(...)); // Changes filteredBookings
+}, [filteredBookings]); // Depends on what we're changing!
+
+// Loop: set → triggers effect → set → triggers effect → CRASH
+```
+
+**✅ Safe Pattern (Our Implementation):**
+```javascript
+useEffect(() => {
+  let result = allBookings.filter(...); // Read from SOURCE data
+  setFilteredBookings(result); // Write to DERIVED data
+}, [categoryFilter, locationFilter, allBookings]); // Only source dependencies
+
+// Flow: Filter changes → runs ONCE → updates display → STOPS
+```
+
+**The Rule is:** Never include a state variable in the dependency array if that same `useEffect` calls its setter function. Always read from **source data** and write to **different derived data**. This ensures the effect runs once per change and then stops after a run.
+
+### Error Handling
+
+**User-Facing Errors:** [ErrorMessage.jsx](src/components/ErrorMessage.jsx)
+
+Errors can occur at two levels:
+
+1. **Critical (Initial Load Failure)** - Shows full-screen error with retry
+2. **Non-Critical (Operation Failure)** - Shows banner, keeps existing data
+
+**Error Recovery:**
+- **Retry Button** - Reloads the page to refetch
+- **Dismiss Button** - Hides error banner
+- **Optimistic Updates** - UI updates immediately, rolls back on error
+
+### Loading States
+
+**User Feedback Components:**
+
+1. **LoadingSpinner (Overlay)** - [App.jsx](src/App.jsx#L206) - Full-screen during submit operations
+2. **LoadingSpinner (Inline)** - [App.jsx](src/App.jsx#L191) - Within content during initial load
+
+**UX Pattern:**
+- Initial load → Full-screen spinner
+- Submit/Delete → Overlay spinner with disabled buttons
+- Background operations → Silent (no UI blocking)
 
 ## Data Persistence
 
@@ -58,20 +239,19 @@ This application uses the browser's **localStorage** API to persist bookings and
 
 ### Implementation
 
-**Storage Utilities:** [`src/Data/localStorage.js`](src/Data/localStorage.js)
-- `loadBookings()` - Retrieves bookings from localStorage
-- `saveBookings()` - Saves bookings to localStorage
-- `loadRooms()` - Retrieves rooms from localStorage
-- `saveRooms()` - Saves rooms to localStorage
-- `clearStorage()` - Clears all persisted data
+**Storage Utilities:** [`src/Data/localStorage.js`](src/Data/localStorage.js)  
+**API Services:** [`src/services/bookingService.js`](src/services/bookingService.js) & [`src/services/roomService.js`](src/services/roomService.js)
 
-**How It Works:**
-1. **On App Mount** - Data loads from localStorage using lazy initialization: `useState(() => loadBookings(initialBookings))`
-2. **On Data Change** - `useEffect` automatically saves to localStorage whenever bookings or rooms arrays change
-3. **JSON Format** - Data is serialized with `JSON.stringify()` and deserialized with `JSON.parse()`
-4. **Fallback** - If localStorage is empty (first visit), falls back to mockData
+- `loadBookings()` / `saveBookings()` - Synchronous localStorage operations
+- `fetchAllBookings()` / `createBooking()` / `updateBooking()` / `deleteBooking()` - Async API calls
+- Similar pattern for rooms: `fetchAllRooms()`, `createRoom()`, etc.
 
-This means all bookings and rooms you create persist even after closing the browser. To reset data, clear your browser's localStorage or use the `clearStorage()` utility.
+**Data Flow:**
+1. **Mount** - `bookingService.fetchAllBookings()` → Async delay → `loadBookings()` from localStorage
+2. **Create** - `bookingService.createBooking()` → Async delay → `saveBookings()` to localStorage
+3. **Update/Delete** - Same async → sync pattern
+
+Data persists via localStorage but **all access is async** to simulate real API behavior.
 
 ## State Management: Lifting State Up
 
