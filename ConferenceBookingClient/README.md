@@ -174,6 +174,39 @@ return () => {
 ✅ No memory leaks  
 ✅ No React warnings
 
+### The Cloudflare Incident: Preventing Infinite Loops
+
+**The Real-World Disaster:**
+
+In July 2019, Cloudflare experienced a massive global outage that took down millions of websites. The cause was a single regular pattern that got stuck in an infinite loop. This pattern was deployed to every server processing web traffic, and because it never finished executing, the servers consumed all available CPU resources. The entire network ground to a halt because one small piece of code that couldn't stop running.
+
+**The Lesson:** Never create code that loops forever without a way to exit the condition.
+
+**How Our Code Prevents This:**
+
+React's `useEffect` hook can easily create infinite loops so to negate this, the app follows the **dependency array discipline**, here is an example below:
+
+**❌ Dangerous Pattern (Infinite Loop):**
+```javascript
+useEffect(() => {
+  setFilteredBookings(allBookings.filter(...)); // Changes filteredBookings
+}, [filteredBookings]); // Depends on what we're changing!
+
+// Loop: set → triggers effect → set → triggers effect → CRASH
+```
+
+**✅ Safe Pattern (Our Implementation):**
+```javascript
+useEffect(() => {
+  let result = allBookings.filter(...); // Read from SOURCE data
+  setFilteredBookings(result); // Write to DERIVED data
+}, [categoryFilter, locationFilter, allBookings]); // Only source dependencies
+
+// Flow: Filter changes → runs ONCE → updates display → STOPS
+```
+
+**The Rule is:** Never include a state variable in the dependency array if that same `useEffect` calls its setter function. Always read from **source data** and write to **different derived data**. This ensures the effect runs once per change and then stops after a run.
+
 ### Error Handling
 
 **User-Facing Errors:** [ErrorMessage.jsx](src/components/ErrorMessage.jsx)
