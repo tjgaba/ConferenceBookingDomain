@@ -62,6 +62,14 @@ function BookingForm({ onSubmit, onCancel, rooms, initialData = null }) {
     setStatus("Pending");
   };
 
+  // Event Handler: Clear all form fields
+  const handleClear = () => {
+    setRoomId("");
+    setStartTime("");
+    setEndTime("");
+    setStatus("Pending");
+  };
+
   return (
     <div className="booking-form-container">
       <h3>{initialData ? "Edit Booking" : "Create New Booking"}</h3>
@@ -129,6 +137,12 @@ function BookingForm({ onSubmit, onCancel, rooms, initialData = null }) {
             label={initialData ? "Update" : "Create"} 
             variant="success"
             type="submit"
+          />
+          <Button 
+            label="Clear" 
+            variant="secondary"
+            onClick={handleClear}
+            type="button"
           />
           <Button 
             label="Cancel" 

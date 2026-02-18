@@ -54,6 +54,14 @@ function RoomForm({ onSubmit, onCancel, initialData = null }) {
     setNumber("");
   };
 
+  // Event Handler: Clear all form fields
+  const handleClear = () => {
+    setName("");
+    setCapacity("");
+    setLocation("");
+    setNumber("");
+  };
+
   return (
     <div className="room-form-container">
       <h3>{initialData ? "Edit Room" : "Add New Room"}</h3>
@@ -119,6 +127,12 @@ function RoomForm({ onSubmit, onCancel, initialData = null }) {
             label={initialData ? "Update" : "Add Room"} 
             variant="success"
             type="submit"
+          />
+          <Button 
+            label="Clear" 
+            variant="secondary"
+            onClick={handleClear}
+            type="button"
           />
           <Button 
             label="Cancel" 
