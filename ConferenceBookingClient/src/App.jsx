@@ -90,7 +90,7 @@ function App() {
       } finally {
         if (isMounted) {
           setIsLoading(false);
-        }
+         } // Fecth is done, whether success or error, stop loading state
       }
     };
 
