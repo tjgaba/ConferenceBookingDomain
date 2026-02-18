@@ -22,7 +22,7 @@
 //
 // Data flow: User Action → Async API Call → Loading State → Success/Error → UI Update
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Header from "./components/Header";
 import BookingList from "./components/BookingList";
 import RoomList from "./components/RoomList";
@@ -39,8 +39,18 @@ import "./App.css";
 function App() {
   // ==================== RESILIENT STATE ====================
   // Data state
-  const [bookings, setBookings] = useState([]);
-  const [rooms, setRooms] = useState([]);
+  const [allBookings, setAllBookings] = useState([]); // Unfiltered complete data
+  const [filteredBookings, setFilteredBookings] = useState([]); // Filtered data for display
+  const [allRooms, setAllRooms] = useState([]); // Unfiltered room data
+  const [filteredRooms, setFilteredRooms] = useState([]); // Filtered room data for display
+  
+  // Filter state - Bookings
+  const [categoryFilter, setCategoryFilter] = useState("All");
+  const [locationFilter, setLocationFilter] = useState("All");
+  
+  // Filter state - Rooms
+  const [roomCapacityFilter, setRoomCapacityFilter] = useState("All");
+  const [roomLocationFilter, setRoomLocationFilter] = useState("All");
   
   // Loading states (track multiple operations independently)
   const [isLoading, setIsLoading] = useState(true);
@@ -78,8 +88,10 @@ function App() {
         // Only update state if component is still mounted
         // This prevents "Can't perform a React state update on an unmounted component" warnings
         if (isMounted && !abortController.signal.aborted) {
-          setBookings(bookingsData);
-          setRooms(roomsData);
+          setAllBookings(bookingsData); // Store complete unfiltered data
+          setFilteredBookings(bookingsData); // Initially show all bookings
+          setAllRooms(roomsData); // Store complete unfiltered room data
+          setFilteredRooms(roomsData); // Initially show all rooms
         }
       } catch (err) {
         // Only set error if component is still mounted
@@ -105,6 +117,96 @@ function App() {
     };
   }, []); // Empty dependency array = run once on mount
 
+  // ==================== CASCADING DERIVED STATE ====================
+  
+  // MEMO: Extract unique locations from bookings for filter dropdown
+  // useMemo prevents recalculating on every render - only when allBookings changes
+  const uniqueLocations = useMemo(() => {
+    const locations = allBookings
+      .map(b => b.location)
+      .filter(location => location); // Remove null/undefined
+    return [...new Set(locations)].sort(); // Remove duplicates and sort
+  }, [allBookings]);
+
+  // MEMO: Extract unique locations from rooms for filter dropdown
+  const uniqueRoomLocations = useMemo(() => {
+    const locations = allRooms
+      .map(r => r.location)
+      .filter(location => location); // Remove null/undefined
+    return [...new Set(locations)].sort(); // Remove duplicates and sort
+  }, [allRooms]);
+
+  // ==================== DEPENDENCY ARRAY DISCIPLINE ====================
+  
+  // EFFECT: Filter bookings when category OR location changes (Cascading Filters)
+  // This demonstrates proper dependency management to avoid infinite loops
+  // 
+  // CRITICAL: We filter from `allBookings` (source data) and set `filteredBookings` (display data)
+  // We do NOT include `filteredBookings` in dependencies because we're setting it
+  // We DO include `categoryFilter`, `locationFilter`, and `allBookings` because we read from them
+  useEffect(() => {
+    console.log(`🔍 Filtering bookings by category: "${categoryFilter}", location: "${locationFilter}"`);
+    
+    let result = allBookings;
+    
+    // STEP 1: Filter by category
+    if (categoryFilter === "All") {
+      result = allBookings;
+    } else if (categoryFilter === "Pending") {
+      result = allBookings.filter(b => b.status === "Pending");
+    } else if (categoryFilter === "Confirmed") {
+      result = allBookings.filter(b => b.status === "Confirmed");
+    } else if (categoryFilter === "Cancelled") {
+      result = allBookings.filter(b => b.status === "Cancelled");
+    } else if (categoryFilter === "By Location") {
+      // Sort by location alphabetically
+      result = [...allBookings].sort((a, b) => 
+        (a.location || "").localeCompare(b.location || "")
+      );
+    }
+    
+    // STEP 2: Filter by location (cascading filter)
+    if (locationFilter !== "All") {
+      result = result.filter(b => b.location === locationFilter);
+    }
+    
+    setFilteredBookings(result);
+    console.log(`✓ Filtered: ${result.length} bookings displayed`);
+    
+  }, [categoryFilter, locationFilter, allBookings]); // Only re-run when filters or source data changes
+  // WARNING: Do NOT add filteredBookings to dependencies - that would cause infinite loop!
+
+  // EFFECT: Filter rooms when capacity OR location changes (Cascading Filters)
+  useEffect(() => {
+    console.log(`🏢 Filtering rooms by capacity: "${roomCapacityFilter}", location: "${roomLocationFilter}"`);
+    
+    let result = allRooms;
+    
+    // STEP 1: Filter by capacity
+    if (roomCapacityFilter === "All") {
+      result = allRooms;
+    } else if (roomCapacityFilter === "Small") {
+      result = allRooms.filter(r => r.capacity < 10);
+    } else if (roomCapacityFilter === "Medium") {
+      result = allRooms.filter(r => r.capacity >= 10 && r.capacity <= 15);
+    } else if (roomCapacityFilter === "Large") {
+      result = allRooms.filter(r => r.capacity > 15);
+    } else if (roomCapacityFilter === "By Capacity") {
+      // Sort by capacity ascending
+      result = [...allRooms].sort((a, b) => a.capacity - b.capacity);
+    }
+    
+    // STEP 2: Filter by location (cascading filter)
+    if (roomLocationFilter !== "All") {
+      result = result.filter(r => r.location === roomLocationFilter);
+    }
+    
+    setFilteredRooms(result);
+    console.log(`✓ Filtered: ${result.length} rooms displayed`);
+    
+  }, [roomCapacityFilter, roomLocationFilter, allRooms]);
+  // WARNING: Do NOT add filteredRooms to dependencies - that would cause infinite loop!
+
   // ==================== ASYNC EVENT HANDLERS ====================
 
   // HANDLER: Create or update a booking
@@ -116,14 +218,14 @@ function App() {
       if (editingBooking) {
         // Update existing booking
         const updated = await bookingService.updateBooking(bookingData);
-        setBookings(bookings.map(b => 
+        setAllBookings(allBookings.map(b => 
           b.id === updated.id ? updated : b
         ));
         setEditingBooking(null);
       } else {
         // Create new booking
         const created = await bookingService.createBooking(bookingData);
-        setBookings([...bookings, created]);
+        setAllBookings([...allBookings, created]);
       }
       
       setShowBookingForm(false);
@@ -147,7 +249,7 @@ function App() {
       await bookingService.deleteBooking(bookingId);
       
       // Optimistic update: remove from UI immediately
-      setBookings(bookings.filter(b => b.id !== bookingId));
+      setAllBookings(allBookings.filter(b => b.id !== bookingId));
     } catch (err) {
       setError(err);
       console.error('Delete booking failed:', err);
@@ -170,14 +272,14 @@ function App() {
       if (editingRoom) {
         // Update existing room
         const updated = await roomService.updateRoom(roomData);
-        setRooms(rooms.map(r => 
+        setAllRooms(allRooms.map(r => 
           r.id === updated.id ? updated : r
         ));
         setEditingRoom(null);
       } else {
         // Create new room
         const created = await roomService.createRoom(roomData);
-        setRooms([...rooms, created]);
+        setAllRooms([...allRooms, created]);
       }
       
       setShowRoomForm(false);
@@ -199,7 +301,7 @@ function App() {
       setError(null);
       await roomService.deleteRoom(roomId);
       
-      setRooms(rooms.filter(r => r.id !== roomId));
+      setAllRooms(allRooms.filter(r => r.id !== roomId));
     } catch (err) {
       setError(err);
       console.error('Delete room failed:', err);
@@ -241,7 +343,7 @@ function App() {
    } // Show error state if initial fetch failed and we have no data to display
 
   // Show error state if initial fetch failed
-  if (error && bookings.length === 0 && rooms.length === 0) {
+  if (error && allBookings.length === 0 && allRooms.length === 0) {
     return (
       <div className="app-container">
         <Header />
@@ -273,11 +375,45 @@ function App() {
       <div className="dashboard-stats">
         <div className="stat-card">
           <h3>Total Bookings</h3>
-          <p className="stat-number">{bookings.length}</p>
+          <p className="stat-number">{filteredBookings.length}</p>
         </div>
         <div className="stat-card">
           <h3>Total Available Rooms</h3>
-          <p className="stat-number">{rooms.length}</p>
+          <p className="stat-number">{filteredRooms.length}</p>
+        </div>
+      </div>
+
+      {/* Cascading Filters - Demonstrates useEffect dependency array discipline */}
+      <div className="filter-section">
+        <div className="filter-group">
+          <label htmlFor="category-filter">Filter by Category:</label>
+          <select 
+            id="category-filter"
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="filter-select"
+          >
+            <option value="All">All Bookings</option>
+            <option value="Pending">Pending</option>
+            <option value="Confirmed">Confirmed</option>
+            <option value="Cancelled">Cancelled</option>
+            <option value="By Location">Sorted by Location</option>
+          </select>
+        </div>
+        
+        <div className="filter-group">
+          <label htmlFor="location-filter">Filter by Location:</label>
+          <select 
+            id="location-filter"
+            value={locationFilter}
+            onChange={(e) => setLocationFilter(e.target.value)}
+            className="filter-select"
+          >
+            <option value="All">All Locations</option>
+            {uniqueLocations.map(location => (
+              <option key={location} value={location}>{location}</option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -301,14 +437,14 @@ function App() {
           <BookingForm 
             onSubmit={handleBookingSubmit}
             onCancel={handleCancelBookingForm}
-            rooms={rooms}
+            rooms={allRooms}
             initialData={editingBooking}
           />
         )}
 
         {/* Pass data AND handlers to child via props (Lifting State Up) */}
         <BookingList 
-          bookings={bookings}
+          bookings={filteredBookings}
           onEdit={handleEditBooking}
           onDelete={handleDeleteBooking}
         />
@@ -329,6 +465,40 @@ function App() {
           />
         </div>
 
+        {/* Cascading Filters for Rooms */}
+        <div className="filter-section">
+          <div className="filter-group">
+            <label htmlFor="room-capacity-filter">Filter by Capacity:</label>
+            <select 
+              id="room-capacity-filter"
+              value={roomCapacityFilter}
+              onChange={(e) => setRoomCapacityFilter(e.target.value)}
+              className="filter-select"
+            >
+              <option value="All">All Capacities</option>
+              <option value="Small">Small (&lt; 10)</option>
+              <option value="Medium">Medium (10-15)</option>
+              <option value="Large">Large (&gt; 15)</option>
+              <option value="By Capacity">Sorted by Capacity</option>
+            </select>
+          </div>
+          
+          <div className="filter-group">
+            <label htmlFor="room-location-filter">Filter by Location:</label>
+            <select 
+              id="room-location-filter"
+              value={roomLocationFilter}
+              onChange={(e) => setRoomLocationFilter(e.target.value)}
+              className="filter-select"
+            >
+              <option value="All">All Locations</option>
+              {uniqueRoomLocations.map(location => (
+                <option key={location} value={location}>{location}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
         {/* Conditionally render RoomForm */}
         {showRoomForm && (
           <RoomForm 
@@ -340,7 +510,7 @@ function App() {
 
         {/* Pass data AND handlers to child via props */}
         <RoomList 
-          rooms={rooms}
+          rooms={filteredRooms}
           onEdit={handleEditRoom}
           onDelete={handleDeleteRoom}
         />
