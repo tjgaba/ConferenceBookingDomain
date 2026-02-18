@@ -1,33 +1,37 @@
 // BookingList.jsx — Renders a list of BookingCard components.
-// This demonstrates two key React concepts:
+// This demonstrates:
 //
 // 1. Component Composition: BookingList uses BookingCard inside it.
-//    Components can contain other components, forming a tree (just like HTML elements).
-//
-// 2. Rendering Lists with .map() and Keys:
-//    - We use JavaScript's .map() to transform each data item into a <BookingCard />.
-//    - Every item in a list MUST have a unique "key" prop.
-//    - React uses keys to track which items changed, were added, or were removed between renders.
-//    - Keys help React optimize re-renders and prevent UI bugs (like inputs losing their values).
-//    - NEVER use the array index as a key — if the list order changes, React will mix up the items.
-//    - Always use a stable, unique identifier (like an id from the database).
+// 2. Props Passing: Receives handlers from parent (App) and passes them down to BookingCard
+// 3. LIFTING STATE UP: Handlers defined in App, passed through BookingList to BookingCard
+//    This allows BookingCard to trigger changes in App's state
+// 4. Rendering Lists: Uses .map() with unique keys for efficient rendering
 
 import BookingCard from "./BookingCard";
 import "./BookingList.css";
 
-function BookingList({ bookings }) {
+function BookingList({ bookings, onEdit, onDelete }) {
+  // Pass both data AND event handlers to child components
+  
   return (
     <div className="booking-list">
       <h2>
-        Current Bookings
+        Current Bookings ({bookings.length})
       </h2>
-      <div className="bookings-grid">
-        {bookings.map((booking) => (
-        // key={booking.id} tells React how to identify each item uniquely.
-        // This is critical for performance and correctness when the list changes.
-          <BookingCard key={booking.id} booking={booking} />
-        ))}
-      </div>
+      {bookings.length === 0 ? (
+        <p className="empty-message">No bookings yet. Create your first booking!</p>
+      ) : (
+        <div className="bookings-grid">
+          {bookings.map((booking) => (
+            <BookingCard 
+              key={booking.id} 
+              booking={booking}
+              onEdit={onEdit}
+              onDelete={onDelete}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

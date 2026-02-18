@@ -25,3 +25,15 @@
   color: #555;
   font-size: 0.9rem;
 }
+
+.room-card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid #ecf0f1;
+}
+
+.room-card-actions .button {
+  flex: 1;
+}

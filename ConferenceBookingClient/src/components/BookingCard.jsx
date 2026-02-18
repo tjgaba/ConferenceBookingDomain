@@ -1,16 +1,19 @@
-// BookingCard.jsx — Displays a single booking.
-// This component receives data through "props" (properties passed from a parent component).
-// Props flow downward: Parent → Child. This is called "one-way data flow."
-// Components should be "pure" — given the same props, they always render the same output.
-// No state, no side effects — just a function that transforms data into UI.
+// BookingCard.jsx — Displays a single booking with interactive buttons.
+// 
+// EVENT HANDLERS:
+//   - onEdit and onDelete are passed from parent components (via props)
+//   - When user clicks Edit/Delete, we call these handlers
+//   - The handlers are defined in App.jsx (where state lives)
+//   - This is "Lifting State Up" — child components don't manage data, they request changes
+//
+// PROPS FLOW:
+//   App → BookingList → BookingCard
+//   Data and handlers flow down through props
 
 import Button from "./Button";
 import "./BookingCard.css";
 
-function BookingCard({ booking }) {
-  // We destructure { booking } from props.
-  // This is the same as writing: function BookingCard(props) { const booking = props.booking; }
-
+function BookingCard({ booking, onEdit, onDelete }) {
   return (
     <div className="booking-card">
       <h3>
@@ -28,8 +31,18 @@ function BookingCard({ booking }) {
         </span>
       </p>
       <div className="booking-card-actions">
-        <Button label="Edit" />
-        <Button label="Cancel" />
+        {/* Event Handler: Call onEdit when clicked */}
+        <Button 
+          label="Edit" 
+          variant="primary"
+          onClick={() => onEdit(booking)}
+        />
+        {/* Event Handler: Call onDelete when clicked */}
+        <Button 
+          label="Delete" 
+          variant="danger"
+          onClick={() => onDelete(booking.id)}
+        />
       </div>
     </div>
   );
