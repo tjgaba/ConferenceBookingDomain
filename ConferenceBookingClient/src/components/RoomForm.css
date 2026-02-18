@@ -1,0 +1,80 @@
+/* RoomForm.css — Styles for the room form component */
+
+.room-form-container {
+  background: white;
+  border-radius: 8px;
+  padding: 25px;
+  margin: 20px 0;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border: 2px solid #27ae60;
+}
+
+.room-form-container h3 {
+  margin-top: 0;
+  color: #2c3e50;
+  font-size: 1.5rem;
+  margin-bottom: 20px;
+}
+
+.room-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.room-form .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.room-form .form-group label {
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 0.95rem;
+}
+
+.room-form .form-group input {
+  padding: 10px 12px;
+  border: 2px solid #bdc3c7;
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  font-family: inherit;
+}
+
+.room-form .form-group input:focus {
+  outline: none;
+  border-color: #27ae60;
+  box-shadow: 0 0 0 3px rgba(39, 174, 96, 0.1);
+}
+
+.room-form .form-group input:invalid {
+  border-color: #e74c3c;
+}
+
+.room-form .form-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+
+.room-form .form-actions .button {
+  min-width: 100px;
+}
+
+/* Responsive design */
+@media (max-width: 640px) {
+  .room-form-container {
+    padding: 15px;
+  }
+  
+  .room-form .form-actions {
+    flex-direction: column;
+  }
+  
+  .room-form .form-actions .button {
+    width: 100%;
+  }
+}

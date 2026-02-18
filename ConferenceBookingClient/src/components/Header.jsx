@@ -18,6 +18,14 @@ function Header() {
           Manage conference room bookings and availability
         </p>
       </div>
+
+      <div className="header-right">
+        <UserInfo user={currentUser} />
+        <div className="header-actions">
+          <CreateUserButton />
+          <LogoutButton />
+        </div>
+      </div>
       
       <nav>
         <a href="#">Home</a>
@@ -26,13 +34,7 @@ function Header() {
         <a href="#">About</a>
       </nav>
       
-      <div className="header-right">
-        <UserInfo user={currentUser} />
-        <div className="header-actions">
-          <CreateUserButton />
-          <LogoutButton />
-        </div>
-      </div>
+      
     </header>
   );
 }

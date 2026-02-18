@@ -1,28 +1,32 @@
 // RoomList.jsx — Renders a list of RoomCard components.
 // This follows the same pattern as BookingList:
-//   - Receives an array of data as props
-//   - Uses .map() to render child components
-//   - Assigns unique keys to each child
-//
-// This demonstrates code reusability patterns:
-//   The BookingList and RoomList components are structurally similar,
-//   but render different types of data using different child components.
+//   - Receives data and handlers from parent (App)
+//   - Passes both down to child components (RoomCard)
+//   - LIFTING STATE UP: All state management happens in App
 
 import RoomCard from "./RoomCard";
 import "./RoomList.css";
 
-function RoomList({ rooms }) {
+function RoomList({ rooms, onEdit, onDelete }) {
   return (
     <div className="room-list">
       <h2>
-        Available Rooms
+        Available Rooms ({rooms.length})
       </h2>
-      <div className="rooms-grid">
-        {rooms.map((room) => (
-          // key={room.id} ensures React can efficiently track each room in the list
-          <RoomCard key={room.id} room={room} />
-        ))}
-      </div>
+      {rooms.length === 0 ? (
+        <p className="empty-message">No rooms yet. Add your first room!</p>
+      ) : (
+        <div className="rooms-grid">
+          {rooms.map((room) => (
+            <RoomCard 
+              key={room.id} 
+              room={room}
+              onEdit={onEdit}
+              onDelete={onDelete}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

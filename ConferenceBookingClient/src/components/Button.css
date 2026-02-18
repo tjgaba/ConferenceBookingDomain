@@ -1,21 +1,63 @@
-/* Button.css — Styles for the reusable Button component */
+/* Button.css — Styles for the reusable Button component with variants */
 
-button {
-  background-color: #3498db;
+.button {
   color: white;
   border: none;
   padding: 10px 20px;
   border-radius: 5px;
   cursor: pointer;
   font-size: 14px;
+  font-weight: 600;
   margin: 5px;
-  transition: background-color 0.3s, transform 0.1s;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-button:hover {
+.button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Variant styles */
+.button-primary {
+  background-color: #3498db;
+}
+
+.button-primary:hover {
   background-color: #2980b9;
 }
 
-button:active {
-  transform: scale(0.98);
+.button-secondary {
+  background-color: #95a5a6;
+}
+
+.button-secondary:hover {
+  background-color: #7f8c8d;
+}
+
+.button-danger {
+  background-color: #e74c3c;
+}
+
+.button-danger:hover {
+  background-color: #c0392b;
+}
+
+.button-success {
+  background-color: #27ae60;
+}
+
+.button-success:hover {
+  background-color: #229954;
 }
