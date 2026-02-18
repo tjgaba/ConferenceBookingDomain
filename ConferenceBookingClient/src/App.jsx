@@ -44,7 +44,7 @@ function App() {
   const [editingBooking, setEditingBooking] = useState(null);
   const [editingRoom, setEditingRoom] = useState(null);
 
-  // EVENT HANDLER: Add or update a booking
+  // EVENT HANDLER: Add or update a booking. Submit Function Defined 
   const handleBookingSubmit = (bookingData) => {
     if (editingBooking) {
       // Update existing booking
@@ -57,6 +57,7 @@ function App() {
       setBookings([...bookings, bookingData]);
     }
     setShowBookingForm(false);
+    
   };
 
   // EVENT HANDLER: Delete a booking
@@ -119,7 +120,7 @@ function App() {
         {/* Conditionally render BookingForm */}
         {showBookingForm && (
           <BookingForm 
-            onSubmit={handleBookingSubmit}
+            onSubmit={handleBookingSubmit} //Submit Function Passed as Prop to BookingForm
             onCancel={handleCancelBookingForm}
             rooms={rooms}
             initialData={editingBooking}
