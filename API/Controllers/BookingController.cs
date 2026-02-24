@@ -18,7 +18,7 @@ namespace ConferenceBooking.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize]
+    [Authorize(Roles = "Admin,Employee")]
     public class BookingController : ControllerBase
     {
         private readonly ApplicationDbContext _dbContext;
@@ -238,8 +238,9 @@ namespace ConferenceBooking.API.Controllers
         #region POST Endpoints
 
         /// <summary>
-        /// Create a new booking
+        /// Create a new booking - Admin only
         /// </summary>
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         [HttpPost("book")]
         public async Task<IActionResult> CreateBooking([FromBody] CreateBookingRequestDTO dto)
@@ -279,12 +280,13 @@ namespace ConferenceBooking.API.Controllers
             var room = validation.room!;
 
             // Create booking with auto-generated ID
+            // Convert to UTC before saving - PostgreSQL timestamp with time zone requires UTC (offset=0)
             var booking = new Booking
             {
                 RoomId = room.Id,
                 UserId = user.Id,
-                StartTime = dto.StartDate,
-                EndTime = dto.EndDate,
+                StartTime = dto.StartDate.ToUniversalTime(),
+                EndTime = dto.EndDate.ToUniversalTime(),
                 Status = BookingStatus.Pending,
                 Location = location,
                 Capacity = dto.Capacity,

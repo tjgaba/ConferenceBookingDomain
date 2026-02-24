@@ -17,7 +17,7 @@
 //   - The parent (App) manages the actual bookings data
 //   - When submitted, it calls onSubmit (passed from parent) to update parent's state
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Button from "./Button";
 import "./BookingForm.css";
 
@@ -28,6 +28,48 @@ function BookingForm({ onSubmit, onCancel, rooms, initialData = null }) {
   const [startTime, setStartTime] = useState(initialData?.startTime || "");
   const [endTime, setEndTime] = useState(initialData?.endTime || "");
   const [status, setStatus] = useState(initialData?.status || "Pending");
+
+  // Update form fields when initialData changes (for edit mode)
+  useEffect(() => {
+    if (initialData) {
+      setRoomId(initialData.roomId || "");
+      setStartTime(initialData.startTime || "");
+      setEndTime(initialData.endTime || "");
+      setStatus(initialData.status || "Pending");
+    } else {
+      // Reset form when creating new booking
+      setRoomId("");
+      setStartTime("");
+      setEndTime("");
+      setStatus("Pending");
+    }
+  }, [initialData]);
+
+  // Helper function to format datetime for API with proper timezone handling
+  // The backend validates business hours (08:00-16:00) using the HOUR component
+  // We need to ensure the hour sent matches what the user selected
+  const formatDateTimeForAPI = (dateTimeString) => {
+    // dateTimeString is from datetime-local input: "2026-02-24T09:03"
+    // Create a Date object but interpret the input as local time
+    const date = new Date(dateTimeString);
+    
+    // Format as ISO string with local timezone offset (e.g., "2026-02-24T09:03:00+02:00")
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = '00';
+    
+    // Get timezone offset in format +HH:MM or -HH:MM
+    const timezoneOffset = -date.getTimezoneOffset(); // Invert because getTimezoneOffset returns opposite sign
+    const offsetHours = String(Math.floor(Math.abs(timezoneOffset) / 60)).padStart(2, '0');
+    const offsetMinutes = String(Math.abs(timezoneOffset) % 60).padStart(2, '0');
+    const offsetSign = timezoneOffset >= 0 ? '+' : '-';
+    
+    // Return ISO 8601 format with timezone: "2026-02-24T09:03:00+02:00"
+    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}${offsetSign}${offsetHours}:${offsetMinutes}`;
+  };
 
   // Event Handler: Called when form is submitted
   const handleSubmit = (e) => {
@@ -42,15 +84,35 @@ function BookingForm({ onSubmit, onCancel, rooms, initialData = null }) {
     // Find the selected room to get its details
     const selectedRoom = rooms.find(r => r.id === parseInt(roomId));
     
-    // Create booking object
-    const bookingData = {
-      id: initialData?.id || Date.now(), // Use existing id or generate new one
-      roomName: selectedRoom?.name || "Unknown",
-      location: selectedRoom?.location || "Unknown",
-      startTime,
-      endTime,
-      status
-    };
+    if (!selectedRoom) {
+      alert("Invalid room selected");
+      return;
+    }
+
+    let bookingData;
+    
+    if (initialData) {
+      // UPDATE: Match UpdateBookingDTO structure
+      bookingData = {
+        bookingId: initialData.id,
+        roomId: parseInt(roomId),
+        startTime: formatDateTimeForAPI(startTime),
+        endTime: formatDateTimeForAPI(endTime),
+        status: status
+      };
+    } else {
+      // CREATE: Match CreateBookingRequestDTO structure
+      bookingData = {
+        roomId: parseInt(roomId),
+        startDate: formatDateTimeForAPI(startTime),
+        endDate: formatDateTimeForAPI(endTime),
+        location: selectedRoom.location,
+        capacity: selectedRoom.capacity
+      };
+      
+      console.log('Creating booking with data:', bookingData);
+      console.log('Selected room:', selectedRoom);
+    }
 
     // Call parent's onSubmit handler (lifting state up)
     onSubmit(bookingData); //Form's onSubmit Handler Calls Prop-Function 

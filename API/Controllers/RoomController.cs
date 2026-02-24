@@ -16,6 +16,7 @@ namespace ConferenceBooking.API.Controllers
     /// </summary>
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize] // Require authentication - Admin has access to all endpoints
     public class RoomController : ControllerBase
     {
         private readonly ApplicationDbContext _dbContext;
@@ -158,8 +159,8 @@ namespace ConferenceBooking.API.Controllers
             var isAvailable = !await _dbContext.Bookings.AnyAsync(b =>
                 b.RoomId == targetRoomId &&
                 b.Status == BookingStatus.Confirmed &&
-                b.StartTime <= DateTimeOffset.Now &&
-                DateTimeOffset.Now < b.EndTime);
+                b.StartTime <= DateTimeOffset.UtcNow &&
+                DateTimeOffset.UtcNow < b.EndTime);
 
             var availability = new CheckAvailableRoomsDTO
             {
@@ -180,7 +181,7 @@ namespace ConferenceBooking.API.Controllers
         [Authorize]
         public async Task<IActionResult> GetAvailableRoomsByTime([FromQuery] DateTimeOffset? atTime)
         {
-            var requestedTime = atTime ?? DateTimeOffset.Now;
+            var requestedTime = atTime ?? DateTimeOffset.UtcNow;
 
             var availableRooms = await _dbContext.ConferenceRooms
                 .Where(room => room.IsActive && !_dbContext.Bookings.Any(b =>

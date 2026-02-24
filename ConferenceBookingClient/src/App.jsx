@@ -28,6 +28,7 @@ import BookingList from "./components/BookingList";
 import RoomList from "./components/RoomList";
 import BookingForm from "./components/BookingForm";
 import RoomForm from "./components/RoomForm";
+import LoginForm from "./components/LoginForm";
 import Button from "./components/Button";
 import Footer from "./components/Footer";
 import LoadingSpinner from "./components/LoadingSpinner";
@@ -35,6 +36,7 @@ import ErrorMessage from "./components/ErrorMessage";
 import Toast from "./components/Toast";
 import * as bookingService from "./services/bookingService";
 import * as roomService from "./services/roomService";
+import { authService } from "./services/authService";
 import "./App.css";
 
 function App() {
@@ -62,6 +64,11 @@ function App() {
   
   // Toast notification state
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+  
+  // Auth state
+  const [isLoggedIn, setIsLoggedIn] = useState(authService.isAuthenticated());
+  const [currentUser, setCurrentUser] = useState(authService.getCurrentUser());
+  const [showLoginForm, setShowLoginForm] = useState(false);
   
   // UI state  
   const [showBookingForm, setShowBookingForm] = useState(false);
@@ -228,23 +235,30 @@ function App() {
 
       if (editingBooking) {
         // Update existing booking
-        const updated = await bookingService.updateBooking(bookingData);
-        setAllBookings(allBookings.map(b => 
-          b.id === updated.id ? updated : b
-        ));
-        setEditingBooking(null);
-        setToast({ show: true, message: 'Booking updated successfully!', type: 'success' });
+        const bookingId = bookingData.bookingId || editingBooking.id;
+        const updated = await bookingService.updateBooking(bookingId, bookingData);
+        // Refresh bookings list
+        const refreshed = await bookingService.fetchAllBookings();
+        setAllBookings(refreshed);
+        setShowBookingForm(false); // Close form first
+        setEditingBooking(null); // Then clear editing state
+        alert('Booking updated successfully!');
       } else {
         // Create new booking
         const created = await bookingService.createBooking(bookingData);
-        setAllBookings([...allBookings, created]);
-        setToast({ show: true, message: 'Booking created successfully!', type: 'success' });
+        // Refresh bookings list
+        const refreshed = await bookingService.fetchAllBookings();
+        setAllBookings(refreshed);
+        setShowBookingForm(false); // Close form first
+        alert('Booking created successfully!');
       }
-      
-      setShowBookingForm(false);
     } catch (err) {
       setError(err);
       console.error('Booking operation failed:', err);
+      console.error('Error response:', err.response);
+      console.error('Error data:', err.response?.data);
+      const errorMsg = err.response?.data?.message || err.response?.data?.title || err.message;
+      alert('Operation failed: ' + errorMsg);
       // Don't close form on error so user can retry
     } finally {
       setIsSubmitting(false);
@@ -262,7 +276,7 @@ function App() {
       await bookingService.deleteBooking(bookingId);
       
       // Optimistic update: remove from UI immediately
-      setAllBookings(allBookings.filter(b => b.id !== bookingId));
+      setAllBookings(allBookings.filter(b => (b.bookingId || b.id) !== bookingId));
       setToast({ show: true, message: 'Booking deleted successfully!', type: 'success' });
     } catch (err) {
       setError(err);
@@ -272,9 +286,42 @@ function App() {
   };
 
   // HANDLER: Start editing a booking
-  const handleEditBooking = (booking) => {
-    setEditingBooking(booking);
-    setShowBookingForm(true);
+  const handleEditBooking = async (booking) => {
+    try {
+      // Fetch full booking details if we only have summary
+      let fullBooking = booking;
+      if (!booking.startTime && booking.bookingId) {
+        fullBooking = await bookingService.getBookingById(booking.bookingId);
+      }
+      
+      // Transform API data to match form expectations
+      const formData = {
+        id: fullBooking.bookingId || fullBooking.id,
+        roomId: fullBooking.roomId,
+        startTime: formatDateTimeForInput(fullBooking.startTime),
+        endTime: formatDateTimeForInput(fullBooking.endTime),
+        status: fullBooking.status || 'Pending'
+      };
+      
+      setEditingBooking(formData);
+      setShowBookingForm(true);
+    } catch (err) {
+      console.error('Failed to load booking details:', err);
+      alert('Failed to load booking details');
+    }
+  };
+
+  // Helper: Format DateTimeOffset for datetime-local input
+  const formatDateTimeForInput = (dateTimeOffset) => {
+    if (!dateTimeOffset) return '';
+    // Convert to local datetime string format (YYYY-MM-DDTHH:mm)
+    const date = new Date(dateTimeOffset);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
   };
 
   // HANDLER: Create or update a room
@@ -285,20 +332,21 @@ function App() {
 
       if (editingRoom) {
         // Update existing room
-        const updated = await roomService.updateRoom(roomData);
+        const roomId = roomData.id;
+        const updated = await roomService.updateRoom(roomId, roomData);
         setAllRooms(allRooms.map(r => 
           r.id === updated.id ? updated : r
         ));
-        setEditingRoom(null);
+        setShowRoomForm(false); // Close form first
+        setEditingRoom(null); // Then clear editing state
         setToast({ show: true, message: 'Room updated successfully!', type: 'success' });
       } else {
         // Create new room
         const created = await roomService.createRoom(roomData);
         setAllRooms([...allRooms, created]);
+        setShowRoomForm(false); // Close form first
         setToast({ show: true, message: 'Room created successfully!', type: 'success' });
       }
-      
-      setShowRoomForm(false);
     } catch (err) {
       setError(err);
       console.error('Room operation failed:', err);
@@ -327,7 +375,16 @@ function App() {
 
   // HANDLER: Start editing a room
   const handleEditRoom = (room) => {
-    setEditingRoom(room);
+    // Transform API data to match form expectations (lowercase properties)
+    const formData = {
+      id: room.id,
+      name: room.name || room.Name,
+      capacity: room.capacity || room.Capacity,
+      location: room.location || room.Location,
+      number: room.number || room.Number
+    };
+    
+    setEditingRoom(formData);  
     setShowRoomForm(true);
   };
   
@@ -357,6 +414,28 @@ function App() {
     setToast({ ...toast, show: false });
   };
 
+  // HANDLER: Login
+  const handleLogin = async (username, password) => {
+    try {
+      const result = await authService.login(username, password);
+      setIsLoggedIn(true);
+      setCurrentUser(result.user);
+      setShowLoginForm(false);
+      alert(`Welcome back, ${result.user.username}!`);
+    } catch (error) {
+      console.error('Login failed:', error);
+      throw error; // Re-throw so LoginForm can show error
+    }
+  };
+
+  // HANDLER: Logout
+  const handleLogout = async () => {
+    await authService.logout();
+    setIsLoggedIn(false);
+    setCurrentUser(null);
+    alert('Logged out successfully');
+  };
+
   // ==================== RENDER ====================
 
   // Show full-screen loader during initial data fetch
@@ -368,19 +447,43 @@ function App() {
   if (error && allBookings.length === 0 && allRooms.length === 0) {
     return (
       <div className="app-container">
-        <Header />
+        <Header 
+          isLoggedIn={isLoggedIn}
+          currentUser={currentUser}
+          onLogin={() => setShowLoginForm(true)}
+          onLogout={handleLogout}
+        />
+        {showLoginForm && (
+          <LoginForm 
+            onLogin={handleLogin}
+            onCancel={() => setShowLoginForm(false)}
+          />
+        )}
         <ErrorMessage 
           error={error}
           onRetry={handleRetry}
           onDismiss={handleDismissError}
         />
       </div>
-     );// Show error banner if we have data but an operation failed (handled in main render below)
+     );
   }
 
   return (
     <div className="app-container">
-      <Header />
+      <Header 
+        isLoggedIn={isLoggedIn}
+        currentUser={currentUser}
+        onLogin={() => setShowLoginForm(true)}
+        onLogout={handleLogout}
+      />
+
+      {/* Login Form Modal */}
+      {showLoginForm && (
+        <LoginForm 
+          onLogin={handleLogin}
+          onCancel={() => setShowLoginForm(false)}
+        />
+      )}
 
       {/* Toast Notification - Shows on successful operations */}
       {toast.show && (

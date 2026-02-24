@@ -11,7 +11,7 @@ namespace API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = "Admin,FacilityManager")] // Admins and Facility Managers can manage rooms
+    [Authorize(Roles = "Admin,FacilityManager")]
     public class RoomManagementController : ControllerBase
     {
         private readonly ApplicationDbContext _dbContext;
@@ -74,8 +74,9 @@ namespace API.Controllers
         }
 
         /// <summary>
-        /// Create a new conference room
+        /// Create a new conference room - Admin only
         /// </summary>
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<IActionResult> CreateRoom([FromBody] CreateRoomDTO request)
         {

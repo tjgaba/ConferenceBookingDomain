@@ -10,7 +10,7 @@
 //   2. A value prop bound to that state (value={name})
 //   3. An onChange handler that updates state (onChange={(e) => setName(e.target.value)})
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Button from "./Button";
 import "./RoomForm.css";
 
@@ -20,6 +20,22 @@ function RoomForm({ onSubmit, onCancel, initialData = null }) {
   const [capacity, setCapacity] = useState(initialData?.capacity || "");
   const [location, setLocation] = useState(initialData?.location || "");
   const [number, setNumber] = useState(initialData?.number || "");
+
+  // Update form fields when initialData changes (for edit mode)
+  useEffect(() => {
+    if (initialData) {
+      setName(initialData.name || "");
+      setCapacity(initialData.capacity || "");
+      setLocation(initialData.location || "");
+      setNumber(initialData.number || "");
+    } else {
+      // Reset form when creating new room
+      setName("");
+      setCapacity("");
+      setLocation("");
+      setNumber("");
+    }
+  }, [initialData]);
 
   const handleSubmit = (e) => {
     e.preventDefault();

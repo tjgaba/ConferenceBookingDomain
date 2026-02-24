@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using ConferenceBooking.API.DTO;
 using ConferenceBooking.API.Entities;
@@ -12,6 +13,7 @@ namespace ConferenceBooking.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize] // Require authentication - Admin has access to all endpoints
     public class ConferenceSessionController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
@@ -80,9 +82,10 @@ namespace ConferenceBooking.API.Controllers
         }
 
         /// <summary>
-        /// Create a new session
+        /// Create a new session - Admin only
         /// </summary>
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<SessionResponseDTO>> CreateSession([FromBody] CreateSessionDTO dto)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -137,6 +140,7 @@ namespace ConferenceBooking.API.Controllers
             if (!validation.isValid) return BadRequest(new { message = validation.errorMessage });
 
             var session = await _context.ConferenceSessions.FindAsync(id);
+            if (session == null) return NotFound(new { message = $"Session with ID {id} not found" });
 
             session.Title = dto.Title;
             session.Description = dto.Description;
@@ -179,6 +183,7 @@ namespace ConferenceBooking.API.Controllers
             if (!validation.isValid) return NotFound(new { message = validation.errorMessage });
 
             var session = await _context.ConferenceSessions.FindAsync(id);
+            if (session == null) return NotFound(new { message = $"Session with ID {id} not found" });
 
             _context.ConferenceSessions.Remove(session);
             await _context.SaveChangesAsync();

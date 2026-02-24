@@ -41,7 +41,7 @@ function BookingCard({ booking, onEdit, onDelete }) {
         <Button 
           label="Delete" 
           variant="danger"
-          onClick={() => onDelete(booking.id)}
+          onClick={() => onDelete(booking.bookingId || booking.id)}
         />
       </div>
     </div>

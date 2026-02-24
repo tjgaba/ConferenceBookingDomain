@@ -24,7 +24,7 @@ function BookingList({ bookings, onEdit, onDelete }) {
         <div className="bookings-grid">
           {bookings.map((booking) => (
             <BookingCard 
-              key={booking.id} 
+              key={booking.bookingId || booking.id} 
               booking={booking}
               onEdit={onEdit}
               onDelete={onDelete}
