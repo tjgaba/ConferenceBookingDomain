@@ -67,7 +67,7 @@ public partial class Program
             {
                 policy.WithOrigins("http://localhost:5173") // Vite's default port
                       .AllowAnyHeader()
-                      .AllowAnyMethod()
+                      .WithMethods("GET", "POST", "PUT", "DELETE")
                       .AllowCredentials();
             });
         });
