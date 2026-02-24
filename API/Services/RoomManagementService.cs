@@ -31,7 +31,7 @@ public class RoomManagementService
             var hasFutureBookings = await _dbContext.Bookings
                 .AnyAsync(b => b.RoomId == roomId && 
                               b.Status == BookingStatus.Confirmed && 
-                              b.EndTime > DateTimeOffset.Now);
+                              b.EndTime > DateTimeOffset.UtcNow);
 
             if (hasFutureBookings)
             {
@@ -88,7 +88,7 @@ public class RoomManagementService
         var hasActiveBookings = await _dbContext.Bookings
             .AnyAsync(b => b.RoomId == roomId && 
                           b.Status == BookingStatus.Confirmed &&
-                          b.EndTime > DateTimeOffset.Now);
+                          b.EndTime > DateTimeOffset.UtcNow);
 
         if (hasActiveBookings)
         {
@@ -132,7 +132,7 @@ public class RoomManagementService
                 var hasFutureBookings = await _dbContext.Bookings
                     .AnyAsync(b => b.RoomId == room.Id && 
                                   b.Status == BookingStatus.Confirmed && 
-                                  b.EndTime > DateTimeOffset.Now);
+                                  b.EndTime > DateTimeOffset.UtcNow);
 
                 if (hasFutureBookings)
                 {

@@ -27,8 +27,9 @@ public partial class Program
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
 
+        // PostgreSQL Configuration
         builder.Services.AddDbContext<ApplicationDbContext>(options =>
-            options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+            options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
         // Move Identity and TokenService registration before app is built
         builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
@@ -58,6 +59,18 @@ public partial class Program
 
         builder.Services.AddScoped<TokenService>();
         builder.Services.AddScoped<ISessionManager, SessionManager>();
+
+        // Add CORS policy for React frontend
+        builder.Services.AddCors(options =>
+        {
+            options.AddPolicy("AllowReactApp", policy =>
+            {
+                policy.WithOrigins("http://localhost:5173") // Vite's default port
+                      .AllowAnyHeader()
+                      .AllowAnyMethod()
+                      .AllowCredentials();
+            });
+        });
 
         // Register BookingManager with ApplicationDbContext
         builder.Services.AddScoped<BookingManager>();
@@ -117,6 +130,11 @@ public partial class Program
         }
 
         app.UseHttpsRedirection();
+
+        app.UseRouting();
+
+        // Apply CORS policy - must be after UseRouting() and before UseAuthentication()
+        app.UseCors("AllowReactApp");
 
         app.UseAuthentication();
         

@@ -41,7 +41,7 @@ public class ApplicationDbContext : IdentityDbContext
         modelBuilder.Entity<Booking>()
             .Property(b => b.CreatedAt)
             .IsRequired()
-            .HasDefaultValueSql("datetime('now')");
+            .HasDefaultValueSql("NOW()");
 
         modelBuilder.Entity<Booking>()
             .Property(b => b.CancelledAt)
@@ -89,7 +89,7 @@ public class ApplicationDbContext : IdentityDbContext
         modelBuilder.Entity<ApplicationUser>()
             .HasIndex(u => u.EmployeeNumber)
             .IsUnique()
-            .HasFilter("EmployeeNumber IS NOT NULL");
+            .HasFilter("\"EmployeeNumber\" IS NOT NULL");
 
         // Index on IsActive for filtering active/inactive users
         modelBuilder.Entity<ApplicationUser>()

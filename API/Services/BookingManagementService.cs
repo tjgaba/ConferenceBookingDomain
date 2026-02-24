@@ -4,6 +4,7 @@ using ConferenceBooking.API.Auth;
 using ConferenceBooking.API.Data;
 using ConferenceBooking.API.DTO;
 using ConferenceBooking.API.Entities;
+using ConferenceBooking.API.Models;
 
 namespace ConferenceBooking.API.Services;
 
@@ -140,7 +141,7 @@ public class BookingManagementService
             BookingId = booking.Id,
             RoomId = booking.RoomId,
             RoomName = booking.Room?.Name ?? "Unknown",
-            RoomNumber = booking.Room?.Number ?? "Unknown",
+            RoomNumber = booking.Room?.Number ?? 0,
             Location = booking.Location.ToString(),
             IsRoomActive = booking.Room?.IsActive ?? false,
             RequestedBy = booking.User?.UserName ?? "Unknown User",
@@ -165,10 +166,11 @@ public class BookingManagementService
         }
 
         if (dto.StartTime.HasValue)
-            booking.StartTime = dto.StartTime.Value;
+            // Convert to UTC - PostgreSQL timestamp with time zone requires UTC (offset=0)
+            booking.StartTime = dto.StartTime.Value.ToUniversalTime();
 
         if (dto.EndTime.HasValue)
-            booking.EndTime = dto.EndTime.Value;
+            booking.EndTime = dto.EndTime.Value.ToUniversalTime();
     }
 
     /// <summary>
