@@ -59,6 +59,7 @@ export default function LoginForm({ onLogin, onCancel }) {
               disabled={loading}
               autoFocus
             />
+            <small style={{ color: '#6c757d', fontSize: '0.78rem' }}>Demo: admin@domain.com</small>
           </div>
 
           <div className="form-group">
@@ -70,6 +71,7 @@ export default function LoginForm({ onLogin, onCancel }) {
               placeholder="Enter password"
               disabled={loading}
             />
+            <small style={{ color: '#6c757d', fontSize: '0.78rem' }}>Demo: Admin123!</small>
           </div>
 
           <div className="form-actions">

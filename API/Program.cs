@@ -147,7 +147,7 @@ public partial class Program
         app.UseMiddleware<ExceptionHandlingMiddleware>();
 
         // Health check endpoint — anonymous, used by frontend ConnectionStatus component
-        app.MapGet("/health", () => Results.Ok(new { status = "Healthy", timestamp = DateTime.UtcNow }))
+        app.MapGet("/api/health", () => Results.Ok(new { status = "Healthy", timestamp = DateTime.UtcNow }))
            .AllowAnonymous();
 
         // Map controllers so API endpoints (POST/DELETE) are exposed
