@@ -1,0 +1,46 @@
+version: '3.9'
+
+services:
+
+  # ---- PostgreSQL Database ----
+  db:
+    image: postgres:16
+    container_name: conference_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: conference_booking_db
+    ports:
+      - "5432:5432"          # expose to host so you can still use pgAdmin/psql locally
+    volumes:
+      - pgdata:/var/lib/postgresql/data   # data persists across container restarts
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # ---- .NET 8 API ----
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: conference_api
+    ports:
+      - "5230:8080"          # host:5230 → container:8080
+    environment:
+      # Override the connection string so the API talks to the 'db' service, not localhost
+      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=conference_booking_db;Username=postgres;Password=postgres
+      - ASPNETCORE_ENVIRONMENT=Production
+      - Jwt__Key=SUPER_SECRET_KEY_12345678901234567890
+      - Jwt__Issuer=API
+      - Jwt__Audience=ConferenceBookingUsers
+    depends_on:
+      db:
+        condition: service_healthy   # wait until postgres is ready before starting
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+    driver: local

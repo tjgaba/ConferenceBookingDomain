@@ -104,6 +104,23 @@ public partial class Program
             dbContext.Database.EnsureCreated();
         }
 
+        // Auto-apply EF Core migrations on startup (safe to run on every boot — skips already-applied migrations)
+        // This means running on a fresh machine / Docker container just works without manual 'dotnet ef database update'
+        using (var scope = app.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            try
+            {
+                await db.Database.MigrateAsync();
+                Console.WriteLine("✓ Database migrations applied.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Migration error: {ex.Message}");
+                throw;
+            }
+        }
+
         // Seed roles and users
         using (var scope = app.Services.CreateScope())
         {

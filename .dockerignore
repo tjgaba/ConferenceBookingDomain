@@ -1,0 +1,11 @@
+**/bin/
+**/obj/
+**/.vs/
+**/.vscode/
+**/node_modules/
+ConferenceBookingClient/
+.git/
+.gitignore
+*.md
+*.user
+*.suo
