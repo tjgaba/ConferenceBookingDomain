@@ -53,8 +53,7 @@ namespace ConferenceBooking.API.Data
             // Only include Room for projection - minimal data loading
             IQueryable<Booking> query = _dbContext.Bookings
                 .AsNoTracking()
-                .Include(b => b.Room)
-                .Where(b => b.Room.IsActive == true); // Filter out bookings with inactive rooms
+                .Include(b => b.Room);
 
             // DATABASE OPERATION: Get total count - SELECT COUNT(*) FROM Bookings
             var totalCount = await query.CountAsync();
@@ -183,15 +182,10 @@ namespace ConferenceBooking.API.Data
                 .Include(b => b.Room);
 
             // DATABASE FILTER: Filter by room active status
-            // Default to active rooms only if not explicitly specified
+            // Filter by room active status only when explicitly requested
             if (filter.IsActiveRoom.HasValue)
             {
                 query = query.Where(b => b.Room.IsActive == filter.IsActiveRoom.Value);
-            }
-            else
-            {
-                // Default: only show bookings for active rooms
-                query = query.Where(b => b.Room.IsActive == true);
             }
             
             // DATABASE FILTER: Filter by room name using SQL LIKE
