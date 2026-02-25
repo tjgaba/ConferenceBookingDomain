@@ -37,6 +37,7 @@ import Toast from "./components/Toast";
 import * as bookingService from "./services/bookingService";
 import * as roomService from "./services/roomService";
 import { authService } from "./services/authService";
+import NetworkStressTest from "./components/NetworkStressTest";
 import "./App.css";
 
 function App() {
@@ -73,6 +74,7 @@ function App() {
   // UI state  
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [showRoomForm, setShowRoomForm] = useState(false);
+  const [showStressTest, setShowStressTest] = useState(false);
   const [editingBooking, setEditingBooking] = useState(null);
   const [editingRoom, setEditingRoom] = useState(null);
 
@@ -648,6 +650,20 @@ function App() {
           onEdit={handleEditRoom}
           onDelete={handleDeleteRoom}
         />
+      </section>
+
+      {/* ── Requirement 4: Stress Test Panel ─────────────────────────── */}
+      <section className="section">
+        <div className="section-header">
+          <h2>Network Resilience</h2>
+          <button
+            className="btn btn-secondary"
+            onClick={() => setShowStressTest((prev) => !prev)}
+          >
+            {showStressTest ? 'Hide Stress Test' : 'Show Stress Test'}
+          </button>
+        </div>
+        {showStressTest && <NetworkStressTest />}
       </section>
 
       <Footer />
