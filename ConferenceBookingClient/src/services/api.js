@@ -34,13 +34,13 @@ apiClient.interceptors.request.use(
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
-      console.log('🔐 Added auth token to request');
+      console.log('Added auth token to request');
     }
-    console.log(`📤 ${config.method?.toUpperCase()} ${config.url}`);
+    console.log(`${config.method?.toUpperCase()} ${config.url}`);
     return config;
   },
   (error) => {
-    console.error('❌ Request error:', error);
+    console.error('Request error:', error);
     return Promise.reject(error);
   }
 );
@@ -49,27 +49,27 @@ apiClient.interceptors.request.use(
 // Handle common errors globally
 apiClient.interceptors.response.use(
   (response) => {
-    console.log(`📥 ${response.status} ${response.config.url}`);
+    console.log(` ${response.status} ${response.config.url}`);
     return response;
   },
   (error) => {
     if (error.response) {
       // Server responded with error status
-      console.error('❌ API Error:', error.response.status, error.response.data);
+      console.error('API Error:', error.response.status, error.response.data);
       
       if (error.response.status === 401) {
         // Token expired or invalid - redirect to login
-        console.warn('⚠️ Unauthorized - clearing token');
+        console.warn('Unauthorized - clearing token');
         localStorage.removeItem('token');
         // Note: In a production app, you might want to redirect to login page
         // window.location.href = '/login';
       }
     } else if (error.request) {
       // Request made but no response received
-      console.error('❌ Network Error: No response from server');
+      console.error('Network Error: No response from server');
     } else {
       // Something else happened
-      console.error('❌ Error:', error.message);
+      console.error('Error:', error.message);
     }
     
     return Promise.reject(error);
