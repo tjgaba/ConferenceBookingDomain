@@ -1,26 +1,26 @@
 // App.jsx — The root component with ASYNC STATE MANAGEMENT and LIFECYCLE CONTROL.
 //
-// COMPONENT LIFECYCLE:
+// COMPONENT LIFECYCLE: (line 84)
 //   - Mount: Component initializes, fetches data from "server"
 //   - Update: Re-renders when state changes
 //   - Unmount: Cleanup functions cancel pending operations
 //
-// RESILIENT STATE PATTERN:
+// RESILIENT STATE PATTERN: (line 44)
 //   - Data (bookings, rooms)
 //   - Loading (isLoading, isSubmitting)
 //   - Error (error)
 //
-// ASYNC OPERATIONS:
+// ASYNC OPERATIONS: (line 242)
 //   - All CRUD operations simulate network latency (500-2000ms)
 //   - 15% random failure rate to test error handling
 //   - AbortController prevents memory leaks on unmount
 //
-// HOOK DISCIPLINE:
+// HOOK DISCIPLINE: (line 171)
 //   - useEffect dependencies prevent infinite loops
 //   - Cleanup functions stop background processes
 //   - Race condition prevention with AbortController
 //
-// Data flow: User Action → Async API Call → Loading State → Success/Error → UI Update
+// Data flow: User Action → Async API Call → Loading State → Success/Error → UI Update (line 456)
 
 import { useState, useEffect, useMemo } from "react";
 import Header from "./components/Header";
