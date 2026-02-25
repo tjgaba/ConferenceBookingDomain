@@ -9,7 +9,7 @@
 // - Error handling
 // - Request/response logging
 
-import apiClient from './api';
+import apiClient from '../api/apiClient';
 
 // ==================== ROOM API FUNCTIONS ====================
 
@@ -30,9 +30,9 @@ export const fetchAllRooms = async (params = {}) => {
     };
     
     const response = await apiClient.get('/Room', { params: queryParams });
-    console.log('✓ API: Fetched rooms', response.data.data?.length || 0);
-    // Return just the data array for backward compatibility
-    return response.data.data || [];
+    console.log('✓ API: Fetched rooms', response.data?.length || 0);
+    // Interceptor already unwraps response.data → response is the pagination envelope
+    return response.data || [];
   } catch (error) {
     console.error('❌ Failed to fetch rooms:', error);
     throw error;
@@ -49,7 +49,7 @@ export const getRoomById = async (roomId) => {
   try {
     const response = await apiClient.get(`/Room/${roomId}`);
     console.log('✓ API: Fetched room', roomId);
-    return response.data;
+    return response;
   } catch (error) {
     console.error(`❌ Failed to fetch room ${roomId}:`, error);
     throw error;
@@ -65,8 +65,8 @@ export const getRoomById = async (roomId) => {
 export const createRoom = async (roomData) => {
   try {
     const response = await apiClient.post('/RoomManagement', roomData);
-    console.log('✓ API: Created room', response.data.id);
-    return response.data;
+    console.log('✓ API: Created room', response.id);
+    return response;
   } catch (error) {
     console.error('❌ Failed to create room:', error);
     throw error;
@@ -84,7 +84,7 @@ export const updateRoom = async (roomId, roomData) => {
   try {
     const response = await apiClient.put(`/RoomManagement/${roomId}`, roomData);
     console.log('✓ API: Updated room', roomId);
-    return response.data;
+    return response;
   } catch (error) {
     console.error(`❌ Failed to update room ${roomId}:`, error);
     throw error;
@@ -118,7 +118,7 @@ export const updateRoomStatus = async (roomId, isActive) => {
   try {
     const response = await apiClient.patch(`/RoomManagement/status/${roomId}`, { isActive });
     console.log('✓ API: Updated room status', roomId, isActive);
-    return response.data;
+    return response;
   } catch (error) {
     console.error(`❌ Failed to update room status ${roomId}:`, error);
     throw error;
@@ -135,7 +135,7 @@ export const checkAvailableRooms = async (params) => {
   try {
     const response = await apiClient.post('/Room/check-available', params);
     console.log('✓ API: Checked available rooms');
-    return response.data;
+    return response;
   } catch (error) {
     console.error('❌ Failed to check available rooms:', error);
     throw error;

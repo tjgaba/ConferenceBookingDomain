@@ -29,7 +29,7 @@ The solution includes a **pure domain layer** and an **ASP.NET Core Web API** wi
 
 - **.NET 8** - Latest C# and ASP.NET Core features
 - **Entity Framework Core 8** - ORM with migration-based schema evolution
-- **SQLite** - Lightweight development database
+- **PostgreSQL** - Relational database (via Docker)
 - **ASP.NET Core Identity** - User authentication & authorization
 - **JWT (JSON Web Tokens)** - Stateless authentication
 - **Swagger/OpenAPI** - Interactive API documentation
@@ -58,7 +58,7 @@ The solution includes a **pure domain layer** and an **ASP.NET Core Web API** wi
 The project has evolved into a **production-ready API** with enterprise features:
 
 * ✅ **ASP.NET Core Identity** with JWT authentication
-* ✅ **Entity Framework Core** with SQLite database
+* ✅ **Entity Framework Core** with PostgreSQL database
 * ✅ **Role-based authorization** (Admin, Receptionist, Employee, FacilityManager)
 * ✅ **Two-step booking workflow** (Pending → Confirmed by Receptionist)
 * ✅ **Session entity** with capacity validation and time ranges
@@ -72,6 +72,7 @@ The project has evolved into a **production-ready API** with enterprise features
 * ✅ **Custom middleware** for exception handling
 * ✅ **String-based enum serialization** for locations
 * ✅ **JWT token-based authentication** for stateless API access
+* ✅ **Resilient React frontend** connected via centralized Axios singleton with interceptors, AbortController, and four-path error discrimination
 
 ---
 
@@ -330,7 +331,7 @@ All exceptions are handled centrally via **ExceptionHandlingMiddleware**:
 
 ## 💾 Persistence Strategy
 
-* Bookings, rooms, and sessions stored in **SQLite database** via **Entity Framework Core**
+* Bookings, rooms, and sessions stored in **PostgreSQL database** via **Entity Framework Core**
 * All database operations are **asynchronous**
 * `ApplicationDbContext` manages entity tracking and change detection
 * **Foreign key relationships** ensure referential integrity
@@ -350,7 +351,7 @@ All exceptions are handled centrally via **ExceptionHandlingMiddleware**:
 
 **Architecture:**
 ```
-Controllers → BookingManager → ApplicationDbContext → SQLite Database
+Controllers → BookingManager → ApplicationDbContext → PostgreSQL Database
                   ↓                      ↓
            Domain Logic           Persistence Layer
 ```
@@ -1003,17 +1004,17 @@ Swagger/OpenAPI documentation available at `/swagger` in development mode.
 
 ## 🚀 Possible Next Steps
 
-* ✅ ~~Replace JSON with a database~~ **DONE - Using EF Core + SQLite**
+* ✅ ~~Replace JSON with a database~~ **DONE - Using EF Core + PostgreSQL**
 * ✅ ~~Add authentication & authorization~~ **DONE - JWT + Identity**
 * ✅ ~~Add room capacity & location tracking~~ **DONE - Location enum + Capacity field**
 * ✅ ~~Add session entity with time validation~~ **DONE - Session with StartTime/EndTime**
 * ✅ ~~Add booking workflow (Pending → Confirmed)~~ **DONE - Receptionist confirmation**
 * ✅ ~~Add room management (soft delete)~~ **DONE - IsActive flag**
 * ✅ ~~Add timestamps for audit trail~~ **DONE - CreatedAt, CancelledAt**
+* ✅ ~~Build a frontend UI~~ **DONE - React 19 + Vite 7 frontend with Axios resilient client**
 * Add calendar integration (Google Calendar, Outlook)
 * Implement recurring bookings
 * Add email notifications for booking confirmations
-* Build a frontend UI (React/Angular/Vue)
 * Add comprehensive unit & integration tests
 * Implement caching for performance (Redis)
 * Add audit logging for compliance

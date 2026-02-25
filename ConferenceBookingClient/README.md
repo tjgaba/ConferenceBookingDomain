@@ -1,376 +1,384 @@
 # Conference Booking Dashboard - React Frontend
 
-This is a basic React + Vite frontend for the Conference Booking System.
+A React + Vite frontend for the Conference Booking System. All HTTP communication is handled by a centralized, resilient Axios client that enforces JWT authentication, request/response interception, and race condition prevention across the entire application.
+
+**Backend:** `http://localhost:5230/api`  
+**Frontend:** `http://localhost:5173`
 
 ## Tech Stack
 
 - **React 19** - UI library
-- **Vite** - Build tool and dev server
-- **ESLint** - Code linting
+- **Vite 7** - Build tool and dev server
+- **Axios 1.13.5** - HTTP client (centralized singleton)
+- **ESLint** - Code linting (`@eslint/js` + `react` + `react-hooks`)
+
+## Environment Configuration
+
+**`.env`** (required at project root):
+```
+VITE_API_BASE_URL=http://localhost:5230/api
+```
+
+This is the only place the backend URL is defined. Every request in the app inherits this base URL from the singleton.
 
 ## Project Structure
 
 ```
 ConferenceBookingClient/
-├── .gitignore                # Git ignore rules
-├── eslint.config.js          # ESLint configuration
-├── index.html                # Entry HTML file
-├── package.json              # Dependencies and scripts
-├── package-lock.json         # Lockfile
-├── README.md                 # Project documentation
-├── vite.config.js            # Vite configuration
+├── .env                      # Environment variables (VITE_API_BASE_URL)
+├── .gitignore
+├── eslint.config.js
+├── index.html
+├── package.json
+├── vite.config.js
 ├── src/
-│   ├── App.css               # App-level styles
-│   ├── App.jsx               # Root component
-│   ├── index.css             # Global styles
-│   ├── main.jsx              # React entry point
-│   ├── components/           # Reusable UI components
-│   │   ├── BookingCard.jsx   # Individual booking display
-│   │   ├── BookingForm.jsx   # Create/edit booking form
-│   │   ├── BookingList.jsx   # List of bookings
-│   │   ├── Button.jsx        # Reusable button component
-│   │   ├── ErrorMessage.jsx  # Error display with retry
-│   │   ├── Footer.jsx        # Footer component
-│   │   ├── Header.jsx        # Dashboard header
-│   │   ├── LoadingSpinner.jsx # Loading state indicator
-│   │   ├── RoomCard.jsx      # Individual room display
-│   │   ├── RoomForm.jsx      # Create/edit room form
-│   │   └── RoomList.jsx      # List of rooms
-│   ├── Data/
-│   │   ├── localStorage.js   # Browser storage utilities
-│   │   └── mockData.js       # Initial data for bookings/rooms
+│   ├── App.css
+│   ├── App.jsx               # Root component, NetworkStressTest toggle
+│   ├── index.css
+│   ├── main.jsx
+│   ├── api/
+│   │   └── apiClient.js      # ★ Axios singleton — the only HTTP instance in the app
+│   ├── components/
+│   │   ├── BookingCard.jsx
+│   │   ├── BookingForm.jsx
+│   │   ├── BookingList.jsx
+│   │   ├── Button.jsx
+│   │   ├── ErrorMessage.jsx
+│   │   ├── Footer.jsx
+│   │   ├── Header.jsx
+│   │   ├── LoadingSpinner.jsx
+│   │   ├── NetworkStressTest.jsx  # ★ Resilience test panel (5 failure modes)
+│   │   ├── NetworkStressTest.css
+│   │   ├── RoomCard.jsx
+│   │   ├── RoomForm.jsx
+│   │   └── RoomList.jsx
+│   ├── hooks/
+│   │   └── useBookings.js    # ★ AbortController + four-path error discrimination
 │   └── services/
-│       ├── bookingService.js # Async booking API with fetchAllBookings()
-│       └── roomService.js    # Async room API with fetchAllRooms()
+│       ├── authService.js    # JWT login/logout — routes through apiClient
+│       ├── bookingService.js # Booking CRUD — routes through apiClient
+│       └── roomService.js    # Room CRUD — routes through apiClient
 ```
 
 ## Current Features
 
-- ✅ Display static booking data
-- ✅ Display static room data
+- ✅ Display booking data from live backend API (`GET /api/Booking`)
+- ✅ Display room data from live backend API (`GET /api/Room`)
 - ✅ Component composition
 - ✅ List rendering with `.map()` and keys
 - ✅ Status-based styling for bookings
 - ✅ Responsive grid layout for rooms
-- ✅ Educational comments explaining React concepts
 - ✅ Interactive state management (add, update, delete bookings/rooms)
 - ✅ Controlled form components
-- ✅ Data persistence with localStorage (survives page refresh)
-- ✅ **Async data fetching with useEffect**
-- ✅ **Component lifecycle management (mount, update, unmount)**
-- ✅ **Resilient state pattern (data + loading + error)**
-- ✅ **Network latency and failure simulation**
+- ✅ JWT authentication with automatic token attachment on every request
+- ✅ **Centralized Axios singleton (`src/api/apiClient.js`)**
+- ✅ **Request interceptor: JWT injection + full-URL console logging**
+- ✅ **Response interceptor: automatic `response.data` unwrap**
+- ✅ **Async data fetching with `useEffect` + `useBookings` hook**
+- ✅ **Three-state resilience pattern (`bookings` / `loading` / `error`)**
+- ✅ **Four-path error discrimination (cancel / timeout / server / network)**
+- ✅ **Race condition prevention with `AbortController`**
 - ✅ **Memory safety with cleanup functions**
-- ✅ **Race condition prevention with AbortController**
+- ✅ **Network Stress Test panel (5 live failure-mode tests)**
 
-## Asynchronous Operations & Component Lifecycle
+## Resilient HTTP Client (Axios)
 
-This application demonstrates **production-ready async state management** with proper error handling, loading states, and memory safety.
+The entire frontend HTTP layer was rebuilt around a single, resilient Axios instance. No component or service creates its own Axios instance — all traffic flows through `src/api/apiClient.js`.
 
-### Network Simulation
+### Requirement 1: Singleton Instance
 
-**API Services:** [`src/services/bookingService.js`](src/services/bookingService.js) & [`src/services/roomService.js`](src/services/roomService.js)
+**File:** [`src/api/apiClient.js`](src/api/apiClient.js)
 
-The app simulates real-world API behavior:
-- **Random Latency**: 500-2500ms delay per operation (using `setTimeout`)
-- **Random Failures**: 20% chance of network/server errors (promise rejection)
-- **Async/Await**: All operations return Promises
-- **Console Logging**: See API calls in browser DevTools
-
-**Key Function:** `fetchAllBookings()` returns a Promise that:
-- Resolves after random delay (500-2500ms) 
-- Rejects 20% of the time with random error messages
-- Simulates "flaky API" conditions for robust error handling
-
-This simulates what would happen with actual `fetch()` calls to a backend server.
-
-### Resilient State Pattern
-
-**Implementation:** [App.jsx](src/App.jsx#L40-L56)
-
-Instead of just storing data, each resource maintains:
 ```javascript
-// Data state
+const apiClient = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL,  // http://localhost:5230/api
+  timeout: 5000,
+  headers: { 'Content-Type': 'application/json' },
+});
+
+export default apiClient;
+```
+
+**Why a singleton?** Every ES module is cached after first import. Importing `apiClient` from any file always returns the same object — same interceptors, same config, no duplicate instances.
+
+### Requirement 2: Interceptors
+
+**Request interceptor** — runs before every request leaves the browser:
+
+```javascript
+apiClient.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+
+  const fullUrl = `${config.baseURL ?? ''}${config.url}`;
+  console.log(`Sending ${config.method?.toUpperCase()} to ${fullUrl}`);
+
+  return config;
+});
+```
+
+- Reads JWT from `localStorage` under key `'token'`
+- Attaches `Authorization: Bearer <token>` header automatically
+- Logs the full URL (base + path) — `config.url` alone only has the path segment
+
+**Response interceptor** — transforms every response before it reaches calling code:
+
+```javascript
+apiClient.interceptors.response.use(
+  (response) => response.data,
+  (error) => {
+    console.log(`Request failed: ${error.message}`);
+    return Promise.reject(error);
+  }
+);
+```
+
+- Unwraps `response.data` once — callers receive data directly, not the Axios envelope
+- Re-throws errors so `catch` blocks in hooks and services still fire
+- Logs failed requests to the console
+
+**Consequence for services:** Because the interceptor unwraps once, service functions must not chain `.data` again. See the [Service Layer](#service-layer) section.
+
+### Requirement 3: `useBookings` Hook with Race Condition Prevention
+
+**File:** [`src/hooks/useBookings.js`](src/hooks/useBookings.js)
+
+```javascript
 const [bookings, setBookings] = useState([]);
-const [rooms, setRooms] = useState([]);
+const [loading, setLoading]   = useState(false);
+const [error, setError]       = useState(null);
 
-// Loading states
-const [isLoading, setIsLoading] = useState(true);
-const [isSubmitting, setIsSubmitting] = useState(false);
-
-// Error state
-const [error, setError] = useState(null);
-```
-
-**State Transitions:**
-1. **Initial**: `{ data: [], loading: true, error: null }`
-2. **Success**: `{ data: [...], loading: false, error: null }`
-3. **Failure**: `{ data: [], loading: false, error: Error }`
-
-### Component Lifecycle with useEffect
-
-**Initial Data Fetch:** [App.jsx](src/App.jsx#L61-L92)
-
-```javascript
 useEffect(() => {
-  const abortController = new AbortController();
-  let isMounted = true;
+  const controller = new AbortController();
+  setLoading(true);
+  setError(null);
 
-  const fetchInitialData = async () => {
+  (async () => {
     try {
-      setIsLoading(true);
-      const [bookingsData, roomsData] = await Promise.all([
-        api.fetchBookings(),
-        api.fetchRooms()
-      ]);
-      
-      if (isMounted && !abortController.signal.aborted) {
-        setBookings(bookingsData);
-        setRooms(roomsData);
-      }
+      const { data: fetchedBookings } = await apiClient.get('/Booking', {
+        params: { page: 1, pageSize: 100, sortBy: 'CreatedAt', sortOrder: 'desc' },
+        signal: controller.signal,
+      });
+      setBookings(fetchedBookings ?? []);
     } catch (err) {
-      if (isMounted) setError(err);
+      if (axios.isCancel(err)) {
+        return;                                               // component unmounted — silent
+      } else if (err.code === 'ECONNABORTED') {
+        setError('Request timed out. Please try again.');    // 5 s timeout hit
+      } else if (err.response) {
+        setError(`Server error ${err.response.status}: ${err.response.data?.message ?? 'Unknown'}`);
+      } else {
+        setError('Network error. Check your connection.');   // no response at all
+      }
     } finally {
-      if (isMounted) setIsLoading(false);
+      setLoading(false);
     }
-  };
+  })();
 
-  fetchInitialData();
-
-  // Cleanup function prevents memory leaks
-  return () => {
-    isMounted = false;
-    abortController.abort();
-  };
-}, []); // Empty array = run once on mount
+  return () => controller.abort();   // cleanup: cancel in-flight request on unmount
+}, []);
 ```
 
-**Key Patterns:**
+**Why destructure `{ data: fetchedBookings }` instead of just using the response?**
 
-1. **AbortController** - Cancels fetch if component unmounts
-2. **isMounted Flag** - Prevents state updates after unmount  
-3. **Cleanup Function** - Runs when component unmounts, stops background processes
-4. **Empty Dependency Array** - Effect runs only once (on mount)
-5. **Promise.all** - Parallel fetching for better performance
+The backend returns a pagination envelope:
+```json
+{ "data": [...], "totalCount": 142, "page": 1, "pageSize": 100 }
+```
 
-### Memory Safety & Cleanup
+The response interceptor unwraps the Axios wrapper → we receive the envelope. The destructure then pulls the inner `data` array — no double-`.data` chain, no confusion.
 
-**Why Cleanup Matters:**
+**Four error paths:**
 
-Without cleanup, if the component unmounts while an async operation is in progress:
-- ❌ "Can't perform state update on unmounted component" warning
-- ❌ Memory leak (operation continues in background)
-- ❌ Race conditions (late responses overwrite newer data)
+| Condition | Cause | Message shown |
+|---|---|---|
+| `axios.isCancel(err)` | Component unmounted mid-request | Silent — no state update |
+| `err.code === 'ECONNABORTED'` | 5 s timeout exceeded | "Request timed out…" |
+| `err.response` exists | Backend returned 4xx/5xx | "Server error {status}…" |
+| else | DNS failure, refused connection | "Network error…" |
 
-**With Cleanup:**
+### Requirement 4: Network Stress Test
+
+**File:** [`src/components/NetworkStressTest.jsx`](src/components/NetworkStressTest.jsx)
+
+A self-contained panel reachable via the "Network Resilience" toggle in `App.jsx`. All five tests make **real HTTP requests** — no mocks.
+
+| Test | How it breaks | What you expect to see |
+|---|---|---|
+| **Timeout** | Overrides `timeout: 1` ms | ECONNABORTED → "Request timed out" |
+| **Network Error** | Targets port 19999 (nothing listening) | ERR_CONNECTION_REFUSED → "Network error" |
+| **401 Unauthorized** | Sends `Authorization: Bearer invalid_token` | 401 → "Server error 401" |
+| **404 Not Found** | `GET /Booking/2147483647` (impossible ID) | 404 → "Server error 404" |
+| **Cancel** | `controller.abort()` called synchronously before request resolves | Cancelled → silent |
+
+`abortRef` cancels any previous test before starting a new one — preventing stale result overlap.
+
+---
+
+## Service Layer
+
+All three services import `apiClient` and route every call through it. **No service creates its own Axios instance.**
+
 ```javascript
-return () => {
-  isMounted = false;          // Prevent state updates
-  abortController.abort();     // Cancel pending requests
+// bookingService.js, roomService.js, authService.js — all start with:
+import apiClient from '../api/apiClient';
+```
+
+Because the response interceptor already does `response.data`, services must **not** chain `.data` again. The pattern is:
+
+```javascript
+// ✅ Correct — interceptor already unwrapped once
+export const fetchAllBookings = async () => {
+  const response = await apiClient.get('/Booking', { params: { page: 1, pageSize: 100 } });
+  return response.data || [];   // response IS the pagination envelope; .data is inner array
 };
+
+// ❌ Wrong — double unwrap
+const response = await apiClient.get('/Booking');
+return response.data.data;     // Never do this
 ```
 
-✅ Operations stop immediately on unmount  
-✅ No memory leaks  
-✅ No React warnings
+`authService.js` follows the same rule — login response fields are accessed directly:
 
-### The Cloudflare Incident: Preventing Infinite Loops
-
-**The Real-World Disaster:**
-
-In July 2019, Cloudflare experienced a massive global outage that took down millions of websites. The cause was a single regular pattern that got stuck in an infinite loop. This pattern was deployed to every server processing web traffic, and because it never finished executing, the servers consumed all available CPU resources. The entire network ground to a halt because one small piece of code that couldn't stop running.
-
-**The Lesson:** Never create code that loops forever without a way to exit the condition.
-
-**How Our Code Prevents This:**
-
-React's `useEffect` hook can easily create infinite loops so to negate this, the app follows the **dependency array discipline**, here is an example below:
-
-**❌ Dangerous Pattern (Infinite Loop):**
 ```javascript
+const response = await apiClient.post('/Auth/login', credentials);
+localStorage.setItem('token', response.token);   // response.token, not response.data.token
+```
+
+---
+
+## Async Patterns & Lifecycle
+
+### Three-State Pattern
+
+Every async resource in the app uses three parallel state variables:
+
+```javascript
+const [bookings, setBookings] = useState([]);   // the data
+const [loading, setLoading]   = useState(false); // in-flight indicator
+const [error, setError]       = useState(null);  // failure message
+```
+
+**State transitions:**
+1. Mount → `loading: true, error: null`
+2. Success → `loading: false, data: [...]`
+3. Failure → `loading: false, error: "message"`
+
+### AbortController & Cleanup
+
+`useBookings` creates a new `AbortController` per effect invocation and passes `signal` to Axios. The cleanup function (`return () => controller.abort()`) fires when:
+- The component unmounts (user navigates away)
+- The effect re-runs (effect dependencies change)
+
+This guarantees no stale responses ever update state.
+
+### Dependency Array Discipline
+
+The `useEffect` in `useBookings` uses an empty dependency array (`[]`) — the fetch runs once on mount. Adding the wrong dependency would cause an infinite loop:
+
+```javascript
+// ❌ Infinite loop
 useEffect(() => {
-  setFilteredBookings(allBookings.filter(...)); // Changes filteredBookings
-}, [filteredBookings]); // Depends on what we're changing!
+  fetchBookings().then(data => setBookings(data));
+}, [bookings]);  // depends on what we're setting!
 
-// Loop: set → triggers effect → set → triggers effect → CRASH
-```
-
-**✅ Safe Pattern (Our Implementation):**
-```javascript
+// ✅ Correct — runs once
 useEffect(() => {
-  let result = allBookings.filter(...); // Read from SOURCE data
-  setFilteredBookings(result); // Write to DERIVED data
-}, [categoryFilter, locationFilter, allBookings]); // Only source dependencies
-
-// Flow: Filter changes → runs ONCE → updates display → STOPS
+  fetchBookings().then(data => setBookings(data));
+}, []);
 ```
 
-**The Rule is:** Never include a state variable in the dependency array if that same `useEffect` calls its setter function. Always read from **source data** and write to **different derived data**. This ensures the effect runs once per change and then stops after a run.
+**Rule:** Never include a state variable in the dependency array if the same effect calls its setter.
 
-### Error Handling
+---
 
-**User-Facing Errors:** [ErrorMessage.jsx](src/components/ErrorMessage.jsx)
+## Error Handling
 
-Errors can occur at two levels:
+**User-facing errors:** [`src/components/ErrorMessage.jsx`](src/components/ErrorMessage.jsx)
 
-1. **Critical (Initial Load Failure)** - Shows full-screen error with retry
-2. **Non-Critical (Operation Failure)** - Shows banner, keeps existing data
+| Error level | When | UI |
+|---|---|---|
+| Critical | Initial load fails | Full-screen error with Retry button |
+| Non-critical | Operation fails (create/update/delete) | Banner, keeps existing data |
 
-**Error Recovery:**
-- **Retry Button** - Reloads the page to refetch
-- **Dismiss Button** - Hides error banner
-- **Optimistic Updates** - UI updates immediately, rolls back on error
+**Recovery options:**
+- **Retry** — reloads the page to re-trigger the fetch
+- **Dismiss** — hides the banner
+- **Optimistic updates** — UI reflects changes immediately; rolls back on error
 
-### Loading States
+---
 
-**User Feedback Components:**
+## State Management
 
-1. **LoadingSpinner (Overlay)** - [App.jsx](src/App.jsx#L206) - Full-screen during submit operations
-2. **LoadingSpinner (Inline)** - [App.jsx](src/App.jsx#L191) - Within content during initial load
+### Lifting State Up
 
-**UX Pattern:**
-- Initial load → Full-screen spinner
-- Submit/Delete → Overlay spinner with disabled buttons
-- Background operations → Silent (no UI blocking)
+`useState` lives at two levels:
 
-## Data Persistence
+| Level | Where | What |
+|---|---|---|
+| **Local (form)** | `BookingForm.jsx`, `RoomForm.jsx` | Temporary typed input; discarded on submit |
+| **Global (app)** | `App.jsx` | Persisted bookings/rooms; shared across siblings |
 
-This application uses the browser's **localStorage** API to persist bookings and rooms data across page refreshes.
+Form components do not couple to parent state structure. They call `onSubmit(data)` and the parent decides what to do with it.
 
-### Implementation
+### Unidirectional Data Flow
 
-**Storage Utilities:** [`src/Data/localStorage.js`](src/Data/localStorage.js)  
-**API Services:** [`src/services/bookingService.js`](src/services/bookingService.js) & [`src/services/roomService.js`](src/services/roomService.js)
-
-- `loadBookings()` / `saveBookings()` - Synchronous localStorage operations
-- `fetchAllBookings()` / `createBooking()` / `updateBooking()` / `deleteBooking()` - Async API calls
-- Similar pattern for rooms: `fetchAllRooms()`, `createRoom()`, etc.
-
-**Data Flow:**
-1. **Mount** - `bookingService.fetchAllBookings()` → Async delay → `loadBookings()` from localStorage
-2. **Create** - `bookingService.createBooking()` → Async delay → `saveBookings()` to localStorage
-3. **Update/Delete** - Same async → sync pattern
-
-Data persists via localStorage but **all access is async** to simulate real API behavior.
-
-## State Management: Lifting State Up
-
-This app uses `useState` at different component levels following React's "Lifting State Up" pattern.
-
-### Why useState in Form vs App Components?
-
-**Form Components use useState for:**
-- **Temporary input state** - Tracks what the user is actively typing before submission. This state is ephemeral and discarded after form submission or cancellation.
-- **Performance isolation** - Input changes only trigger re-renders of the form component, not the entire application tree.
-- **Component reusability** - Forms remain self-contained and can be used in different contexts without coupling to parent state structure.
-
-**App Component uses useState for:**
-- **Persistent application data** - Maintains the single source of truth for bookings and rooms that must be shared across multiple components.
-- **Cross-component communication** - Enables sibling components (BookingList, RoomList, BookingForm, RoomForm) to access and modify the same data through props and callbacks.
-- **UI state management** - Controls visibility and editing modes that affect multiple parts of the application simultaneously.
-
-This architectural choice follows React's principle of placing state at the lowest common ancestor that needs to access it, ensuring optimal performance while maintaining data accessibility.
-
-### Implementation Details
-
-**Form State (Local)** - Lives in BookingForm.jsx and RoomForm.jsx
-- Manages temporary input values (what user is typing)
-- Updates on every keystroke for controlled components
-- Cleared when form is submitted or cancelled
-- Only the form re-renders during typing (performance optimization)
-
-```javascript
-// BookingForm.jsx - Lines 27-30
-const [roomId, setRoomId] = useState("");
-const [startTime, setStartTime] = useState("");
-const [endTime, setEndTime] = useState("");
-const [status, setStatus] = useState("Pending");
+```
+App state (bookings, rooms)
+   ↓ props
+ BookingList / RoomList / Forms
+   ↑ callbacks (onSubmit, onDelete)
+App state updates → re-render
 ```
 
-**App State (Global)** - Lives in App.jsx
-- Manages persistent data (bookings, rooms)
-- Shared between sibling components via props
-- Single source of truth for the entire application
-- UI state (show/hide forms, editing mode)
-
-```javascript
-// App.jsx - Lines 35-45
-const [bookings, setBookings] = useState(initialBookings);
-const [rooms, setRooms] = useState(initialRooms);
-const [showBookingForm, setShowBookingForm] = useState(false);
-const [editingBooking, setEditingBooking] = useState(null);
-```
-
-### Data Flow
-
-1. User types in form → Updates local form state → Only form re-renders
-2. User clicks Submit → Form calls `onSubmit(data)` → Passes data to App
-3. App updates global state → All dependent components re-render with new data
-
-This separation ensures forms don't trigger full app re-renders on every keystroke, maintaining good performance.
-
-## Design Principles Applied
-
-### 1. Separation of Concerns
-- Forms handle temporary input capture
-- App handles persistent data management
-- Components focus on their specific responsibility
-
-### 2. Single Source of Truth
-- One place for bookings data (App)
-- No duplicate or conflicting state
-- Clear ownership of each piece of state
-
-### 3. Unidirectional Data Flow
-- Data flows down via props
-- Events flow up via callbacks
-- Predictable and debuggable
-
-### 4. Component Reusability
-- Forms don't depend on specific parent
-- Can be reused with different data sources
-- Testable in isolation
+---
 
 ## Getting Started
 
-1. Install dependencies:
+1. **Install dependencies:**
    ```bash
    npm install
    ```
 
-2. Start development server:
+2. **Configure environment** — create `.env` at the project root:
+   ```
+   VITE_API_BASE_URL=http://localhost:5230/api
+   ```
+
+3. **Start the backend** (from solution root):
+   ```bash
+   dotnet run --project API/API.csproj
+   ```
+
+4. **Start the frontend:**
    ```bash
    npm run dev
    ```
 
-3. Open browser to:
+5. **Open browser:**
    ```
    http://localhost:5173
    ```
 
-## Future Enhancements
+6. **(Optional) Open the Network Stress Test** by clicking the "Network Resilience" toggle at the bottom of the page to verify all five failure-mode paths.
 
-This is a basic static version. Future additions will include:
-- State management (useState, useReducer)
-- API integration with the Conference Booking API
-- Forms for creating bookings and rooms
-- Authentication integration
-- Real-time availability checking
-- Filtering and sorting
-- Routing (multiple pages)
+---
 
-## Learning Path
+## API Endpoints Used
 
-This project follows a progressive learning approach:
-1. **Today**: Static data, component composition, props
-2. **Tomorrow**: State management, event handlers
-3. **Next**: API integration, useEffect, data fetching
-4. **Later**: Forms, validation, authentication
+Backend runs at `http://localhost:5230/api`. The frontend uses the following endpoints:
 
-## API Endpoints (Future Integration)
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/Auth/login` | Obtain JWT token |
+| `GET` | `/Booking` | Paginated booking list |
+| `POST` | `/Booking` | Create a booking |
+| `PUT` | `/Booking/{id}` | Update a booking |
+| `DELETE` | `/Booking/{id}` | Delete a booking |
+| `GET` | `/Room` | Paginated room list |
+| `POST` | `/Room` | Create a room |
+| `PUT` | `/Room/{id}` | Update a room |
+| `DELETE` | `/Room/{id}` | Delete a room |
 
-The backend API is available at `http://localhost:5000`:
-- `GET /api/bookings` - List all bookings
-- `GET /api/rooms` - List all rooms
-- `POST /api/bookings` - Create a booking
-- `GET /api/rooms/available` - Check room availability
+All requests carry `Authorization: Bearer <token>` (attached automatically by the request interceptor).
+

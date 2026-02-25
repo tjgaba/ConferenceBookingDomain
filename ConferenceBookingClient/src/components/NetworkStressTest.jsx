@@ -90,10 +90,10 @@ function NetworkStressTest() {
     try {
       switch (testId) {
         // ── 1. Timeout ──────────────────────────────────────────────────────
-        // Override the instance timeout to 1 ms — any real request will exceed it.
+        // Override the instance timeout to 10 ms — any real request will exceed it.
         case 'timeout':
           await apiClient.get('/Booking', {
-            timeout: 1,
+            timeout: 10,
             signal: controller.signal,
             params: { page: 1, pageSize: 1 },
           });

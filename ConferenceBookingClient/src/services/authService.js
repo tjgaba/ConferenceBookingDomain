@@ -1,5 +1,5 @@
 // authService.js - Authentication API calls
-import apiClient from './api.js';
+import apiClient from '../api/apiClient';
 
 export const authService = {
   /**
@@ -14,18 +14,18 @@ export const authService = {
       password
     });
     
-    // Store token in localStorage for future requests
-    if (response.data.token) {
-      localStorage.setItem('token', response.data.token);
-      if (response.data.refreshToken) {
-        localStorage.setItem('refreshToken', response.data.refreshToken);
+    // Interceptor already unwraps response.data → response IS the payload
+    if (response.token) {
+      localStorage.setItem('token', response.token);
+      if (response.refreshToken) {
+        localStorage.setItem('refreshToken', response.refreshToken);
       }
-      if (response.data.user) {
-        localStorage.setItem('user', JSON.stringify(response.data.user));
+      if (response.user) {
+        localStorage.setItem('user', JSON.stringify(response.user));
       }
     }
     
-    return response.data;
+    return response;
   },
 
   /**

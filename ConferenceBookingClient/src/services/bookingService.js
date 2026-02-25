@@ -9,7 +9,7 @@
 // - Error handling
 // - Request/response logging
 
-import apiClient from './api';
+import apiClient from '../api/apiClient';
 
 // ==================== BOOKING API FUNCTIONS ====================
 
@@ -27,9 +27,9 @@ export const fetchAllBookings = async (page = 1, pageSize = 100, sortBy = 'Creat
     const response = await apiClient.get('/Booking', {
       params: { page, pageSize, sortBy, sortOrder }
     });
-    console.log('✓ API: Fetched bookings', response.data.data?.length || 0);
-    // Return just the data array for backward compatibility
-    return response.data.data || [];
+    console.log('✓ API: Fetched bookings', response.data?.length || 0);
+    // Interceptor already unwraps response.data → response is the pagination envelope
+    return response.data || [];
   } catch (error) {
     console.error('❌ Failed to fetch bookings:', error);
     throw error;
@@ -46,7 +46,7 @@ export const getBookingById = async (bookingId) => {
   try {
     const response = await apiClient.get(`/Booking/${bookingId}`);
     console.log('✓ API: Fetched booking', bookingId);
-    return response.data;
+    return response;
   } catch (error) {
     console.error(`❌ Failed to fetch booking ${bookingId}:`, error);
     throw error;
@@ -62,8 +62,8 @@ export const getBookingById = async (bookingId) => {
 export const createBooking = async (bookingData) => {
   try {
     const response = await apiClient.post('/Booking', bookingData);
-    console.log('✓ API: Created booking', response.data.id);
-    return response.data;
+    console.log('✓ API: Created booking', response.id);
+    return response;
   } catch (error) {
     console.error('❌ Failed to create booking:', error);
     throw error;
@@ -81,7 +81,7 @@ export const updateBooking = async (bookingId, bookingData) => {
   try {
     const response = await apiClient.put(`/Booking/${bookingId}`, bookingData);
     console.log('✓ API: Updated booking', bookingId);
-    return response.data;
+    return response;
   } catch (error) {
     console.error(`❌ Failed to update booking ${bookingId}:`, error);
     throw error;
@@ -114,7 +114,7 @@ export const checkAvailability = async (params) => {
   try {
     const response = await apiClient.post('/Booking/check-availability', params);
     console.log('✓ API: Checked availability');
-    return response.data;
+    return response;
   } catch (error) {
     console.error('❌ Failed to check availability:', error);
     throw error;
@@ -130,8 +130,8 @@ export const checkAvailability = async (params) => {
 export const filterBookings = async (filters) => {
   try {
     const response = await apiClient.post('/Booking/filter', filters);
-    console.log('✓ API: Filtered bookings', response.data.length);
-    return response.data;
+    console.log('✓ API: Filtered bookings', response?.length);
+    return response;
   } catch (error) {
     console.error('❌ Failed to filter bookings:', error);
     throw error;
