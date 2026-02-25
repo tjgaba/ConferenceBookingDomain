@@ -17,4 +17,25 @@ const apiClient = axios.create({
   },
 });
 
+// ── Request Interceptor ───────────────────────────────────────────────────────
+// Logs every outgoing request before it leaves the client.
+// In production apps this is where auth tokens or trace IDs are attached.
+apiClient.interceptors.request.use((config) => {
+  const fullUrl = `${config.baseURL ?? ''}${config.url}`;
+  console.log(`Sending ${config.method?.toUpperCase()} to ${fullUrl}`);
+  return config;
+});
+
+// ── Response Interceptor ──────────────────────────────────────────────────────
+// Success: unwrap the Axios envelope once here so no consuming code ever
+//          needs to write `.data` chains.
+// Failure: log the error then re-throw so callers can still handle it.
+apiClient.interceptors.response.use(
+  (response) => response.data,
+  (error) => {
+    console.log(`Request failed: ${error.message}`);
+    return Promise.reject(error);
+  }
+);
+
 export default apiClient;
