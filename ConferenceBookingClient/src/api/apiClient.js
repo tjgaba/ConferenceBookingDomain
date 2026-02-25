@@ -18,9 +18,14 @@ const apiClient = axios.create({
 });
 
 // ── Request Interceptor ───────────────────────────────────────────────────────
-// Logs every outgoing request before it leaves the client.
-// In production apps this is where auth tokens or trace IDs are attached.
+// 1. Attaches the JWT token from localStorage (if present) so every protected
+//    endpoint receives the Authorization header automatically.
+// 2. Logs every outgoing request — method + full URL — to the console.
 apiClient.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
   const fullUrl = `${config.baseURL ?? ''}${config.url}`;
   console.log(`Sending ${config.method?.toUpperCase()} to ${fullUrl}`);
   return config;

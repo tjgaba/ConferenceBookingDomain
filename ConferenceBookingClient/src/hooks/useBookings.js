@@ -1,51 +1,85 @@
-// useBookings.js — Custom hook for fetching and managing bookings state.
+// useBookings.js — Axios-powered hook (Requirement 3: The Refactor).
 //
-// Requirement: "The Live Hook" — uses Axios via bookingService to fetch from the
-// real backend API. Initial state is [] and populates only after a successful
-// 200 OK response.
+// Uses the centralized apiClient singleton (src/api/apiClient.js).
+// No raw fetch() or direct axios calls — all HTTP traffic flows through apiClient.
 
 import { useState, useEffect } from 'react';
-import * as bookingService from '../services/bookingService';
+import axios from 'axios';
+import apiClient from '../api/apiClient';
 
 /**
- * Custom hook that fetches all bookings from the backend API.
+ * Fetches all bookings from the backend API.
  *
- * @returns {{ bookings: Array, setBookings: Function, isLoading: boolean, error: Error|null, refetch: Function }}
+ * State pattern:
+ *   loading  — true while the request is in flight.
+ *   error    — null on success; a descriptive string on any failure.
+ *   bookings — [] initially; populated only on a successful 200 OK response.
+ *
+ * AbortController is created inside useEffect so every mount gets a fresh
+ * controller. Its signal is passed to the Axios call so the request is
+ * cancelled if the component unmounts before the response arrives.
+ *
+ * @returns {{ bookings: Array, setBookings: Function, loading: boolean, error: string|null }}
  */
 function useBookings() {
-  const [bookings, setBookings] = useState([]); // Starts empty — populated only on 200 OK
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
-
-  const fetchBookings = async (signal) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const data = await bookingService.fetchAllBookings();
-      if (!signal?.aborted) {
-        setBookings(data);
-      }
-    } catch (err) {
-      if (!signal?.aborted) {
-        setError(err);
-        console.error('useBookings: failed to fetch bookings:', err);
-      }
-    } finally {
-      if (!signal?.aborted) {
-        setIsLoading(false);
-      }
-    }
-  };
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState(null);
 
   useEffect(() => {
     const controller = new AbortController();
-    fetchBookings(controller.signal);
+
+    const fetchBookings = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        // The response interceptor already unwraps response.data, so the
+        // resolved value here is the server's pagination object:
+        //   { data: [...], totalCount: N, page: 1, pageSize: 100 }
+        // We destructure to extract the bookings array — no .data chaining.
+        const { data: fetchedBookings } = await apiClient.get('/Booking', {
+          params: { page: 1, pageSize: 100, sortBy: 'CreatedAt', sortOrder: 'desc' },
+          signal: controller.signal,
+        });
+
+        setBookings(fetchedBookings ?? []);
+      } catch (err) {
+        // ── Cancelled (intentional cleanup) ──────────────────────────────
+        // Component unmounted before the response arrived. Not an error.
+        if (axios.isCancel(err)) return;
+
+        // ── Timeout ───────────────────────────────────────────────────────
+        // Server did not respond within the 5 s window defined in apiClient.
+        if (err.code === 'ECONNABORTED') {
+          setError('The server took too long to respond. Please try again.');
+          return;
+        }
+
+        // ── Server error (4xx / 5xx) ───────────────────────────────────────
+        // The server replied but with an error status code.
+        if (err.response) {
+          const msg = err.response.data?.message ?? err.message;
+          setError(`Server error ${err.response.status}: ${msg}`);
+          return;
+        }
+
+        // ── Network error ──────────────────────────────────────────────────
+        // No response at all — server is unreachable or DNS failed.
+        setError('Cannot reach the server. Check your network connection.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBookings();
+
+    // Cleanup: abort the in-flight request when the component unmounts or
+    // the effect re-runs. Prevents state updates on unmounted components.
     return () => controller.abort();
   }, []);
 
-  const refetch = () => fetchBookings();
-
-  return { bookings, setBookings, isLoading, error, refetch };
+  return { bookings, setBookings, loading, error };
 }
 
 export default useBookings;
