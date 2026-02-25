@@ -70,6 +70,9 @@ function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(authService.isAuthenticated());
   const [currentUser, setCurrentUser] = useState(authService.getCurrentUser());
   const [showLoginForm, setShowLoginForm] = useState(false);
+  // Incrementing this forces the data-fetch effect to re-run even when
+  // isLoggedIn was already true (e.g. stale token replaced by fresh login).
+  const [refreshKey, setRefreshKey] = useState(0);
   
   // UI state  
   const [showBookingForm, setShowBookingForm] = useState(false);
@@ -80,9 +83,18 @@ function App() {
 
   // ==================== COMPONENT LIFECYCLE (Mount, Update, Unmount) ====================
   
-  // EFFECT: Fetch initial data on component mount
-  // This demonstrates proper async data fetching with cleanup
+  // EFFECT: Fetch initial data — runs on mount and whenever login state changes.
+  // If the user is not logged in, skip the fetch and clear loading immediately.
   useEffect(() => {
+    if (!isLoggedIn) {
+      setIsLoading(false);
+      setAllBookings([]);
+      setAllRooms([]);
+      setFilteredBookings([]);
+      setFilteredRooms([]);
+      return;
+    }
+
     // AbortController allows us to cancel the fetch if component unmounts
     const abortController = new AbortController();
     let isMounted = true; // Flag to prevent state updates after unmount
@@ -135,7 +147,7 @@ function App() {
       abortController.abort();
       console.log('🧹 Cleanup: Aborted pending fetch operations');
     };
-  }, []); // Empty dependency array = run once on mount
+  }, [isLoggedIn, refreshKey]); // Re-run on login state change OR explicit refresh after re-login
 
   // ==================== CASCADING DERIVED STATE ====================
   
@@ -423,6 +435,9 @@ function App() {
       setIsLoggedIn(true);
       setCurrentUser(result.user);
       setShowLoginForm(false);
+      // Always bump refreshKey so the data-fetch effect fires even if
+      // isLoggedIn was already true (stale token scenario after DB reset).
+      setRefreshKey(k => k + 1);
       alert(`Welcome back, ${result.user.username}!`);
     } catch (error) {
       console.error('Login failed:', error);
@@ -652,7 +667,7 @@ function App() {
         />
       </section>
 
-      {/* ── Requirement 4: Stress Test Panel ─────────────────────────── */}
+      {/* ── Stress Test Panel ─────────────────────────── */}
       <section className="section">
         <div className="section-header">
           <h2>Network Resilience</h2>

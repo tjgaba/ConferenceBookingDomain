@@ -52,7 +52,7 @@ const TESTS = [
   },
 ];
 
-// ── Error classifier (mirrors the logic in useBookings.js) ───────────────────
+// ── Error classifier  ───────────────────
 function classifyError(err) {
   if (axios.isCancel(err)) {
     return { type: 'cancelled', message: null }; // intentional — silent

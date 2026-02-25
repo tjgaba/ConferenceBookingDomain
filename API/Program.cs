@@ -96,14 +96,6 @@ public partial class Program
         // Seed roles and users
         var app = builder.Build();
 
-        // Ensure database is created with proper schema
-        using (var scope = app.Services.CreateScope())
-        {
-            var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            // Use EnsureCreated for development - creates schema based on model
-            dbContext.Database.EnsureCreated();
-        }
-
         // Auto-apply EF Core migrations on startup (safe to run on every boot — skips already-applied migrations)
         // This means running on a fresh machine / Docker container just works without manual 'dotnet ef database update'
         using (var scope = app.Services.CreateScope())

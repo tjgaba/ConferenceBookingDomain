@@ -39,6 +39,13 @@ apiClient.interceptors.response.use(
   (response) => response.data,
   (error) => {
     console.log(`Request failed: ${error.message}`);
+    // If the server rejects our token as invalid/expired, wipe it so the
+    // app starts fresh instead of looping on 401s with a dead token.
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('user');
+    }
     return Promise.reject(error);
   }
 );
