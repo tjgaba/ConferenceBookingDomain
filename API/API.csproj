@@ -53,6 +53,7 @@
   <ItemGroup>
     <Compile Include="Middleware\**\*.cs" />
     <Compile Include="Auth\**\*.cs" />
+    <Compile Include="Hubs\**\*.cs" />
     <Compile Include="Migrations\**\*.cs" />
   </ItemGroup>
 

@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
 using ConferenceBooking.API.Services;
 using ConferenceBooking.API.Middleware;
+using ConferenceBooking.API.Hubs;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -55,22 +56,41 @@ public partial class Program
                 IssuerSigningKey = new SymmetricSecurityKey(
                     Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key not configured")))
             };
+            // SignalR sends the JWT as a query param (?access_token=...) during
+            // the WebSocket handshake because browsers cannot set custom headers
+            // on WebSocket connections. Read it here and use it as the bearer token.
+            options.Events = new JwtBearerEvents
+            {
+                OnMessageReceived = context =>
+                {
+                    var accessToken = context.Request.Query["access_token"];
+                    var path = context.HttpContext.Request.Path;
+                    if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+                        context.Token = accessToken;
+                    return Task.CompletedTask;
+                }
+            };
         });
 
         builder.Services.AddScoped<TokenService>();
         builder.Services.AddScoped<ISessionManager, SessionManager>();
 
         // Add CORS policy for React frontend
+        // AllowAnyMethod() is required for SignalR — the WebSocket/SSE negotiation
+        // uses methods beyond GET/POST/PUT/DELETE that WithMethods() would block.
         builder.Services.AddCors(options =>
         {
             options.AddPolicy("AllowReactApp", policy =>
             {
                 policy.WithOrigins("http://localhost:5173") // Vite's default port
                       .AllowAnyHeader()
-                      .WithMethods("GET", "POST", "PUT", "DELETE")
+                      .AllowAnyMethod()
                       .AllowCredentials();
             });
         });
+
+        // SignalR — real-time booking notifications
+        builder.Services.AddSignalR();
 
         // Register BookingManager with ApplicationDbContext
         builder.Services.AddScoped<BookingManager>();
@@ -161,6 +181,9 @@ public partial class Program
 
         // Map controllers so API endpoints (POST/DELETE) are exposed
         app.MapControllers();
+
+        // Map the SignalR booking hub
+        app.MapHub<BookingHub>("/hubs/booking");
 
         app.Run();
     }

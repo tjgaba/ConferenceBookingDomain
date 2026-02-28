@@ -22,7 +22,7 @@
 //
 // Data flow: User Action → Async API Call → Loading State → Success/Error → UI Update (line 456)
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import Header from "./components/Header";
 import BookingList from "./components/BookingList";
 import RoomList from "./components/RoomList";
@@ -37,6 +37,7 @@ import Toast from "./components/Toast";
 import * as bookingService from "./services/bookingService";
 import * as roomService from "./services/roomService";
 import useAuth from "./hooks/useAuth";
+import useSignalR from "./hooks/useSignalR";
 import NetworkStressTest from "./components/NetworkStressTest";
 import "./App.css";
 
@@ -65,6 +66,9 @@ function App() {
   
   // Toast notification state
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+  // Remote toast — dedicated state for orange SignalR notifications so both
+  // toasts can be visible at the same time without overwriting each other.
+  const [toastRemote, setToastRemote] = useState({ show: false, message: '', type: 'warning' });
   
   // Auth state — Hook Discipline: all auth logic lives in useAuth, not here.
   const {
@@ -90,6 +94,40 @@ function App() {
   const [showStressTest, setShowStressTest] = useState(false);
   const [editingBooking, setEditingBooking] = useState(null);
   const [editingRoom, setEditingRoom] = useState(null);
+
+  // ── Extra Credit: SignalR real-time sync ──────────────────────────────────
+  // One WebSocket connection handles both booking and room events.
+  // When any client mutates data, the backend broadcasts to all tabs.
+  // Re-fetching here keeps every open tab in sync without a manual refresh.
+  useSignalR({
+    onBookingChange: useCallback(async (eventName, payload) => {
+      const bookings = await bookingService.fetchAllBookings();
+      setAllBookings(bookings);
+      setFilteredBookings(bookings);
+      const actor = payload?.by ?? payload?.By ?? 'Unknown';
+      const templates = {
+        BookingCreated:   `A new booking was created by "${actor}".`,
+        BookingUpdated:   `A booking was updated by "${actor}".`,
+        BookingCancelled: `A booking was cancelled by "${actor}".`,
+        BookingDeleted:   `A booking was deleted by "${actor}".`,
+      };
+      const msg = templates[eventName] ?? `Bookings were updated by "${actor}".`;
+      setToastRemote({ show: true, message: msg, type: 'warning' });
+    }, []),
+    onRoomChange: useCallback(async (eventName, payload) => {
+      const rooms = await roomService.fetchAllRooms();
+      setAllRooms(rooms);
+      setFilteredRooms(rooms);
+      const actor = payload?.by ?? payload?.By ?? 'Unknown';
+      const templates = {
+        RoomCreated: `A new room was added by "${actor}".`,
+        RoomUpdated: `A room was updated by "${actor}".`,
+        RoomDeleted: `A room was removed by "${actor}".`,
+      };
+      const msg = templates[eventName] ?? `Rooms were updated by "${actor}".`;
+      setToastRemote({ show: true, message: msg, type: 'warning' });
+    }, []),
+  });
 
   // ==================== COMPONENT LIFECYCLE (Mount, Update, Unmount) ====================
 
@@ -467,6 +505,11 @@ function App() {
     setToast({ ...toast, show: false });
   };
 
+  // HANDLER: Close remote (orange) toast notification
+  const handleCloseToastRemote = () => {
+    setToastRemote({ ...toastRemote, show: false });
+  };
+
   // HANDLER: Login — thin wrapper; useAuth.login() handles all state + authService.
   const handleLogin = async (username, password) => {
     const result = await login(username, password); // re-throws on failure → LoginForm shows error
@@ -534,6 +577,16 @@ function App() {
           message={toast.message}
           type={toast.type}
           onClose={handleCloseToast}
+        />
+      )}
+
+      {/* Remote Toast - Orange SignalR real-time notifications from other users */}
+      {toastRemote.show && (
+        <Toast
+          message={toastRemote.message}
+          type={toastRemote.type}
+          onClose={handleCloseToastRemote}
+          className="toast-remote"
         />
       )}
 

@@ -13,7 +13,7 @@
 import { useEffect } from 'react';
 import './Toast.css';
 
-function Toast({ message, type = 'success', duration = 3000, onClose }) {
+function Toast({ message, type = 'success', duration = 3000, onClose, className = '' }) {
   // EFFECT: Auto-dismiss toast after duration
   useEffect(() => {
     // Set timer to auto-dismiss
@@ -35,13 +35,15 @@ function Toast({ message, type = 'success', duration = 3000, onClose }) {
         return '✕';
       case 'info':
         return 'ℹ';
+      case 'warning':
+        return '⚡';
       default:
         return '✓';
     }
   };
 
   return (
-    <div className={`toast toast-${type}`}>
+    <div className={`toast toast-${type}${className ? ` ${className}` : ''}`}>
       <div className="toast-icon">{getIcon()}</div>
       <div className="toast-message">{message}</div>
       <button 

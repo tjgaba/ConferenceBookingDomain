@@ -81,6 +81,17 @@ function useBookings() {
     return () => controller.abort();
   }, [refetch]);
 
+  // ── Extra Credit: SignalR real-time sync ─────────────────────────────────────
+  // When any client creates or updates a booking, the backend broadcasts the
+  // event to all connected clients. We re-fetch here so every open tab stays
+  // in sync without the user needing to refresh.
+  // The connection lifecycle (start / stop / cleanup) is fully managed by useSignalR.
+  useSignalR({
+    onBookingChange: useCallback(() => {
+      refetch();
+    }, [refetch]),
+  });
+
   // ── Req 1 + 2: createBooking (POST) ─────────────────────────────────────────
   /**
    * Create a new booking.

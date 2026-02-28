@@ -4,12 +4,14 @@ using ConferenceBooking.API.Data;
 using ConferenceBooking.API.DTO;
 using ConferenceBooking.API.Auth;
 using ConferenceBooking.API.Entities;
+using ConferenceBooking.API.Hubs;
 using ConferenceBooking.API.Models;
 using ConferenceBooking.API.Constants;
 using ConferenceBooking.API.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
@@ -27,6 +29,7 @@ namespace ConferenceBooking.API.Controllers
         private readonly BookingRepository _bookingRepository;
         private readonly BookingValidationService _validationService;
         private readonly BookingManagementService _bookingManagementService;
+        private readonly IHubContext<BookingHub> _hubContext;
 
         public BookingController(
             ApplicationDbContext dbContext,
@@ -34,7 +37,8 @@ namespace ConferenceBooking.API.Controllers
             ILogger<BookingController> logger,
             BookingRepository bookingRepository,
             BookingValidationService validationService,
-            BookingManagementService bookingManagementService)
+            BookingManagementService bookingManagementService,
+            IHubContext<BookingHub> hubContext)
         {
             _dbContext = dbContext;
             _userManager = userManager;
@@ -42,6 +46,7 @@ namespace ConferenceBooking.API.Controllers
             _bookingRepository = bookingRepository;
             _validationService = validationService;
             _bookingManagementService = bookingManagementService;
+            _hubContext = hubContext;
         }
 
         #region GET Endpoints
@@ -316,6 +321,10 @@ namespace ConferenceBooking.API.Controllers
 
             var responseDto = _bookingManagementService.MapToDetailDto(booking);
 
+            // Broadcast to all connected SignalR clients so every open tab
+            // updates its booking list without a manual refresh.
+            await _hubContext.Clients.All.SendAsync("BookingCreated", new { Data = responseDto, By = User.Identity?.Name ?? "Unknown" });
+
             _logger.LogInformation("Booking created successfully with Pending status");
             return Ok(new { message = "Booking created and pending confirmation by receptionist.", booking = responseDto });
         }
@@ -413,6 +422,9 @@ namespace ConferenceBooking.API.Controllers
 
             var responseDto = _bookingManagementService.MapToDetailDto(booking);
 
+            // Broadcast the updated booking to all connected SignalR clients.
+            await _hubContext.Clients.All.SendAsync("BookingUpdated", new { Data = responseDto, By = User.Identity?.Name ?? "Unknown" });
+
             return Ok(responseDto);
         }
 
@@ -484,6 +496,7 @@ namespace ConferenceBooking.API.Controllers
 
             booking.Cancel();
             await _dbContext.SaveChangesAsync();
+            await _hubContext.Clients.All.SendAsync("BookingCancelled", new { booking.Id, booking.RoomId, Status = booking.Status.ToString(), By = User.Identity?.Name ?? "Unknown" });
             return NoContent();
         }
 
@@ -512,6 +525,7 @@ namespace ConferenceBooking.API.Controllers
 
             _dbContext.Bookings.Remove(booking);
             await _dbContext.SaveChangesAsync();
+            await _hubContext.Clients.All.SendAsync("BookingDeleted", new { Id = id, By = User.Identity?.Name ?? "Unknown" });
             return NoContent();
         }
 

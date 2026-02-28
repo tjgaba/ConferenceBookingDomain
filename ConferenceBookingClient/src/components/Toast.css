@@ -46,6 +46,17 @@
   color: white;
 }
 
+/* Warning variant (SignalR remote events) */
+.toast-warning {
+  background: #f97316;
+  color: white;
+}
+
+/* Remote toast — stacks below the primary toast */
+.toast-remote {
+  top: 90px;
+}
+
 /* Icon */
 .toast-icon {
   font-size: 24px;
