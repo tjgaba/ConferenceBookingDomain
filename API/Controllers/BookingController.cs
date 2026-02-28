@@ -257,7 +257,14 @@ namespace ConferenceBooking.API.Controllers
             var user = userValidation.user!;
 
             var locationValidation = _bookingManagementService.ValidateLocation(dto.Location);
-            if (!locationValidation.isValid) return BadRequest(new { message = locationValidation.errorMessage });
+            if (!locationValidation.isValid)
+            {
+                // Req 1: Return a proper ValidationProblemDetails so the React form can
+                // map errors directly to the field that caused the failure.
+                var locationProblem = new ValidationProblemDetails();
+                locationProblem.Errors["Location"] = new[] { locationValidation.errorMessage! };
+                return BadRequest(locationProblem);
+            }
 
             var location = locationValidation.location!.Value;
 
@@ -273,8 +280,15 @@ namespace ConferenceBooking.API.Controllers
 
             if (!validation.isValid)
             {
-                _logger.LogWarning("Booking validation failed: {ErrorMessage}", validation.errorMessage);
-                return BadRequest(new { message = validation.errorMessage });
+                _logger.LogWarning("Booking validation failed: [{Field}] {ErrorMessage}",
+                    validation.fieldName, validation.errorMessage);
+
+                // Req 1: Use ValidationProblemDetails so the response has a proper
+                // { errors: { "FieldName": ["message"] } } shape the React form can parse.
+                var problem = new ValidationProblemDetails();
+                var fieldKey = validation.fieldName ?? "General";
+                problem.Errors[fieldKey] = new[] { validation.errorMessage! };
+                return BadRequest(problem);
             }
 
             var room = validation.room!;
@@ -353,8 +367,15 @@ namespace ConferenceBooking.API.Controllers
 
             if (!validation.isValid)
             {
-                _logger.LogWarning("Booking update validation failed: {ErrorMessage}", validation.errorMessage);
-                return BadRequest(new { message = validation.errorMessage });
+                _logger.LogWarning("Booking update validation failed: [{Field}] {ErrorMessage}",
+                    validation.fieldName, validation.errorMessage);
+
+                // Req 1: Return ValidationProblemDetails so the React form maps the
+                // error to the specific field (StartTime, EndTime, RoomId, Capacity).
+                var problem = new ValidationProblemDetails();
+                var fieldKey = validation.fieldName ?? "General";
+                problem.Errors[fieldKey] = new[] { validation.errorMessage! };
+                return BadRequest(problem);
             }
 
             var validatedRoom = validation.room!;

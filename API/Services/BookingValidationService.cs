@@ -60,9 +60,10 @@ namespace ConferenceBooking.API.Services
 
         /// <summary>
         /// DOMAIN RULE: Prevents bookings outside valid business hours (08:00 - 16:00)
-        /// Validates that both start and end times fall within business hours
+        /// Validates that both start and end times fall within business hours.
+        /// Returns a fieldName so callers can map the failure to the correct form field.
         /// </summary>
-        public (bool isValid, string? errorMessage) ValidateBusinessHours(DateTimeOffset startTime, DateTimeOffset endTime)
+        public (bool isValid, string? errorMessage, string? fieldName) ValidateBusinessHours(DateTimeOffset startTime, DateTimeOffset endTime)
         {
             // Extract hour component (0-23)
             var startHour = startTime.Hour;
@@ -71,17 +72,17 @@ namespace ConferenceBooking.API.Services
             // Check if start time is within business hours
             if (startHour < BusinessHoursStart || startHour >= BusinessHoursEnd)
             {
-                return (false, $"Booking start time must be between {BusinessHoursStart:00}:00 and {BusinessHoursEnd:00}:00. Provided start time: {startTime:HH:mm}");
+                return (false, $"Booking start time must be between {BusinessHoursStart:00}:00 and {BusinessHoursEnd:00}:00. Provided start time: {startTime:HH:mm}", "StartDate");
             }
 
             // Check if end time is within business hours
             // End time can be exactly at 16:00 but not after
             if (endHour > BusinessHoursEnd || (endHour == BusinessHoursEnd && endTime.Minute > 0))
             {
-                return (false, $"Booking end time must be at or before {BusinessHoursEnd:00}:00. Provided end time: {endTime:HH:mm}");
+                return (false, $"Booking end time must be at or before {BusinessHoursEnd:00}:00. Provided end time: {endTime:HH:mm}", "EndDate");
             }
 
-            return (true, null);
+            return (true, null, null);
         }
 
         /// <summary>
@@ -153,10 +154,11 @@ namespace ConferenceBooking.API.Services
         }
 
         /// <summary>
-        /// COMPREHENSIVE VALIDATION: Validates all domain rules for a new booking
-        /// Enforces all data integrity rules in one method
+        /// COMPREHENSIVE VALIDATION: Validates all domain rules for a new booking.
+        /// Returns a fieldName alongside the error so the controller can build a
+        /// field-keyed ValidationProblemDetails response (Req 1 — Validation Handshake).
         /// </summary>
-        public async Task<(bool isValid, string? errorMessage, ConferenceRoom? room)> ValidateBookingCreationAsync(
+        public async Task<(bool isValid, string? errorMessage, string? fieldName, ConferenceRoom? room)> ValidateBookingCreationAsync(
             int roomId,
             DateTimeOffset startTime,
             DateTimeOffset endTime,
@@ -165,55 +167,46 @@ namespace ConferenceBooking.API.Services
             // RULE 1: Validate date range (start before end)
             var dateRangeValidation = ValidateDateRange(startTime, endTime);
             if (!dateRangeValidation.isValid)
-            {
-                return (false, dateRangeValidation.errorMessage, null);
-            }
+                return (false, dateRangeValidation.errorMessage, "StartDate", null);
 
             // RULE 2: Validate same day
             var sameDayValidation = ValidateSameDay(startTime, endTime);
             if (!sameDayValidation.isValid)
-            {
-                return (false, sameDayValidation.errorMessage, null);
-            }
+                return (false, sameDayValidation.errorMessage, "StartDate", null);
 
             // RULE 3: Validate business hours (08:00 - 16:00)
+            // fieldName is returned by the validator (StartDate or EndDate depending on which hour fails)
             var businessHoursValidation = ValidateBusinessHours(startTime, endTime);
             if (!businessHoursValidation.isValid)
-            {
-                return (false, businessHoursValidation.errorMessage, null);
-            }
+                return (false, businessHoursValidation.errorMessage, businessHoursValidation.fieldName, null);
 
             // RULE 4: Validate room exists and is active
             var roomValidation = await ValidateRoomAvailabilityAsync(roomId);
             if (!roomValidation.isValid)
-            {
-                return (false, roomValidation.errorMessage, null);
-            }
+                return (false, roomValidation.errorMessage, "RoomId", null);
 
             var room = roomValidation.room!;
 
             // RULE 5: Validate capacity
             var capacityValidation = ValidateCapacity(capacity, room.Capacity);
             if (!capacityValidation.isValid)
-            {
-                return (false, capacityValidation.errorMessage, null);
-            }
+                return (false, capacityValidation.errorMessage, "Capacity", null);
 
             // RULE 6: Prevent double bookings
             var doubleBookingValidation = await ValidateNoDoubleBookingAsync(roomId, startTime, endTime);
             if (!doubleBookingValidation.isValid)
-            {
-                return (false, doubleBookingValidation.errorMessage, null);
-            }
+                return (false, doubleBookingValidation.errorMessage, "StartDate", null);
 
             // All validations passed
-            return (true, null, room);
+            return (true, null, null, room);
         }
 
         /// <summary>
-        /// COMPREHENSIVE VALIDATION: Validates all domain rules for updating a booking
+        /// COMPREHENSIVE VALIDATION: Validates all domain rules for updating a booking.
+        /// Returns a fieldName alongside the error so the controller can build a
+        /// field-keyed ValidationProblemDetails response (Req 1 — Validation Handshake).
         /// </summary>
-        public async Task<(bool isValid, string? errorMessage, ConferenceRoom? room)> ValidateBookingUpdateAsync(
+        public async Task<(bool isValid, string? errorMessage, string? fieldName, ConferenceRoom? room)> ValidateBookingUpdateAsync(
             int bookingId,
             int roomId,
             DateTimeOffset startTime,
@@ -223,49 +216,41 @@ namespace ConferenceBooking.API.Services
             // RULE 1: Validate date range (start before end)
             var dateRangeValidation = ValidateDateRange(startTime, endTime);
             if (!dateRangeValidation.isValid)
-            {
-                return (false, dateRangeValidation.errorMessage, null);
-            }
+                return (false, dateRangeValidation.errorMessage, "StartTime", null);
 
             // RULE 2: Validate same day
             var sameDayValidation = ValidateSameDay(startTime, endTime);
             if (!sameDayValidation.isValid)
-            {
-                return (false, sameDayValidation.errorMessage, null);
-            }
+                return (false, sameDayValidation.errorMessage, "StartTime", null);
 
             // RULE 3: Validate business hours (08:00 - 16:00)
             var businessHoursValidation = ValidateBusinessHours(startTime, endTime);
             if (!businessHoursValidation.isValid)
             {
-                return (false, businessHoursValidation.errorMessage, null);
+                // Re-map StartDate/EndDate field names to their PUT equivalents (StartTime/EndTime)
+                var field = businessHoursValidation.fieldName == "EndDate" ? "EndTime" : "StartTime";
+                return (false, businessHoursValidation.errorMessage, field, null);
             }
 
             // RULE 4: Validate room exists and is active
             var roomValidation = await ValidateRoomAvailabilityAsync(roomId);
             if (!roomValidation.isValid)
-            {
-                return (false, roomValidation.errorMessage, null);
-            }
+                return (false, roomValidation.errorMessage, "RoomId", null);
 
             var room = roomValidation.room!;
 
             // RULE 5: Validate capacity
             var capacityValidation = ValidateCapacity(capacity, room.Capacity);
             if (!capacityValidation.isValid)
-            {
-                return (false, capacityValidation.errorMessage, null);
-            }
+                return (false, capacityValidation.errorMessage, "Capacity", null);
 
             // RULE 6: Prevent double bookings (exclude current booking from conflict check)
             var doubleBookingValidation = await ValidateNoDoubleBookingAsync(roomId, startTime, endTime, bookingId);
             if (!doubleBookingValidation.isValid)
-            {
-                return (false, doubleBookingValidation.errorMessage, null);
-            }
+                return (false, doubleBookingValidation.errorMessage, "StartTime", null);
 
             // All validations passed
-            return (true, null, room);
+            return (true, null, null, room);
         }
     }
 }

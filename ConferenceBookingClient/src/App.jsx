@@ -286,21 +286,34 @@ function App() {
         setToast({ show: true, message: 'Booking created successfully!', type: 'success' });
       }
     } catch (err) {
-      // Req 5: Parse .NET ProblemDetails / validation error object and map to
-      // specific form fields so errors appear directly under the relevant input.
+      // Req 2: Parse the .NET ValidationProblemDetails response and map each
+      // field key to the corresponding React form field so errors appear
+      // directly beneath the input that caused them (Req 3 — displayed in BookingForm).
+      //
+      // .NET ValidationProblemDetails shape:
+      //   { title: "One or more validation errors occurred.",
+      //     status: 400,
+      //     errors: { "RoomId": ["msg"], "StartDate": ["msg"], ... } }
       const data = err.response?.data;
       if (data?.errors) {
-        // ModelState / FluentValidation errors: { errors: { RoomId: ['...'], StartDate: ['...'] } }
+        const e = data.errors;
         const mapped = {};
-        if (data.errors.RoomId)     mapped.roomId    = data.errors.RoomId[0];
-        if (data.errors.StartDate)  mapped.startTime = data.errors.StartDate[0];
-        if (data.errors.StartTime)  mapped.startTime = data.errors.StartTime[0];
-        if (data.errors.EndDate)    mapped.endTime   = data.errors.EndDate[0];
-        if (data.errors.EndTime)    mapped.endTime   = data.errors.EndTime[0];
-        if (data.errors.Capacity)   mapped.general   = data.errors.Capacity[0];
+        // POST DTO field names (CreateBookingRequestDTO)
+        if (e.RoomId)     mapped.roomId    = e.RoomId[0];
+        if (e.StartDate)  mapped.startTime = e.StartDate[0];
+        if (e.EndDate)    mapped.endTime   = e.EndDate[0];
+        // PUT DTO field names (UpdateBookingDTO)
+        if (e.StartTime)  mapped.startTime = e.StartTime[0];
+        if (e.EndTime)    mapped.endTime   = e.EndTime[0];
+        if (e.Capacity)   mapped.general   = e.Capacity[0];
+        if (e.Location)   mapped.general   = e.Location[0];
+        if (e.General)    mapped.general   = e.General[0];
+        // Fallback: if no field matched but title/detail present, show as general
+        if (Object.keys(mapped).length === 0)
+          mapped.general = data.title || data.detail || err.message;
         setBookingFormErrors(mapped);
       } else {
-        // Single-message error (our BadRequest(new { message = ... }) responses)
+        // Plain { message: "..." } fallback (non-field server errors)
         setBookingFormErrors({ general: data?.message || data?.title || err.message });
       }
       setError(err);
