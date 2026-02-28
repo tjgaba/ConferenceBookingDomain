@@ -387,10 +387,25 @@ namespace ConferenceBooking.API.Controllers
             if (!string.IsNullOrWhiteSpace(dto.Status))
             {
                 var statusValidation = _bookingManagementService.ValidateBookingStatus(dto.Status);
-                if (!statusValidation.isValid) return BadRequest(new { message = statusValidation.errorMessage });
+                if (!statusValidation.isValid)
+                {
+                    var sp = new ValidationProblemDetails();
+                    sp.Errors["Status"] = new[] { statusValidation.errorMessage! };
+                    return BadRequest(sp);
+                }
 
                 if (statusValidation.status.HasValue)
-                    _bookingManagementService.ApplyStatusChange(booking, statusValidation.status.Value);
+                {
+                    // State Control: route through domain state machine via ApplyStatusChange,
+                    // which validates the transition and calls Confirm()/Cancel() on the entity.
+                    var stateResult = _bookingManagementService.ApplyStatusChange(booking, statusValidation.status.Value);
+                    if (!stateResult.isValid)
+                    {
+                        var sp = new ValidationProblemDetails();
+                        sp.Errors["Status"] = new[] { stateResult.errorMessage! };
+                        return BadRequest(sp);
+                    }
+                }
             }
 
             // Save changes to database

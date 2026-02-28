@@ -2,7 +2,9 @@
 // "Connected" (green) or "Backend Offline" (red) in the Header.
 
 import { useState, useEffect } from 'react';
-import apiClient from '../services/api';
+// No Native Fetch constraint: import the canonical Axios singleton,
+// not the stale duplicate in services/api.js.
+import apiClient from '../api/apiClient';
 import './ConnectionStatus.css';
 
 function ConnectionStatus() {

@@ -59,8 +59,13 @@ public class Booking
 
     public void Confirm()
     {
+        if (Status == BookingStatus.Confirmed)
+            throw new InvalidOperationException("Booking is already confirmed.");
+        if (Status == BookingStatus.Cancelled)
+            throw new InvalidOperationException("Cannot confirm a cancelled booking. Cancelled bookings cannot be reinstated.");
+        // Only Pending → Confirmed is a legal forward transition
         if (Status != BookingStatus.Pending)
-            throw new InvalidOperationException();
+            throw new InvalidOperationException($"Cannot confirm a booking with status '{Status}'. Only Pending bookings can be confirmed.");
         Status = BookingStatus.Confirmed;
     }
 

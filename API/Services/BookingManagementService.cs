@@ -174,13 +174,57 @@ public class BookingManagementService
     }
 
     /// <summary>
-    /// Applies status change to booking
+    /// State Control: Defines the legal booking state transitions.
+    /// Pending  → Confirmed  ✓
+    /// Pending  → Cancelled  ✓
+    /// Confirmed → Cancelled ✓
+    /// Confirmed → Pending   ✗  (cannot revert)
+    /// Cancelled → *         ✗  (terminal state)
+    /// * → same status       ✗  (no-op rejected)
     /// </summary>
-    public void ApplyStatusChange(Booking booking, BookingStatus newStatus)
+    public (bool isValid, string? errorMessage) ValidateStatusTransition(BookingStatus current, BookingStatus requested)
     {
-        booking.Status = newStatus;
+        if (current == requested)
+            return (false, $"Booking is already '{requested}'. No change applied.");
 
-        if (newStatus == BookingStatus.Cancelled && !booking.CancelledAt.HasValue)
-            booking.CancelledAt = DateTimeOffset.UtcNow;
+        if (current == BookingStatus.Cancelled)
+            return (false, "Cannot change the status of a cancelled booking. Cancelled is a terminal state.");
+
+        if (requested == BookingStatus.Pending)
+            return (false, "Cannot revert a booking back to 'Pending'. State must move forward.");
+
+        // Confirmed → Cancelled: allowed (user/admin cancellation after confirmation)
+        // Pending   → Confirmed: allowed (handled by PATCH /confirm)
+        // Pending   → Cancelled: allowed
+        return (true, null);
+    }
+
+    /// <summary>
+    /// Applies a status change by routing through the domain entity methods,
+    /// ensuring business rules in Booking.Confirm() and Booking.Cancel() are enforced.
+    /// Returns a validation result so the controller can return a 400 instead of throwing.
+    /// </summary>
+    public (bool isValid, string? errorMessage) ApplyStatusChange(Booking booking, BookingStatus newStatus)
+    {
+        var transition = ValidateStatusTransition(booking.Status, newStatus);
+        if (!transition.isValid)
+            return (false, transition.errorMessage);
+
+        try
+        {
+            if (newStatus == BookingStatus.Confirmed)
+                booking.Confirm();   // Domain method — enforces Pending-only guard
+            else if (newStatus == BookingStatus.Cancelled)
+                booking.Cancel();    // Domain method — sets CancelledAt timestamp
+            else
+                return (false, $"Unhandled status transition to '{newStatus}'.");
+        }
+        catch (InvalidOperationException ex)
+        {
+            // Catch domain guard violations and surface them as validation failures
+            return (false, ex.Message);
+        }
+
+        return (true, null);
     }
 }

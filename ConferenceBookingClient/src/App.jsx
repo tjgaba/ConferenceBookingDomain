@@ -36,7 +36,7 @@ import ErrorMessage from "./components/ErrorMessage";
 import Toast from "./components/Toast";
 import * as bookingService from "./services/bookingService";
 import * as roomService from "./services/roomService";
-import { authService } from "./services/authService";
+import useAuth from "./hooks/useAuth";
 import NetworkStressTest from "./components/NetworkStressTest";
 import "./App.css";
 
@@ -66,16 +66,23 @@ function App() {
   // Toast notification state
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
   
-  // Auth state
-  const [isLoggedIn, setIsLoggedIn] = useState(authService.isAuthenticated());
-  const [currentUser, setCurrentUser] = useState(authService.getCurrentUser());
-  const [showLoginForm, setShowLoginForm] = useState(false);
+  // Auth state — Hook Discipline: all auth logic lives in useAuth, not here.
+  const {
+    isLoggedIn,
+    currentUser,
+    showLoginForm,
+    setShowLoginForm,
+    refreshKey,
+    login,
+    logout,
+  } = useAuth({
+    // 401 session-expiry callback: show a toast without coupling useAuth to UI.
+    onSessionExpired: () =>
+      setToast({ show: true, message: 'Session expired. Please log in again.', type: 'error' }),
+  });
 
   // Req 5: Field-level server errors parsed from ProblemDetails, passed to BookingForm.
   const [bookingFormErrors, setBookingFormErrors] = useState({});
-  // Incrementing this forces the data-fetch effect to re-run even when
-  // isLoggedIn was already true (e.g. stale token replaced by fresh login).
-  const [refreshKey, setRefreshKey] = useState(0);
   
   // UI state  
   const [showBookingForm, setShowBookingForm] = useState(false);
@@ -85,20 +92,6 @@ function App() {
   const [editingRoom, setEditingRoom] = useState(null);
 
   // ==================== COMPONENT LIFECYCLE (Mount, Update, Unmount) ====================
-
-  // EFFECT: Req 8 — Listen for 401 Unauthorized events dispatched by the Axios
-  // response interceptor. Clears auth state and shows the login form globally
-  // so the user is never silently stuck on a dead session.
-  useEffect(() => {
-    const handleUnauthorized = () => {
-      setIsLoggedIn(false);
-      setCurrentUser(null);
-      setShowLoginForm(true);
-      setToast({ show: true, message: 'Session expired. Please log in again.', type: 'error' });
-    };
-    window.addEventListener('auth:unauthorized', handleUnauthorized);
-    return () => window.removeEventListener('auth:unauthorized', handleUnauthorized);
-  }, []);
 
   // EFFECT: Fetch initial data — runs on mount and whenever login state changes.
   // If the user is not logged in, skip the fetch and clear loading immediately.
@@ -474,29 +467,16 @@ function App() {
     setToast({ ...toast, show: false });
   };
 
-  // HANDLER: Login
+  // HANDLER: Login — thin wrapper; useAuth.login() handles all state + authService.
   const handleLogin = async (username, password) => {
-    try {
-      const result = await authService.login(username, password);
-      setIsLoggedIn(true);
-      setCurrentUser(result.user);
-      setShowLoginForm(false);
-      // Always bump refreshKey so the data-fetch effect fires even if
-      // isLoggedIn was already true (stale token scenario after DB reset).
-      setRefreshKey(k => k + 1);
-      alert(`Welcome back, ${result.user.username}!`);
-    } catch (error) {
-      console.error('Login failed:', error);
-      throw error; // Re-throw so LoginForm can show error
-    }
+    const result = await login(username, password); // re-throws on failure → LoginForm shows error
+    setToast({ show: true, message: `Welcome back, ${result.user?.username ?? 'User'}!`, type: 'success' });
   };
 
-  // HANDLER: Logout
+  // HANDLER: Logout — thin wrapper; useAuth.logout() handles state + authService.
   const handleLogout = async () => {
-    await authService.logout();
-    setIsLoggedIn(false);
-    setCurrentUser(null);
-    alert('Logged out successfully');
+    await logout();
+    setToast({ show: true, message: 'Logged out successfully.', type: 'success' });
   };
 
   // ==================== RENDER ====================

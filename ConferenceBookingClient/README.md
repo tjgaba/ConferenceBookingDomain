@@ -14,12 +14,128 @@ A React + Vite frontend for the Conference Booking System. All HTTP communicatio
 
 ## Environment Configuration
 
-**`.env`** (required at project root):
+### `.env` Setup
+
+Create a `.env` file at `ConferenceBookingClient/.env` (project root, next to `package.json`):
+
 ```
 VITE_API_BASE_URL=http://localhost:5230/api
 ```
 
-This is the only place the backend URL is defined. Every request in the app inherits this base URL from the singleton.
+**This is the only place the backend URL is defined.** Every request in the app inherits this base URL from the singleton — no component or service hard-codes a URL.
+
+#### Why the `VITE_` prefix?
+
+Vite only exposes variables prefixed with `VITE_` to browser code. Variables without this prefix are kept server-side and will be `undefined` at runtime:
+
+```javascript
+// ✅ Accessible in the browser
+import.meta.env.VITE_API_BASE_URL   // "http://localhost:5230/api"
+
+// ❌ Stripped out — never reaches the browser
+import.meta.env.SECRET_KEY          // undefined
+```
+
+#### How it flows into the Axios singleton
+
+`apiClient.js` reads the variable once at module load time:
+
+```javascript
+const apiClient = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL,  // read here, used everywhere
+  timeout: 5000,
+  headers: { 'Content-Type': 'application/json' },
+});
+```
+
+Because ES modules are cached after their first import, every file that imports `apiClient` shares the same instance — the `baseURL` is resolved once and never re-read.
+
+#### Environment files
+
+| File | Purpose | Committed? |
+|---|---|---|
+| `.env` | Local development values | **No** — in `.gitignore` |
+| `.env.example` | Template showing required keys | **Yes** — documents the contract |
+
+`.env.example`:
+```
+# Backend API base URL — no trailing slash
+VITE_API_BASE_URL=http://localhost:5230/api
+```
+
+---
+
+## 401 Redirect Logic
+
+### The Problem
+
+The Axios response interceptor lives outside the React component tree. It cannot call `useState` setters or access React context directly. When a 401 arrives, simply clearing `localStorage` is not enough — the React UI (`isLoggedIn`, `currentUser`) remains stale and the user sees no change.
+
+### The Solution — `CustomEvent` Bridge
+
+A browser `CustomEvent` decouples the interceptor from React state:
+
+```
+Axios interceptor (outside React)
+        │
+        │  window.dispatchEvent(new CustomEvent('auth:unauthorized'))
+        ▼
+  window (global event bus)
+        │
+        │  window.addEventListener('auth:unauthorized', handler)
+        ▼
+  useAuth hook (inside React)  →  setIsLoggedIn(false) + show login prompt
+```
+
+**`src/api/apiClient.js` — Response interceptor:**
+
+```javascript
+apiClient.interceptors.response.use(
+  (response) => response.data,
+  (error) => {
+    if (error.response?.status === 401) {
+      // 1. Wipe all stored auth keys
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('user');
+      // 2. Fire a global signal — does NOT touch React state directly
+      window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+    }
+    return Promise.reject(error);
+  }
+);
+```
+
+**`src/hooks/useAuth.js` — event listener:**
+
+```javascript
+useEffect(() => {
+  const handleUnauthorized = () => {
+    setIsLoggedIn(false);
+    setCurrentUser(null);
+    onSessionExpired?.('Your session expired. Please log in again.');
+  };
+
+  window.addEventListener('auth:unauthorized', handleUnauthorized);
+  return () => window.removeEventListener('auth:unauthorized', handleUnauthorized);
+}, [onSessionExpired]);
+```
+
+The cleanup function (`removeEventListener`) prevents duplicate listeners if the effect re-runs and prevents memory leaks on unmount.
+
+### Why not `window.location.href = '/login'`?
+
+This is a SPA — there is no `/login` route to navigate to. The app is always at `/`. "Redirecting to login" means toggling a React state variable (`isLoggedIn → false`) that switches which UI is rendered, not navigating to a new URL. The `CustomEvent` bridge triggers that toggle from outside React cleanly.
+
+### Flow Summary
+
+| Step | Location | Action |
+|---|---|---|
+| JWT expires | Server | Returns `401 Unauthorized` |
+| Response interceptor | `apiClient.js` | Clears `localStorage`, dispatches `auth:unauthorized` |
+| Event listener | `useAuth.js` | Sets `isLoggedIn: false`, `currentUser: null` |
+| React re-render | `App.jsx` | Switches to `LoginForm` view |
+| User sees | Browser | Login prompt with "session expired" toast |
 
 ## Project Structure
 
