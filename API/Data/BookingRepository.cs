@@ -70,6 +70,8 @@ namespace ConferenceBooking.API.Data
                     BookingId = b.Id,
                     RoomName = b.Room.Name,
                     Date = b.StartTime,
+                    StartTime = b.StartTime,
+                    EndTime = b.EndTime,
                     Location = b.Location.ToString(),
                     IsActive = b.Room.IsActive,
                     Status = b.Status.ToString()

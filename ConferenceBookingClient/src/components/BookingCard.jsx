@@ -14,6 +14,9 @@ import Button from "./Button";
 import "./BookingCard.css";
 
 function BookingCard({ booking, onEdit, onDelete }) {
+  const fmt = (iso) =>
+    iso ? new Date(iso).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : '—';
+
   return (
     <div className="booking-card">
       <h3>
@@ -23,7 +26,7 @@ function BookingCard({ booking, onEdit, onDelete }) {
         <strong>Room:</strong> {booking.roomName} ({booking.location})
       </p>
       <p>
-        <strong>Time:</strong> {booking.startTime} to {booking.endTime}
+        <strong>Time:</strong> {fmt(booking.startTime)} to {fmt(booking.endTime)}
       </p>
       <p>
         <span className={`booking-status status-${booking.status.toLowerCase()}`}>
