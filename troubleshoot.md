@@ -31,7 +31,7 @@ private void ApplyStatusChange(Booking booking, BookingStatus newStatus)
 Added `ValidateStatusTransition()` to guard every transition before it is attempted, then routed `ApplyStatusChange` through the domain entity methods:
 
 ```csharp
-private (bool isValid, string? errorMessage) ValidateStatusTransition(
+private (bool isValid, string? errorMessage) ValidateStatusTransition(   // Line: 185
     BookingStatus current, BookingStatus requested)
 {
     if (current == requested)
@@ -43,10 +43,10 @@ private (bool isValid, string? errorMessage) ValidateStatusTransition(
     return (true, null);
 }
 
-public (bool isValid, string? errorMessage) ApplyStatusChange(
+public (bool isValid, string? errorMessage) ApplyStatusChange(           // Line: 207
     Booking booking, BookingStatus newStatus)
 {
-    var transition = ValidateStatusTransition(booking.Status, newStatus);
+    var transition = ValidateStatusTransition(booking.Status, newStatus); // Line: 209
     if (!transition.isValid) return transition;
 
     try
@@ -91,15 +91,15 @@ public void Confirm()
 Every guard clause now includes a descriptive message, and each illegal path is handled individually rather than with a single generic check:
 
 ```csharp
-public void Confirm()
+public void Confirm()                                                              // Line: 60
 {
     if (Status == BookingStatus.Confirmed)
-        throw new InvalidOperationException("Booking is already confirmed.");
+        throw new InvalidOperationException("Booking is already confirmed.");      // Line: 63
     if (Status == BookingStatus.Cancelled)
-        throw new InvalidOperationException("Cannot confirm a cancelled booking.");
+        throw new InvalidOperationException("Cannot confirm a cancelled booking."); // Line: 65
     if (Status != BookingStatus.Pending)
-        throw new InvalidOperationException($"Cannot confirm a booking with status '{Status}'.");
-    Status = BookingStatus.Confirmed;
+        throw new InvalidOperationException($"Cannot confirm a booking with status '{Status}'."); // Line: 68
+    Status = BookingStatus.Confirmed;                                              // Line: 69
 }
 ```
 
@@ -129,6 +129,9 @@ Task<(bool, string?, ConferenceRoom?)>
 
 // After
 Task<(bool isValid, string? errorMessage, string? fieldName, ConferenceRoom? room)>
+// ValidateBookingCreationAsync — Line: 161
+// ValidateBookingUpdateAsync  — Line: 209
+// ValidateBusinessHours       — Line: 66
 ```
 
 Each failure site now specifies the field it belongs to:
@@ -144,8 +147,8 @@ return (false, "This room is already booked during the requested time.", "StartD
 Replaced `BadRequest(new { message })` with a proper `ValidationProblemDetails`:
 
 ```csharp
-var problem = new ValidationProblemDetails();
-problem.Errors[validation.fieldName ?? "General"] = new[] { validation.errorMessage! };
+var problem = new ValidationProblemDetails();                                    // Line: 293
+problem.Errors[validation.fieldName ?? "General"] = new[] { validation.errorMessage! }; // Line: 295
 return BadRequest(problem);
 ```
 
@@ -168,11 +171,11 @@ The Axios catch block was updated to read `err.response.data.errors` and map eve
 
 ```javascript
 const mapped = {};
-if (e.RoomId)     mapped.roomId    = e.RoomId[0];
-if (e.StartDate)  mapped.startTime = e.StartDate[0];
-if (e.StartTime)  mapped.startTime = e.StartTime[0]; // PUT DTO field name
-if (e.EndDate)    mapped.endTime   = e.EndDate[0];
-if (e.EndTime)    mapped.endTime   = e.EndTime[0];   // PUT DTO field name
+if (e.RoomId)     mapped.roomId    = e.RoomId[0];    // Line: 333
+if (e.StartDate)  mapped.startTime = e.StartDate[0]; // Line: 334
+if (e.StartTime)  mapped.startTime = e.StartTime[0]; // Line: 337 — PUT DTO field name
+if (e.EndDate)    mapped.endTime   = e.EndDate[0];   // Line: 335
+if (e.EndTime)    mapped.endTime   = e.EndTime[0];   // Line: 338 — PUT DTO field name
 if (e.Capacity)   mapped.general   = e.Capacity[0];
 if (e.Status)     mapped.general   = e.Status[0];
 setBookingFormErrors(mapped);
@@ -195,14 +198,14 @@ The Axios response interceptor in `apiClient.js` could not call React state sett
 A `CustomEvent` is dispatched after clearing storage:
 
 ```javascript
-apiClient.interceptors.response.use(
+apiClient.interceptors.response.use(                           // Line: 38
   (response) => response.data,
   (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('user');
-      window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+    if (error.response?.status === 401) {                      // Line: 44
+      localStorage.removeItem('token');                        // Line: 45
+      localStorage.removeItem('refreshToken');                 // Line: 46
+      localStorage.removeItem('user');                         // Line: 47
+      window.dispatchEvent(new CustomEvent('auth:unauthorized')); // Line: 50
     }
     return Promise.reject(error);
   }
@@ -215,13 +218,13 @@ apiClient.interceptors.response.use(
 
 ```javascript
 useEffect(() => {
-  const handleUnauthorized = () => {
-    setIsLoggedIn(false);
-    setCurrentUser(null);
+  const handleUnauthorized = () => {                           // Line: 34
+    setIsLoggedIn(false);                                      // Line: 35
+    setCurrentUser(null);                                      // Line: 36
     onSessionExpired?.('Your session expired. Please log in again.');
   };
-  window.addEventListener('auth:unauthorized', handleUnauthorized);
-  return () => window.removeEventListener('auth:unauthorized', handleUnauthorized);
+  window.addEventListener('auth:unauthorized', handleUnauthorized); // Line: 40
+  return () => window.removeEventListener('auth:unauthorized', handleUnauthorized); // Line: 41
 }, [onSessionExpired]);
 ```
 
@@ -250,7 +253,7 @@ Changed to import the canonical singleton:
 
 ```javascript
 // Correct
-import apiClient from '../api/apiClient';
+import apiClient from '../api/apiClient'; // Line: 7
 ```
 
 The canonical instance has both the request interceptor (JWT attachment) and the response interceptor (unwrapping + 401 handling). All HTTP traffic now flows through one Axios instance.
@@ -281,8 +284,16 @@ The hook was never created. App.jsx had grown to own both rendering logic and au
 
 `App.jsx` now delegates entirely:
 ```javascript
-const { isLoggedIn, currentUser, showLoginForm, setShowLoginForm,
-        refreshKey, login, logout } = useAuth({ onSessionExpired });
+const { isLoggedIn, currentUser, showLoginForm, setShowLoginForm, // Line: 75
+        refreshKey, login, logout } = useAuth({ onSessionExpired }); // Line: 82
+```
+
+State declarations inside `useAuth.js`:
+```javascript
+const [isLoggedIn,    setIsLoggedIn]    = useState(...)  // Line: 23
+const [currentUser,   setCurrentUser]   = useState(...)  // Line: 24
+const [showLoginForm, setShowLoginForm] = useState(false) // Line: 25
+const [refreshKey,    setRefreshKey]    = useState(0)     // Line: 28
 ```
 
 ---
@@ -304,3 +315,123 @@ The already-running `dotnet run` process held an exclusive lock on `API.exe` / `
 Stop the running API process before building (`Ctrl+C` in the API terminal), then run `dotnet build` / `dotnet run`. There were **zero `CS\d{4}` compiler errors** — the lock error was an infrastructure artifact, not a code problem. All C# changes compiled cleanly on the next run.
 
 > **Tip:** Use `dotnet run` instead of `dotnet build` + manual launch; it rebuilds automatically and avoids this if the previous process has been stopped first.
+---
+
+## 8. CS0234 — `Hubs` Namespace Not Found After Adding `BookingHub`
+
+### Symptom
+Adding `API/Hubs/BookingHub.cs` and referencing `ConferenceBooking.API.Hubs` in `Program.cs` produced:
+```
+CS0234: The type or namespace name 'Hubs' does not exist in the namespace 'ConferenceBooking.API'
+```
+
+### Root Cause
+`API.csproj` contained `<EnableDefaultCompileItems>false</EnableDefaultCompileItems>`, which disables MSBuild's automatic `**/*.cs` glob. The new `Hubs/` subdirectory was never compiled — the type simply did not exist at build time.
+
+### Fix
+
+**`API/API.csproj`**
+
+Added an explicit compile glob covering the new folder:
+```xml
+<Compile Include="Hubs\**\*.cs" />  <!-- Line: 56 -->
+```
+The error disappeared on the next `dotnet run`.
+
+---
+
+## 9. CORS Blocked SignalR Negotiate Request
+
+### Symptom
+After wiring up `useSignalR`, the browser DevTools Network tab showed the `/hubs/booking/negotiate` pre-flight failing with a CORS error. The WebSocket connection never opened.
+
+### Root Cause
+The CORS policy used an explicit method allow-list:
+```csharp
+.WithMethods("GET", "POST", "PUT", "DELETE")
+```
+SignalR's negotiate endpoint uses additional HTTP methods not in that list. The browser's `OPTIONS` pre-flight check was rejected before the handshake could begin.
+
+### Fix
+
+**`API/Program.cs`**
+
+Replaced the explicit list with `AllowAnyMethod()`:
+```csharp
+// Before
+.WithMethods("GET", "POST", "PUT", "DELETE")
+
+// After
+.AllowAnyMethod() // Line: 87
+```
+The negotiate and connect calls succeeded on the next restart.
+
+---
+
+## 10. JWT Not Sent on WebSocket Handshake
+
+### Symptom
+After the CORS fix, the WebSocket connected but any hub endpoint decorated with `[Authorize]` rejected the connection with `401 Unauthorized` during the negotiate step.
+
+### Root Cause
+Browsers do not allow JavaScript to set custom HTTP headers (like `Authorization: Bearer ...`) on the WebSocket upgrade request. The JWT therefore never reached the server during the handshake.
+
+### Fix — Part 1: Frontend
+
+**`src/hooks/useSignalR.js`**
+
+`accessTokenFactory` passes the token as a query string parameter:
+```javascript
+.withUrl(HUB_URL, {
+  accessTokenFactory: () => localStorage.getItem('token') ?? '', // Line: 49
+})
+```
+The SignalR client library appends this as `?access_token=<token>` on the negotiate request.
+
+### Fix — Part 2: Backend
+
+**`API/Program.cs`**
+
+`JwtBearerEvents.OnMessageReceived` reads the token from the query string when the request path starts with `/hubs`:
+```csharp
+events.OnMessageReceived = context => // Line: 64
+{
+    var token = context.Request.Query["access_token"]; // Line: 66
+    if (!string.IsNullOrEmpty(token) &&
+        context.HttpContext.Request.Path.StartsWithSegments("/hubs"))
+        context.Token = token;
+    return Task.CompletedTask;
+};
+```
+The JWT middleware then validates the token normally and the connection is authenticated.
+
+---
+
+## 11. BookingCard Showing "Time: to" (Missing DTO Fields)
+
+### Symptom
+Every booking card in the UI displayed **"Time: to"** — no start or end time was shown.
+
+### Root Cause
+`GET /Booking` returns `BookingSummaryDTO`, which only contained a `Date` field. `BookingCard.jsx` referenced `booking.startTime` and `booking.endTime`, but those properties were `undefined` because they were never projected from the entity into the DTO.
+
+### Fix
+
+**`API/DTO/BookingSummaryDTO.cs`** — fields added:
+```csharp
+public DateTimeOffset StartTime { get; set; } // Line: 13
+public DateTimeOffset EndTime   { get; set; } // Line: 14
+```
+
+**`API/Data/BookingRepository.cs`** — projection updated:
+```csharp
+StartTime = b.StartTime, // Line: 73
+EndTime   = b.EndTime,   // Line: 74
+```
+
+**`src/components/BookingCard.jsx`** — `fmt()` helper added:
+```javascript
+const fmt = (iso) => // Line: 17
+  new Date(iso).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+```
+Cards now display e.g. **"Mar 5, 2026, 9:00 AM to Mar 5, 2026, 11:00 AM"**.
