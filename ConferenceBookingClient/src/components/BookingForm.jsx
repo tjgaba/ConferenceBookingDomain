@@ -21,7 +21,7 @@ import { useState, useEffect } from "react";
 import Button from "./Button";
 import "./BookingForm.css";
 
-function BookingForm({ onSubmit, onCancel, rooms, initialData = null }) {
+function BookingForm({ onSubmit, onCancel, rooms, initialData = null, serverErrors = {} }) {
   // State for each form field (Controlled Components pattern)
   // If initialData exists (editing mode), use it; otherwise use empty defaults
   const [roomId, setRoomId] = useState(initialData?.roomId || "");
@@ -135,6 +135,14 @@ function BookingForm({ onSubmit, onCancel, rooms, initialData = null }) {
   return (
     <div className="booking-form-container">
       <h3>{initialData ? "Edit Booking" : "Create New Booking"}</h3>
+
+      {/* Req 5: General server error (e.g. "Room is already occupied") */}
+      {serverErrors.general && (
+        <p style={{ color: '#dc3545', background: '#f8d7da', border: '1px solid #f5c6cb', borderRadius: '4px', padding: '8px 12px', marginBottom: '12px', fontSize: '0.875rem' }}>
+          {serverErrors.general}
+        </p>
+      )}
+
       <form className="booking-form" onSubmit={handleSubmit}>
         
         {/* Controlled Select Input */}
@@ -153,6 +161,12 @@ function BookingForm({ onSubmit, onCancel, rooms, initialData = null }) {
               </option>
             ))}
           </select>
+          {/* Req 5: Per-field server error */}
+          {serverErrors.roomId && (
+            <span style={{ color: '#dc3545', fontSize: '0.8rem', marginTop: '4px', display: 'block' }}>
+              {serverErrors.roomId}
+            </span>
+          )}
         </div>
 
         {/* Controlled DateTime Input */}
@@ -165,6 +179,12 @@ function BookingForm({ onSubmit, onCancel, rooms, initialData = null }) {
             onChange={(e) => setStartTime(e.target.value)}
             required
           />
+          {/* Req 5: Per-field server error */}
+          {serverErrors.startTime && (
+            <span style={{ color: '#dc3545', fontSize: '0.8rem', marginTop: '4px', display: 'block' }}>
+              {serverErrors.startTime}
+            </span>
+          )}
         </div>
 
         {/* Controlled DateTime Input */}
@@ -177,6 +197,12 @@ function BookingForm({ onSubmit, onCancel, rooms, initialData = null }) {
             onChange={(e) => setEndTime(e.target.value)}
             required
           />
+          {/* Req 5: Per-field server error */}
+          {serverErrors.endTime && (
+            <span style={{ color: '#dc3545', fontSize: '0.8rem', marginTop: '4px', display: 'block' }}>
+              {serverErrors.endTime}
+            </span>
+          )}
         </div>
 
         {/* Controlled Select Input */}

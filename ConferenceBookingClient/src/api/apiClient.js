@@ -45,6 +45,9 @@ apiClient.interceptors.response.use(
       localStorage.removeItem('token');
       localStorage.removeItem('refreshToken');
       localStorage.removeItem('user');
+      // Req 8: Notify the app globally so it can redirect to login.
+      // Using a CustomEvent decouples the interceptor from React state.
+      window.dispatchEvent(new CustomEvent('auth:unauthorized'));
     }
     return Promise.reject(error);
   }

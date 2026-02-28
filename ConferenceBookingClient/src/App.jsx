@@ -70,6 +70,9 @@ function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(authService.isAuthenticated());
   const [currentUser, setCurrentUser] = useState(authService.getCurrentUser());
   const [showLoginForm, setShowLoginForm] = useState(false);
+
+  // Req 5: Field-level server errors parsed from ProblemDetails, passed to BookingForm.
+  const [bookingFormErrors, setBookingFormErrors] = useState({});
   // Incrementing this forces the data-fetch effect to re-run even when
   // isLoggedIn was already true (e.g. stale token replaced by fresh login).
   const [refreshKey, setRefreshKey] = useState(0);
@@ -82,7 +85,21 @@ function App() {
   const [editingRoom, setEditingRoom] = useState(null);
 
   // ==================== COMPONENT LIFECYCLE (Mount, Update, Unmount) ====================
-  
+
+  // EFFECT: Req 8 — Listen for 401 Unauthorized events dispatched by the Axios
+  // response interceptor. Clears auth state and shows the login form globally
+  // so the user is never silently stuck on a dead session.
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      setIsLoggedIn(false);
+      setCurrentUser(null);
+      setShowLoginForm(true);
+      setToast({ show: true, message: 'Session expired. Please log in again.', type: 'error' });
+    };
+    window.addEventListener('auth:unauthorized', handleUnauthorized);
+    return () => window.removeEventListener('auth:unauthorized', handleUnauthorized);
+  }, []);
+
   // EFFECT: Fetch initial data — runs on mount and whenever login state changes.
   // If the user is not logged in, skip the fetch and clear loading immediately.
   useEffect(() => {
@@ -243,6 +260,8 @@ function App() {
 
   // HANDLER: Create or update a booking
   const handleBookingSubmit = async (bookingData) => {
+    // Clear stale field errors from previous attempt
+    setBookingFormErrors({});
     try {
       setIsSubmitting(true);
       setError(null);
@@ -250,30 +269,43 @@ function App() {
       if (editingBooking) {
         // Update existing booking
         const bookingId = bookingData.bookingId || editingBooking.id;
-        const updated = await bookingService.updateBooking(bookingId, bookingData);
-        // Refresh bookings list
+        await bookingService.updateBooking(bookingId, bookingData);
+        // Pessimistic Update (Req 3): re-fetch list to reflect server state
         const refreshed = await bookingService.fetchAllBookings();
         setAllBookings(refreshed);
-        setShowBookingForm(false); // Close form first
-        setEditingBooking(null); // Then clear editing state
-        alert('Booking updated successfully!');
+        setShowBookingForm(false);
+        setEditingBooking(null);
+        setToast({ show: true, message: 'Booking updated successfully!', type: 'success' });
       } else {
         // Create new booking
-        const created = await bookingService.createBooking(bookingData);
-        // Refresh bookings list
+        await bookingService.createBooking(bookingData);
+        // Pessimistic Update (Req 3): re-fetch list to reflect server state
         const refreshed = await bookingService.fetchAllBookings();
         setAllBookings(refreshed);
-        setShowBookingForm(false); // Close form first
-        alert('Booking created successfully!');
+        setShowBookingForm(false);
+        setToast({ show: true, message: 'Booking created successfully!', type: 'success' });
       }
     } catch (err) {
+      // Req 5: Parse .NET ProblemDetails / validation error object and map to
+      // specific form fields so errors appear directly under the relevant input.
+      const data = err.response?.data;
+      if (data?.errors) {
+        // ModelState / FluentValidation errors: { errors: { RoomId: ['...'], StartDate: ['...'] } }
+        const mapped = {};
+        if (data.errors.RoomId)     mapped.roomId    = data.errors.RoomId[0];
+        if (data.errors.StartDate)  mapped.startTime = data.errors.StartDate[0];
+        if (data.errors.StartTime)  mapped.startTime = data.errors.StartTime[0];
+        if (data.errors.EndDate)    mapped.endTime   = data.errors.EndDate[0];
+        if (data.errors.EndTime)    mapped.endTime   = data.errors.EndTime[0];
+        if (data.errors.Capacity)   mapped.general   = data.errors.Capacity[0];
+        setBookingFormErrors(mapped);
+      } else {
+        // Single-message error (our BadRequest(new { message = ... }) responses)
+        setBookingFormErrors({ general: data?.message || data?.title || err.message });
+      }
       setError(err);
       console.error('Booking operation failed:', err);
-      console.error('Error response:', err.response);
-      console.error('Error data:', err.response?.data);
-      const errorMsg = err.response?.data?.message || err.response?.data?.title || err.message;
-      alert('Operation failed: ' + errorMsg);
-      // Don't close form on error so user can retry
+      // Keep the form open so the user can correct the highlighted fields
     } finally {
       setIsSubmitting(false);
     }
@@ -406,6 +438,7 @@ function App() {
   const handleCancelBookingForm = () => {
     setShowBookingForm(false);
     setEditingBooking(null);
+    setBookingFormErrors({});
   };
   
   const handleCancelRoomForm = () => {
@@ -590,6 +623,7 @@ function App() {
             onCancel={handleCancelBookingForm}
             rooms={allRooms}
             initialData={editingBooking}
+            serverErrors={bookingFormErrors}
           />
         )}
 
