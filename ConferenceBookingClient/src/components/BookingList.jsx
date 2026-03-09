@@ -1,11 +1,9 @@
+'use client';
 // BookingList.jsx — Renders a list of BookingCard components.
-// This demonstrates:
 //
-// 1. Component Composition: BookingList uses BookingCard inside it.
-// 2. Props Passing: Receives handlers from parent (App) and passes them down to BookingCard
-// 3. LIFTING STATE UP: Handlers defined in App, passed through BookingList to BookingCard
-//    This allows BookingCard to trigger changes in App's state
-// 4. Rendering Lists: Uses .map() with unique keys for efficient rendering
+// 'use client': accepts onEdit and onDelete function props and forwards them
+// to BookingCard. In Next.js, Server Components cannot accept or pass functions
+// as props — doing so would cross the server/client serialisation boundary.
 
 import BookingCard from "./BookingCard";
 import "./BookingList.css";

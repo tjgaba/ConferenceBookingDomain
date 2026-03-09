@@ -1,9 +1,8 @@
+'use client';
 // RoomCard.jsx — Displays a single conference room with interactive buttons.
-// 
-// EVENT HANDLERS:
-//   - onEdit and onDelete are passed from parent components
-//   - These handlers are defined in App.jsx where state is managed
-//   - Demonstrates "Lifting State Up" pattern
+//
+// 'use client': renders <Button onClick={() => onEdit(room)}> —
+// inline arrow functions as event handlers require the browser.
 
 import Button from "./Button";
 import "./RoomCard.css";

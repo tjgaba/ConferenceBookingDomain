@@ -1,9 +1,9 @@
-// ErrorMessage.jsx - Error state display with retry capability
+'use client';
+// ErrorMessage.jsx — Error state display with retry/dismiss capability.
 //
-// COMPONENT PATTERNS:
-//   - Error boundary-like display (but not a true Error Boundary)
-//   - User action callbacks (retry, dismiss)
-//   - Accessible error messaging
+// 'use client': renders <button onClick={onRetry}> and <button onClick={onDismiss}>.
+// The onRetry and onDismiss props are JavaScript functions attached to DOM
+// events — this requires the browser.
 
 import "./ErrorMessage.css";
 

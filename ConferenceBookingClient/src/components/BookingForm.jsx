@@ -17,6 +17,10 @@
 //   - The parent (App) manages the actual bookings data
 //   - When submitted, it calls onSubmit (passed from parent) to update parent's state
 
+'use client';
+// 'use client': uses useState for controlled inputs, useEffect to sync
+// initialData into form fields, and async event handlers on submit.
+
 import { useState, useEffect } from "react";
 import Button from "./Button";
 import "./BookingForm.css";

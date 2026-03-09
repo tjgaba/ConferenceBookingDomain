@@ -1,9 +1,11 @@
 // ConnectionStatus.jsx — Pings the backend /health endpoint and displays
 // "Connected" (green) or "Backend Offline" (red) in the Header.
 
+'use client';
+// 'use client': uses useState to track online/offline/checking status and
+// useEffect to run the ping interval — both require the browser runtime.
+
 import { useState, useEffect } from 'react';
-// No Native Fetch constraint: import the canonical Axios singleton,
-// not the stale duplicate in services/api.js.
 import apiClient from '../api/apiClient';
 import './ConnectionStatus.css';
 

@@ -1,14 +1,8 @@
+'use client';
 // BookingCard.jsx — Displays a single booking with interactive buttons.
-// 
-// EVENT HANDLERS:
-//   - onEdit and onDelete are passed from parent components (via props)
-//   - When user clicks Edit/Delete, we call these handlers
-//   - The handlers are defined in App.jsx (where state lives)
-//   - This is "Lifting State Up" — child components don't manage data, they request changes
 //
-// PROPS FLOW:
-//   App → BookingList → BookingCard
-//   Data and handlers flow down through props
+// 'use client': renders <Button onClick={() => onEdit(booking)}> —
+// inline arrow functions as event handlers require the browser.
 
 import Button from "./Button";
 import "./BookingCard.css";

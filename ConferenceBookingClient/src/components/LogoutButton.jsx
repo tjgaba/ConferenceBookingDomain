@@ -1,5 +1,8 @@
-// LogoutButton.jsx — Button for logging out the current user
-// In future, this will clear auth tokens and redirect to login
+'use client';
+// LogoutButton.jsx — Button for logging out the current user.
+//
+// 'use client': defines an inline onClick handler (handleLogout).
+// Inline event handlers are browser-only — they cannot run on the server.
 
 import "./LogoutButton.css";
 

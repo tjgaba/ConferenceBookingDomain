@@ -10,6 +10,10 @@
 //   - useEffect sets timer for auto-dismiss
 //   - Cleanup function clears timer to prevent memory leaks
 
+'use client';
+// 'use client': uses useEffect to register a setTimeout auto-dismiss timer.
+// setTimeout is a browser API — it does not exist in Node.js/server context.
+
 import { useEffect } from 'react';
 import './Toast.css';
 

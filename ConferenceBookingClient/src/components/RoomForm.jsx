@@ -10,6 +10,10 @@
 //   2. A value prop bound to that state (value={name})
 //   3. An onChange handler that updates state (onChange={(e) => setName(e.target.value)})
 
+'use client';
+// 'use client': uses useState for controlled inputs, useEffect to sync
+// initialData into form fields, and event handlers on form submit.
+
 import { useState, useEffect } from "react";
 import Button from "./Button";
 import "./RoomForm.css";

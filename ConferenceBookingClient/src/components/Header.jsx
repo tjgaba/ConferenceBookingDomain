@@ -1,21 +1,16 @@
+'use client';
 // Header.jsx — A presentational component with user info and actions.
 // Now accepts auth props so the login/logout button lives inside the header.
+//
+// 'use client': renders <button onClick={onLogin}> and <button onClick={onLogout}>.
+// Event handlers cannot be attached in a Server Component.
 
-import { useEffect } from "react";
 import "./Header.css";
 import UserInfo from "./UserInfo";
 import CreateUserButton from "./CreateUserButton";
 import ConnectionStatus from "./ConnectionStatus";
 
 function Header({ isLoggedIn = false, currentUser = null, onLogin, onLogout }) {
-  // EFFECT: Background "Heartbeat" - checks for updates every 3 seconds
-  useEffect(() => {
-    const intervalId = setInterval(() => {
-      // background heartbeat
-    }, 3000);
-    return () => clearInterval(intervalId);
-  }, []);
-
   return (
     <header>
       <div className="header-left">

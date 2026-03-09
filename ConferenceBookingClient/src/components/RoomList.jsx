@@ -1,8 +1,8 @@
+'use client';
 // RoomList.jsx — Renders a list of RoomCard components.
-// This follows the same pattern as BookingList:
-//   - Receives data and handlers from parent (App)
-//   - Passes both down to child components (RoomCard)
-//   - LIFTING STATE UP: All state management happens in App
+//
+// 'use client': accepts onEdit and onDelete function props and forwards them
+// to RoomCard. Functions cannot cross the server/client serialisation boundary.
 
 import RoomCard from "./RoomCard";
 import "./RoomList.css";

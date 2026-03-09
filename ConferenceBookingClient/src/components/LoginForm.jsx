@@ -1,3 +1,7 @@
+'use client';
+// 'use client': uses useState for username/password/error fields and
+// an async onSubmit handler that calls the login API.
+
 import { useState } from 'react';
 import './BookingForm.css';
 

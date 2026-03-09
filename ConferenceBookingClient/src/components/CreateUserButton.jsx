@@ -1,5 +1,8 @@
-// CreateUserButton.jsx — Button for creating a new user account
-// In future, this will navigate to user creation form or open a modal
+'use client';
+// CreateUserButton.jsx — Button for creating a new user account.
+//
+// 'use client': defines an inline onClick handler (handleCreateUser).
+// Inline event handlers are browser-only — they cannot run on the server.
 
 import "./CreateUserButton.css";
 
