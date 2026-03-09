@@ -72,7 +72,7 @@ function BookingForm({ onSubmit, onCancel, rooms, initialData = null, serverErro
   };
 
   // Event Handler: Called when form is submitted
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault(); // Prevents page reload (default HTML form behavior)
     
     // Validation
@@ -114,14 +114,20 @@ function BookingForm({ onSubmit, onCancel, rooms, initialData = null, serverErro
       console.log('Selected room:', selectedRoom);
     }
 
-    // Call parent's onSubmit handler (lifting state up)
-    onSubmit(bookingData); //Form's onSubmit Handler Calls Prop-Function 
-    
-    // Reset form fields
-    setRoomId("");
-    setStartTime("");
-    setEndTime("");
-    setStatus("Pending");
+    // Await the parent's async handler (POST / PUT).
+    // Only reset the form fields when the mutation succeeds.
+    // On failure the parent keeps the form open and surfaces server errors,
+    // so we leave the fields populated so the user can correct them.
+    try {
+      await onSubmit(bookingData);
+      // Reset form fields only after confirmed success
+      setRoomId("");
+      setStartTime("");
+      setEndTime("");
+      setStatus("Pending");
+    } catch {
+      // Parent (App.jsx) sets bookingFormErrors; nothing to do here.
+    }
   };
 
   // Event Handler: Clear all form fields

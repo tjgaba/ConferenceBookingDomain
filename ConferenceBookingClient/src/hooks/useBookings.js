@@ -15,6 +15,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import apiClient from '../api/apiClient';
+import useSignalR from './useSignalR';
 
 /**
  * Manages all booking CRUD operations and exposes reactive state.

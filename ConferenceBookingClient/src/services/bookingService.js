@@ -10,6 +10,8 @@
 // - Request/response logging
 
 import apiClient from '../api/apiClient';
+import { createBookingRequestDTO } from '../dto/CreateBookingRequestDTO';
+import { updateBookingDTO } from '../dto/UpdateBookingDTO';
 
 // ==================== BOOKING API FUNCTIONS ====================
 
@@ -60,9 +62,11 @@ export const getBookingById = async (bookingId) => {
  * @throws {Error} Network or server errors
  */
 export const createBooking = async (bookingData) => {
+  // Build a payload that exactly matches CreateBookingRequestDTO (src/dto/CreateBookingRequestDTO.js)
+  const payload = createBookingRequestDTO(bookingData);
   try {
-    const response = await apiClient.post('/Booking', bookingData);
-    console.log('✓ API: Created booking', response.id);
+    const response = await apiClient.post('/Booking', payload);
+    console.log('✓ API: Created booking', response?.bookingId ?? response?.id);
     return response;
   } catch (error) {
     console.error('❌ Failed to create booking:', error);
@@ -78,8 +82,10 @@ export const createBooking = async (bookingData) => {
  * @throws {Error} Network or server errors
  */
 export const updateBooking = async (bookingId, bookingData) => {
+  // Build a payload that exactly matches UpdateBookingDTO (src/dto/UpdateBookingDTO.js)
+  const payload = updateBookingDTO(bookingId, bookingData);
   try {
-    const response = await apiClient.put(`/Booking/${bookingId}`, bookingData);
+    const response = await apiClient.put(`/Booking/${bookingId}`, payload);
     console.log('✓ API: Updated booking', bookingId);
     return response;
   } catch (error) {
