@@ -20,8 +20,18 @@ import { useState, useEffect, useCallback } from 'react';
 import { authService } from '../services/authService';
 
 function useAuth({ onSessionExpired } = {}) {
-  const [isLoggedIn, setIsLoggedIn]     = useState(authService.isAuthenticated());
-  const [currentUser, setCurrentUser]   = useState(authService.getCurrentUser());
+  // Lazy initializers: the callback form of useState is only called once on
+  // mount, and only in the browser. During Next.js SSR prerendering
+  // `typeof window === 'undefined'`, so localStorage is never accessed on
+  // the server — preventing "localStorage is not defined" build errors.
+  const [isLoggedIn, setIsLoggedIn] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return authService.isAuthenticated();
+  });
+  const [currentUser, setCurrentUser] = useState(() => {
+    if (typeof window === 'undefined') return null;
+    return authService.getCurrentUser();
+  });
   const [showLoginForm, setShowLoginForm] = useState(false);
   // Incrementing refreshKey forces the data-fetch effect in App to re-run
   // even when isLoggedIn was already true (stale-token / DB-reset scenario).

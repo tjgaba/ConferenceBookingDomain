@@ -1,12 +1,14 @@
 // app/layout.tsx — Root Layout (Server Component)
 //
-// Replaces the Vite index.html shell. Every route in this app is wrapped by
-// this layout. Because it is a Server Component it renders on the server and
-// sends fully-formed HTML to the browser, enabling SSR and improving SEO.
+// Wraps every route in the application. <AppShell> (a Client Component) is
+// rendered here to provide the persistent Header + Sidebar shell and the
+// global AuthProvider context tree.
 //
-// Global CSS is imported here once so it applies to every page.
+// layout.tsx itself remains a Server Component — AppShell owns the 'use client'
+// boundary so the layout bundle stays minimal.
 
 import type { Metadata } from 'next';
+import AppShell from './AppShell';
 import '../index.css';
 
 export const metadata: Metadata = {
@@ -17,7 +19,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <AppShell>{children}</AppShell>
+      </body>
     </html>
   );
 }

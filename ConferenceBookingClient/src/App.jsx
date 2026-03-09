@@ -23,12 +23,10 @@
 // Data flow: User Action → Async API Call → Loading State → Success/Error → UI Update (line 456)
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import Header from "./components/Header";
 import BookingList from "./components/BookingList";
 import RoomList from "./components/RoomList";
 import BookingForm from "./components/BookingForm";
 import RoomForm from "./components/RoomForm";
-import LoginForm from "./components/LoginForm";
 import Button from "./components/Button";
 import Footer from "./components/Footer";
 import LoadingSpinner from "./components/LoadingSpinner";
@@ -36,7 +34,7 @@ import ErrorMessage from "./components/ErrorMessage";
 import Toast from "./components/Toast";
 import * as bookingService from "./services/bookingService";
 import * as roomService from "./services/roomService";
-import useAuth from "./hooks/useAuth";
+import { useAuthContext } from "./context/AuthContext";
 import useSignalR from "./hooks/useSignalR";
 import NetworkStressTest from "./components/NetworkStressTest";
 import "./App.css";
@@ -70,20 +68,9 @@ function App() {
   // toasts can be visible at the same time without overwriting each other.
   const [toastRemote, setToastRemote] = useState({ show: false, message: '', type: 'warning' });
   
-  // Auth state — Hook Discipline: all auth logic lives in useAuth, not here.
-  const {
-    isLoggedIn,
-    currentUser,
-    showLoginForm,
-    setShowLoginForm,
-    refreshKey,
-    login,
-    logout,
-  } = useAuth({
-    // 401 session-expiry callback: show a toast without coupling useAuth to UI.
-    onSessionExpired: () =>
-      setToast({ show: true, message: 'Session expired. Please log in again.', type: 'error' }),
-  });
+  // Auth state — consumed from AuthContext (provided by app/AppShell.tsx at the
+  // layout level) so the persistent Header and App share one auth instance.
+  const { isLoggedIn, currentUser, refreshKey } = useAuthContext();
 
   // Req 5: Field-level server errors parsed from ProblemDetails, passed to BookingForm.
   const [bookingFormErrors, setBookingFormErrors] = useState({});
@@ -510,18 +497,6 @@ function App() {
     setToastRemote({ ...toastRemote, show: false });
   };
 
-  // HANDLER: Login — thin wrapper; useAuth.login() handles all state + authService.
-  const handleLogin = async (username, password) => {
-    const result = await login(username, password); // re-throws on failure → LoginForm shows error
-    setToast({ show: true, message: `Welcome back, ${result.user?.username ?? 'User'}!`, type: 'success' });
-  };
-
-  // HANDLER: Logout — thin wrapper; useAuth.logout() handles state + authService.
-  const handleLogout = async () => {
-    await logout();
-    setToast({ show: true, message: 'Logged out successfully.', type: 'success' });
-  };
-
   // ==================== RENDER ====================
 
   // Show full-screen loader during initial data fetch
@@ -533,44 +508,17 @@ function App() {
   if (error && allBookings.length === 0 && allRooms.length === 0) {
     return (
       <div className="app-container">
-        <Header 
-          isLoggedIn={isLoggedIn}
-          currentUser={currentUser}
-          onLogin={() => setShowLoginForm(true)}
-          onLogout={handleLogout}
-        />
-        {showLoginForm && (
-          <LoginForm 
-            onLogin={handleLogin}
-            onCancel={() => setShowLoginForm(false)}
-          />
-        )}
-        <ErrorMessage 
+        <ErrorMessage
           error={error}
           onRetry={handleRetry}
           onDismiss={handleDismissError}
         />
       </div>
-     );
+    );
   }
 
   return (
     <div className="app-container">
-      <Header 
-        isLoggedIn={isLoggedIn}
-        currentUser={currentUser}
-        onLogin={() => setShowLoginForm(true)}
-        onLogout={handleLogout}
-      />
-
-      {/* Login Form Modal */}
-      {showLoginForm && (
-        <LoginForm 
-          onLogin={handleLogin}
-          onCancel={() => setShowLoginForm(false)}
-        />
-      )}
-
       {/* Toast Notification - Shows on successful operations */}
       {toast.show && (
         <Toast 

@@ -7,19 +7,26 @@
 // the server/client boundary explicit and the server bundle clean.
 
 'use client';
+// app/login/LoginPageClient.tsx — Client Component for the /login route.
+//
+// Calls login() from AuthContext (not authService directly) so that the shared
+// auth state held in AuthProvider is updated on successful login. This means
+// the persistent Header in the layout immediately reflects the logged-in user
+// without requiring a page reload.
 
 import { useRouter } from 'next/navigation';
+import { useAuthContext } from '../../src/context/AuthContext';
 import LoginForm from '../../src/components/LoginForm';
-import { authService } from '../../src/services/authService';
 
 export default function LoginPageClient() {
   const router = useRouter();
+  const { login } = useAuthContext();
 
-  // Passed to LoginForm as the onLogin prop.
-  // authService.login stores the JWT in localStorage and re-throws on 401.
-  // LoginForm displays the error message — nothing extra needed here.
+  // login() is from useAuth (inside AuthContext). It POSTs credentials,
+  // stores the JWT, and updates isLoggedIn + currentUser in the context.
+  // LoginForm re-throws on failure so LoginForm can display the error.
   const handleLogin = async (username: string, password: string) => {
-    await authService.login(username, password);
+    await login(username, password);
     router.push('/dashboard');
   };
 
