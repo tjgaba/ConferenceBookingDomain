@@ -10,6 +10,9 @@
 // - Request/response logging
 
 import apiClient from '../api/apiClient';
+import { createRoomDTO } from '../dto/CreateRoomDTO';
+import { updateRoomDTO } from '../dto/UpdateRoomDTO';
+import { updateRoomStatusDTO } from '../dto/UpdateRoomStatusDTO';
 
 // ==================== ROOM API FUNCTIONS ====================
 
@@ -63,9 +66,11 @@ export const getRoomById = async (roomId) => {
  * @throws {Error} Network or server errors
  */
 export const createRoom = async (roomData) => {
+  // Build a payload that exactly matches CreateRoomDTO (src/dto/CreateRoomDTO.js)
+  const payload = createRoomDTO(roomData);
   try {
-    const response = await apiClient.post('/RoomManagement', roomData);
-    console.log('✓ API: Created room', response.id);
+    const response = await apiClient.post('/RoomManagement', payload);
+    console.log('✓ API: Created room', response?.id);
     return response;
   } catch (error) {
     console.error('❌ Failed to create room:', error);
@@ -81,8 +86,10 @@ export const createRoom = async (roomData) => {
  * @throws {Error} Network or server errors
  */
 export const updateRoom = async (roomId, roomData) => {
+  // Build a payload that exactly matches UpdateRoomDTO (src/dto/UpdateRoomDTO.js)
+  const payload = updateRoomDTO(roomData);
   try {
-    const response = await apiClient.put(`/RoomManagement/${roomId}`, roomData);
+    const response = await apiClient.put(`/RoomManagement/${roomId}`, payload);
     console.log('✓ API: Updated room', roomId);
     return response;
   } catch (error) {
@@ -115,8 +122,10 @@ export const deleteRoom = async (roomId) => {
  * @throws {Error} Network or server errors
  */
 export const updateRoomStatus = async (roomId, isActive) => {
+  // Build a payload that exactly matches UpdateRoomStatusDTO (src/dto/UpdateRoomStatusDTO.js)
+  const payload = updateRoomStatusDTO(Boolean(isActive));
   try {
-    const response = await apiClient.patch(`/RoomManagement/status/${roomId}`, { isActive });
+    const response = await apiClient.patch(`/RoomManagement/status/${roomId}`, payload);
     console.log('✓ API: Updated room status', roomId, isActive);
     return response;
   } catch (error) {
