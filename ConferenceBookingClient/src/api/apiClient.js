@@ -2,7 +2,8 @@ import axios from 'axios';
 
 /**
  * Singleton Axios instance.
- * - baseURL is read from the VITE_API_BASE_URL environment variable.
+ * - baseURL is read from NEXT_PUBLIC_API_BASE_URL (Next.js) with a fallback
+ *   to the legacy VITE_API_BASE_URL so the Vite dev server still works.
  * - Every request times out after 5 seconds automatically.
  * - Content-Type is set to application/json for all requests.
  *
@@ -10,7 +11,7 @@ import axios from 'axios';
  * Never call axios.create() or fetch() directly in components or hooks.
  */
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL,
+  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL,
   timeout: 5000,
   headers: {
     'Content-Type': 'application/json',

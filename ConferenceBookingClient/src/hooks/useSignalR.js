@@ -16,7 +16,7 @@
 import { useEffect, useRef } from 'react';
 import * as signalR from '@microsoft/signalr';
 
-const HUB_URL = import.meta.env.VITE_HUB_URL ?? 'http://localhost:5230/hubs/booking';
+const HUB_URL = process.env.NEXT_PUBLIC_HUB_URL ?? 'http://localhost:5230/hubs/booking';
 
 /**
  * Establishes and maintains a SignalR connection to the BookingHub.
