@@ -1,0 +1,52 @@
+/* [project]/src/components/Sidebar.css [app-client] (css) */
+.sidebar {
+  background: #1e293b;
+  flex-shrink: 0;
+  width: 220px;
+  min-height: 100%;
+  padding: 1.5rem 0;
+}
+
+.sidebar-nav {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sidebar-item {
+  margin: 0;
+}
+
+.sidebar-link {
+  color: #cbd5e1;
+  border-left: 3px solid #0000;
+  align-items: center;
+  gap: .75rem;
+  padding: .75rem 1.25rem;
+  text-decoration: none;
+  transition: background .15s, color .15s;
+  display: flex;
+}
+
+.sidebar-link:hover {
+  color: #f1f5f9;
+  background: #334155;
+}
+
+.sidebar-item.active .sidebar-link {
+  color: #38bdf8;
+  background: #334155;
+  border-left-color: #38bdf8;
+}
+
+.sidebar-icon {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.sidebar-label {
+  font-size: .9rem;
+  font-weight: 500;
+}
+
+/*# sourceMappingURL=src_components_Sidebar_css_bad6b30c._.single.css.map*/

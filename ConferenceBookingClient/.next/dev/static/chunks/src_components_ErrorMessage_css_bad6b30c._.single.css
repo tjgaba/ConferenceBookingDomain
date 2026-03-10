@@ -1,0 +1,81 @@
+/* [project]/src/components/ErrorMessage.css [app-client] (css) */
+.error-message {
+  background: #fef2f2;
+  border: 2px solid #ef4444;
+  border-radius: 8px;
+  align-items: flex-start;
+  gap: 1rem;
+  margin: 1rem 0;
+  padding: 1.5rem;
+  display: flex;
+}
+
+.error-icon {
+  color: #ef4444;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+}
+
+.error-content {
+  flex: 1;
+}
+
+.error-title {
+  color: #dc2626;
+  margin: 0 0 .5rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.error-description {
+  color: #7f1d1d;
+  margin: 0;
+  font-size: .9rem;
+  line-height: 1.5;
+}
+
+.error-actions {
+  gap: .75rem;
+  margin-top: 1rem;
+  display: flex;
+}
+
+.error-retry-btn {
+  color: #fff;
+  cursor: pointer;
+  background: #ef4444;
+  border: none;
+  border-radius: 6px;
+  padding: .5rem 1rem;
+  font-size: .9rem;
+  font-weight: 500;
+  transition: background .2s;
+}
+
+.error-retry-btn:hover {
+  background: #dc2626;
+}
+
+.error-retry-btn:disabled {
+  cursor: not-allowed;
+  background: #9ca3af;
+}
+
+.error-dismiss-btn {
+  color: #7f1d1d;
+  cursor: pointer;
+  background: none;
+  border: 1px solid #dc2626;
+  border-radius: 6px;
+  padding: .5rem 1rem;
+  font-size: .9rem;
+  font-weight: 500;
+  transition: all .2s;
+}
+
+.error-dismiss-btn:hover {
+  background: #fef2f2;
+}
+
+/*# sourceMappingURL=src_components_ErrorMessage_css_bad6b30c._.single.css.map*/

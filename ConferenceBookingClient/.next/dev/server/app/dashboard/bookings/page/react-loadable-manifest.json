@@ -1,0 +1,11 @@
+{
+  "[project]/app/dashboard/DashboardClient.tsx [app-client] (ecmascript, next/dynamic entry)": {
+    "id": "[project]/app/dashboard/DashboardClient.tsx [app-client] (ecmascript, next/dynamic entry)",
+    "files": [
+      "static/chunks/src_8af8fac7._.css",
+      "static/chunks/_423386eb._.js",
+      "static/chunks/node_modules_@microsoft_signalr_dist_esm_83eac09f._.js",
+      "static/chunks/app_dashboard_DashboardClient_tsx_d8a1b4cd._.js"
+    ]
+  }
+}

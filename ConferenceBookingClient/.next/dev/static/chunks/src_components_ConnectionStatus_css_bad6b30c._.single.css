@@ -1,0 +1,32 @@
+/* [project]/src/components/ConnectionStatus.css [app-client] (css) */
+.connection-status {
+  letter-spacing: .02em;
+  white-space: nowrap;
+  border-radius: 12px;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  font-size: .78rem;
+  font-weight: 600;
+  display: inline-flex;
+}
+
+.connection-status.online {
+  color: #27ae60;
+  background: #27ae601f;
+  border: 1px solid #27ae6059;
+}
+
+.connection-status.offline {
+  color: #e74c3c;
+  background: #e74c3c1f;
+  border: 1px solid #e74c3c59;
+}
+
+.connection-status.checking {
+  color: #f39c12;
+  background: #f39c121f;
+  border: 1px solid #f39c1259;
+}
+
+/*# sourceMappingURL=src_components_ConnectionStatus_css_bad6b30c._.single.css.map*/

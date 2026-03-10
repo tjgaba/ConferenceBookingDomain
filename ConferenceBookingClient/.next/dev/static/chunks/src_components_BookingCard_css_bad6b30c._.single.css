@@ -1,0 +1,58 @@
+/* [project]/src/components/BookingCard.css [app-client] (css) */
+.booking-card {
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 20px;
+  transition: transform .2s, box-shadow .2s;
+  box-shadow: 0 2px 4px #0000001a;
+}
+
+.booking-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px #00000026;
+}
+
+.booking-card h3 {
+  color: #2c3e50;
+  margin-bottom: 15px;
+  font-size: 1.2rem;
+}
+
+.booking-card p {
+  color: #555;
+  margin: 8px 0;
+  font-size: .95rem;
+}
+
+.booking-status {
+  color: #fff;
+  border-radius: 4px;
+  margin-top: 5px;
+  padding: 4px 12px;
+  font-size: .85rem;
+  font-weight: bold;
+  display: inline-block;
+}
+
+.status-pending {
+  background-color: #f39c12;
+}
+
+.status-confirmed {
+  background-color: #27ae60;
+}
+
+.status-cancelled {
+  background-color: #e74c3c;
+}
+
+.booking-card-actions {
+  border-top: 1px solid #eee;
+  gap: 10px;
+  margin-top: 15px;
+  padding-top: 15px;
+  display: flex;
+}
+
+/*# sourceMappingURL=src_components_BookingCard_css_bad6b30c._.single.css.map*/

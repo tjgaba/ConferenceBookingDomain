@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 1, "column": 0}, "map": {"version":3,"sources":["turbopack:///[project]/src/components/BookingList.css"],"sourcesContent":["/* BookingList.css — Styles for the BookingList component */\r\n\r\n.booking-list {\r\n  margin-bottom: 30px;\r\n}\r\n\r\n.booking-list h2 {\r\n  color: #2c3e50;\r\n  border-bottom: 2px solid #3498db;\r\n  padding-bottom: 10px;\r\n  margin-bottom: 20px;\r\n}\r\n\r\n.bookings-grid {\r\n  display: grid;\r\n  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));\r\n  gap: 20px;\r\n}\r\n\r\n.empty-message {\r\n  text-align: center;\r\n  padding: 40px 20px;\r\n  color: #7f8c8d;\r\n  font-size: 1.1rem;\r\n  background-color: #f8f9fa;\r\n  border-radius: 8px;\r\n  border: 2px dashed #bdc3c7;\r\n}\r\n\r\n@media (max-width: 768px) {\r\n  .bookings-grid {\r\n    grid-template-columns: 1fr;\r\n  }\r\n}\r\n"],"names":[],"mappings":"AAEA;;;;AAIA;;;;;;;AAOA;;;;;;AAMA;;;;;;;;;;AAUA;EACE"}}]
+}

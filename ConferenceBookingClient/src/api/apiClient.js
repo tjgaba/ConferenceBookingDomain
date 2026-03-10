@@ -2,8 +2,7 @@ import axios from 'axios';
 
 /**
  * Singleton Axios instance.
- * - baseURL is read from NEXT_PUBLIC_API_BASE_URL (Next.js) with a fallback
- *   to the legacy VITE_API_BASE_URL so the Vite dev server still works.
+ * - baseURL is read from NEXT_PUBLIC_API_BASE_URL (.env.local)
  * - Every request times out after 5 seconds automatically.
  * - Content-Type is set to application/json for all requests.
  *

@@ -1,0 +1,35 @@
+/* [project]/src/components/RoomList.css [app-client] (css) */
+.room-list {
+  margin-bottom: 30px;
+}
+
+.room-list h2 {
+  color: #2c3e50;
+  border-bottom: 2px solid #3498db;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+}
+
+.rooms-grid {
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 20px;
+  display: grid;
+}
+
+.empty-message {
+  text-align: center;
+  color: #7f8c8d;
+  background-color: #f8f9fa;
+  border: 2px dashed #bdc3c7;
+  border-radius: 8px;
+  padding: 40px 20px;
+  font-size: 1.1rem;
+}
+
+@media (max-width: 768px) {
+  .rooms-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+}
+
+/*# sourceMappingURL=src_components_RoomList_css_bad6b30c._.single.css.map*/

@@ -23,6 +23,7 @@
 // Data flow: User Action → Async API Call → Loading State → Success/Error → UI Update (line 456)
 
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { usePathname } from "next/navigation";
 import BookingList from "./components/BookingList";
 import RoomList from "./components/RoomList";
 import BookingForm from "./components/BookingForm";
@@ -71,6 +72,15 @@ function App() {
   // Auth state — consumed from AuthContext (provided by app/AppShell.tsx at the
   // layout level) so the persistent Header and App share one auth instance.
   const { isLoggedIn, currentUser, refreshKey } = useAuthContext();
+
+  // Derive which section to show from the current URL.
+  // /dashboard/bookings → 'bookings'
+  // /dashboard/rooms    → 'rooms'
+  // /dashboard          → 'all'
+  const pathname = usePathname();
+  const section =
+    pathname === '/dashboard/bookings' ? 'bookings' :
+    pathname === '/dashboard/rooms'    ? 'rooms'    : 'all';
 
   // Req 5: Field-level server errors parsed from ProblemDetails, passed to BookingForm.
   const [bookingFormErrors, setBookingFormErrors] = useState({});
@@ -549,19 +559,24 @@ function App() {
       {/* Show overlay loader during submit operations */}
       {isSubmitting && <LoadingSpinner overlay message="Saving..." />}
 
-      {/* Dashboard Statistics - Derived State */}
+      {/* Dashboard Statistics — only show the relevant stat card for the current section */}
       <div className="dashboard-stats">
-        <div className="stat-card">
-          <h3>Total Bookings</h3>
-          <p className="stat-number">{filteredBookings.length}</p>
-        </div>
-        <div className="stat-card">
-          <h3>Total Available Rooms</h3>
-          <p className="stat-number">{filteredRooms.length}</p>
-        </div>
+        {(section === 'all' || section === 'bookings') && (
+          <div className="stat-card">
+            <h3>Total Bookings</h3>
+            <p className="stat-number">{filteredBookings.length}</p>
+          </div>
+        )}
+        {(section === 'all' || section === 'rooms') && (
+          <div className="stat-card">
+            <h3>Total Available Rooms</h3>
+            <p className="stat-number">{filteredRooms.length}</p>
+          </div>
+        )}
       </div>
 
-      {/* Cascading Filters - Demonstrates useEffect dependency array discipline */}
+      {/* Cascading Filters — only shown on the bookings section */}
+      {(section === 'all' || section === 'bookings') && (
       <div className="filter-section">
         <div className="filter-group">
           <label htmlFor="category-filter">Filter by Category:</label>
@@ -594,8 +609,10 @@ function App() {
           </select>
         </div>
       </div>
+      )}
 
       {/* Bookings Section */}
+      {(section === 'all' || section === 'bookings') && (
       <section className="section">
         <div className="section-header">
           <h2>Bookings Management</h2>
@@ -628,8 +645,10 @@ function App() {
           onDelete={handleDeleteBooking}
         />
       </section>
+      )}
 
       {/* Rooms Section */}
+      {(section === 'all' || section === 'rooms') && (
       <section className="section">
         <div className="section-header">
           <h2>Rooms Management</h2>
@@ -694,6 +713,7 @@ function App() {
           onDelete={handleDeleteRoom}
         />
       </section>
+      )}
 
       {/* ── Stress Test Panel ─────────────────────────── */}
       <section className="section">

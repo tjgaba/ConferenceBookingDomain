@@ -1,0 +1,15 @@
+/* [project]/src/components/Footer.css [app-client] (css) */
+footer {
+  color: #fff;
+  text-align: center;
+  background-color: #2c3e50;
+  margin-top: 40px;
+  padding: 20px;
+}
+
+footer p {
+  margin: 0;
+  font-size: .9rem;
+}
+
+/*# sourceMappingURL=src_components_Footer_css_bad6b30c._.single.css.map*/

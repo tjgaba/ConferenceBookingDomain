@@ -8,7 +8,8 @@
 // 'use client': uses useRouter (Next.js navigation hook) and useAuthContext
 // (React context hook). Both are browser-only operations.
 
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuthContext } from '../context/AuthContext';
 import UserInfo from './UserInfo';
 import CreateUserButton from './CreateUserButton';
@@ -17,6 +18,7 @@ import './Header.css';
 
 function Header() {
   const router = useRouter();
+  const pathname = usePathname();
   const { isLoggedIn, currentUser, logout } = useAuthContext();
 
   const handleLogout = async () => {
@@ -34,9 +36,9 @@ function Header() {
 
       <div className="header-right">
         <nav>
-          <a href="#">Home</a>
-          <a href="#">Bookings</a>
-          <a href="#">Rooms</a>
+          <Link href="/" className={pathname === '/' ? 'nav-active' : ''}>Home</Link>
+          <Link href="/dashboard/bookings" className={pathname.startsWith('/dashboard/bookings') ? 'nav-active' : ''}>Bookings</Link>
+          <Link href="/dashboard/rooms" className={pathname.startsWith('/dashboard/rooms') ? 'nav-active' : ''}>Rooms</Link>
         </nav>
 
         <div className="header-actions">

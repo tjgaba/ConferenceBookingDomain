@@ -75,14 +75,17 @@ public partial class Program
         builder.Services.AddScoped<TokenService>();
         builder.Services.AddScoped<ISessionManager, SessionManager>();
 
-        // Add CORS policy for React frontend
-        // AllowAnyMethod() is required for SignalR — the WebSocket/SSE negotiation
-        // uses methods beyond GET/POST/PUT/DELETE that WithMethods() would block.
+        // Allow both the Next.js dev server (3000) and the Vite dev server (5173)
+        // so the app works regardless of which frontend is running.
         builder.Services.AddCors(options =>
         {
             options.AddPolicy("AllowReactApp", policy =>
             {
-                policy.WithOrigins("http://localhost:5173") // Vite's default port
+                policy.WithOrigins(
+                          "http://localhost:3000",  // Next.js dev server
+                          "http://localhost:3001",  // Next.js fallback port
+                          "http://localhost:5173"   // Vite dev server (legacy)
+                      )
                       .AllowAnyHeader()
                       .AllowAnyMethod()
                       .AllowCredentials();

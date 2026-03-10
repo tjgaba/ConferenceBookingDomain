@@ -1,0 +1,20 @@
+/* [project]/app/AppShell.css [app-client] (css) */
+.app-shell {
+  flex-direction: column;
+  min-height: 100vh;
+  display: flex;
+}
+
+.shell-body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.shell-main {
+  flex: 1;
+  padding: 0;
+  overflow-y: auto;
+}
+
+/*# sourceMappingURL=app_AppShell_css_bad6b30c._.single.css.map*/

@@ -57,6 +57,11 @@ header nav a:hover {
   transform: translateY(-2px);
 }
 
+header nav a.nav-active {
+  background-color: rgba(52, 152, 219, 0.45);
+  border-bottom: 2px solid #3498db;
+}
+
 .header-right {
   display: flex;
   align-items: center;

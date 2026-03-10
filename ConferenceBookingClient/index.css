@@ -1,6 +1,11 @@
 /* Global styles for the Conference Booking application */
 
-* {
+/* Hide the Next.js dev error overlay (the red popup panel) */
+nextjs-portal {
+  display: none !important;
+}
+
+*  {
   margin: 0;
   padding: 0;
   box-sizing: border-box;

@@ -1,0 +1,165 @@
+/* [project]/src/components/NetworkStressTest.css [app-client] (css) */
+.stress-test {
+  background: #0f0f1a;
+  border: 2px dashed #6366f1;
+  border-radius: 12px;
+  margin: 2rem 0;
+  padding: 1.5rem 2rem;
+}
+
+.stress-test__header {
+  margin-bottom: 1.25rem;
+}
+
+.stress-test__title {
+  color: #a5b4fc;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  margin: 0 0 .4rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.stress-test__subtitle {
+  color: #94a3b8;
+  margin: 0;
+  font-size: .85rem;
+  line-height: 1.5;
+}
+
+.stress-test__buttons {
+  flex-wrap: wrap;
+  gap: .6rem;
+  margin-bottom: 1.25rem;
+  display: flex;
+}
+
+.stress-btn {
+  cursor: pointer;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: .45rem 1rem;
+  font-size: .85rem;
+  font-weight: 600;
+  transition: opacity .15s, transform .1s;
+}
+
+.stress-btn:hover:not(:disabled) {
+  opacity: .85;
+  transform: translateY(-1px);
+}
+
+.stress-btn:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+.stress-btn--loading {
+  animation: 1s ease-in-out infinite pulse;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: .5;
+  }
+}
+
+.btn-timeout {
+  background: #b45309;
+}
+
+.btn-network {
+  background: #7c3aed;
+}
+
+.btn-auth {
+  background: #b91c1c;
+}
+
+.btn-notfound {
+  background: #0369a1;
+}
+
+.btn-cancel {
+  background: #374151;
+}
+
+.btn-reset {
+  background: #1f2937;
+  border: 1px solid #4b5563;
+}
+
+.stress-test__result {
+  border-radius: 8px;
+  align-items: flex-start;
+  gap: .75rem;
+  margin-bottom: .75rem;
+  padding: 1rem 1.25rem;
+  font-size: .9rem;
+  line-height: 1.6;
+  display: flex;
+}
+
+.stress-test__result--loading {
+  color: #94a3b8;
+  background: #1e293b;
+  border-left: 4px solid #475569;
+}
+
+.stress-test__result--error {
+  color: #fca5a5;
+  background: #1c0a0a;
+  border-left: 4px solid #ef4444;
+}
+
+.stress-test__result--cancelled {
+  color: #86efac;
+  background: #0c1a0c;
+  border-left: 4px solid #22c55e;
+}
+
+.stress-test__result--success {
+  color: #6ee7b7;
+  background: #0c1a10;
+  border-left: 4px solid #10b981;
+}
+
+.stress-test__result-badge {
+  letter-spacing: .08em;
+  color: inherit;
+  background: #ffffff14;
+  border-radius: 4px;
+  flex-shrink: 0;
+  align-self: center;
+  padding: .2rem .5rem;
+  font-size: .7rem;
+  font-weight: 800;
+}
+
+.stress-test__error-msg {
+  margin: 0;
+  font-family: Courier New, monospace;
+}
+
+.stress-test__cancelled {
+  margin: 0;
+}
+
+.stress-test__description {
+  color: #64748b;
+  border-top: 1px solid #1e293b;
+  margin: 0;
+  padding-top: .25rem;
+  font-size: .8rem;
+}
+
+.stress-test__description strong {
+  color: #94a3b8;
+}
+
+/*# sourceMappingURL=src_components_NetworkStressTest_css_bad6b30c._.single.css.map*/

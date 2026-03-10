@@ -13,6 +13,7 @@ import Link from 'next/link';
 import './Sidebar.css';
 
 const NAV_ITEMS = [
+  { href: '/', label: 'Home', icon: '🏠' },
   { href: '/dashboard', label: 'Dashboard', icon: '📊' },
   { href: '/dashboard/bookings', label: 'Bookings', icon: '📅' },
   { href: '/dashboard/rooms', label: 'Rooms', icon: '🏢' },

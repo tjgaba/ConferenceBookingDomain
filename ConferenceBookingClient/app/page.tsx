@@ -7,6 +7,7 @@
 
 import Link from 'next/link';
 import styles from './page.module.css';
+import LandingActions from './LandingActions';
 
 export default function LandingPage() {
   return (
@@ -18,15 +19,7 @@ export default function LandingPage() {
           simple, and always in sync.
         </p>
 
-        <div className={styles.actions}>
-          {/* Next.js <Link> prefetches the target route on hover — zero-cost navigation */}
-          <Link href="/login" className={styles.btnPrimary}>
-            Sign In
-          </Link>
-          <Link href="/dashboard" className={styles.btnSecondary}>
-            Go to Dashboard
-          </Link>
-        </div>
+        <LandingActions />
       </div>
 
       <section className={styles.features}>

@@ -1,0 +1,144 @@
+/* [project]/src/components/BookingForm.css [app-client] (css) */
+.form-overlay {
+  z-index: 1000;
+  background-color: #00000080;
+  justify-content: center;
+  align-items: center;
+  display: flex;
+  position: fixed;
+  inset: 0;
+}
+
+.form-container {
+  background: #fff;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  padding: 30px;
+  overflow-y: auto;
+  box-shadow: 0 10px 25px #0000004d;
+}
+
+.form-container h2 {
+  color: #2c3e50;
+  margin-top: 0;
+  margin-bottom: 20px;
+  font-size: 1.8rem;
+}
+
+.booking-form-container {
+  background: #fff;
+  border: 2px solid #3498db;
+  border-radius: 8px;
+  margin: 20px 0;
+  padding: 25px;
+  box-shadow: 0 4px 6px #0000001a;
+}
+
+.booking-form-container h3 {
+  color: #2c3e50;
+  margin-top: 0;
+  margin-bottom: 20px;
+  font-size: 1.5rem;
+}
+
+.booking-form {
+  flex-direction: column;
+  gap: 20px;
+  display: flex;
+}
+
+.form-group {
+  flex-direction: column;
+  gap: 8px;
+  display: flex;
+}
+
+.form-group label {
+  color: #2c3e50;
+  font-size: .95rem;
+  font-weight: 600;
+}
+
+.form-group input, .form-group select {
+  border: 2px solid #bdc3c7;
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 1rem;
+  transition: all .3s;
+}
+
+.form-group input:focus, .form-group select:focus {
+  border-color: #3498db;
+  outline: none;
+  box-shadow: 0 0 0 3px #3498db1a;
+}
+
+.form-group input:invalid, .form-group select:invalid {
+  border-color: #e74c3c;
+}
+
+.form-actions {
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 10px;
+  display: flex;
+}
+
+.form-actions .button {
+  min-width: 100px;
+}
+
+.btn-submit, .btn-cancel {
+  cursor: pointer;
+  border: none;
+  border-radius: 6px;
+  min-width: 100px;
+  padding: 10px 20px;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: all .3s;
+}
+
+.btn-submit {
+  color: #fff;
+  background-color: #3498db;
+}
+
+.btn-submit:hover:not(:disabled) {
+  background-color: #2980b9;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px #3498db4d;
+}
+
+.btn-cancel {
+  color: #fff;
+  background-color: #95a5a6;
+}
+
+.btn-cancel:hover:not(:disabled) {
+  background-color: #7f8c8d;
+}
+
+.btn-submit:disabled, .btn-cancel:disabled {
+  opacity: .6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .booking-form-container {
+    padding: 15px;
+  }
+
+  .form-actions {
+    flex-direction: column;
+  }
+
+  .form-actions .button {
+    width: 100%;
+  }
+}
+
+/*# sourceMappingURL=src_components_BookingForm_css_bad6b30c._.single.css.map*/

@@ -1,0 +1,40 @@
+/* [project]/src/components/RoomCard.css [app-client] (css) */
+.room-card {
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 20px;
+  transition: transform .2s, box-shadow .2s;
+  box-shadow: 0 2px 4px #0000001a;
+}
+
+.room-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px #00000026;
+}
+
+.room-card h3 {
+  color: #3498db;
+  margin-bottom: 12px;
+  font-size: 1.1rem;
+}
+
+.room-card p {
+  color: #555;
+  margin: 6px 0;
+  font-size: .9rem;
+}
+
+.room-card-actions {
+  border-top: 1px solid #ecf0f1;
+  gap: 8px;
+  margin-top: 15px;
+  padding-top: 15px;
+  display: flex;
+}
+
+.room-card-actions .button {
+  flex: 1;
+}
+
+/*# sourceMappingURL=src_components_RoomCard_css_bad6b30c._.single.css.map*/

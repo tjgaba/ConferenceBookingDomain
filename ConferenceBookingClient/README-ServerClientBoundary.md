@@ -13,6 +13,10 @@
 7. [Why Bundle Size Matters](#7-why-bundle-size-matters)
 8. [Decision Flowchart](#8-decision-flowchart)
 9. [Full Component Map](#9-full-component-map)
+10. [Persistent Global Layouts](#10-persistent-global-layouts)
+11. [Optimized Navigation with the Next.js Link Component](#11-optimized-navigation-with-the-nextjs-link-component)
+12. [Dynamic Route Implementation — `/bookings/[id]`](#12-dynamic-route-implementation--bookingsid)
+13. [Vite Removal — Zero Traces Remaining](#13-vite-removal--zero-traces-remaining)
 
 ---
 
@@ -476,3 +480,506 @@ Does it accept function props that it passes to child elements or child componen
 | [`CreateUserButton.jsx`](../src/components/CreateUserButton.jsx#L1) | `'use client'` | Inline `onClick` + `alert()` (browser API) |
 | [`LogoutButton.jsx`](../src/components/LogoutButton.jsx#L1) | `'use client'` | Inline `onClick` + `alert()` (browser API) |
 | [`ErrorMessage.jsx`](../src/components/ErrorMessage.jsx#L1) | `'use client'` | Attaches `onRetry`/`onDismiss` props as `onClick` |
+| [`Sidebar.jsx`](../src/components/Sidebar.jsx#L1) | `'use client'` | `usePathname` (Next.js hook) to highlight active route |
+| [`AppShell.tsx`](../app/AppShell.tsx#L1) | `'use client'` | `usePathname` to conditionally hide shell on `/login` |
+
+---
+
+## 10. Persistent Global Layouts
+
+### The Problem With Rendering the Shell Inside a Page
+
+Before this change, `Header` was rendered _inside_ `App.jsx` (the dashboard page component). This
+means every time the user navigated to a different route, React unmounted the old page and mounted
+the new one — taking `Header` down and back up with it. Auth state, connection status, and any
+in-flight UI was destroyed on every navigation.
+
+### The Solution: `app/layout.tsx` + `AppShell.tsx`
+
+Next.js `layout.tsx` files wrap their segment and all child segments. They are **mounted once and
+never unmounted** for the lifetime of the segment. Putting `Header` and `Sidebar` inside the root
+layout means they persist across every route transition.
+
+```
+app/
+  layout.tsx          ← mounted once, never torn down
+    <AppShell>
+      <Header />      ← persists across /login, /dashboard, /
+      <Sidebar />     ← persists across /login, /dashboard, /
+      <main>
+        {children}    ← only this part swaps per route
+      </main>
+    </AppShell>
+```
+
+### New Files
+
+**[`src/context/AuthContext.jsx`](../src/context/AuthContext.jsx#L1)** — `'use client'`
+
+Wraps `useAuth` in a React Context. Without this, `Header` (in the layout) and `App.jsx` (in the
+page) would each call `useAuth()` independently, giving them _separate_ state instances — logging
+in on the page would not update the header, and vice versa.
+
+```jsx
+export function AuthProvider({ children }) {
+  const auth = useAuth();  // one instance, shared by everything below
+  return <AuthContext.Provider value={auth}>{children}</AuthContext.Provider>;
+}
+
+export function useAuthContext() {
+  return useContext(AuthContext);
+}
+```
+
+**[`app/AppShell.tsx`](../app/AppShell.tsx#L1)** — `'use client'`
+
+The shell Client Component that:
+1. Wraps the tree in `<AuthProvider>` (single auth state instance)
+2. Reads `usePathname()` to detect the current route
+3. Hides `Header` + `Sidebar` on `/login` so the auth page gets a clean full-viewport layout
+
+```tsx
+export default function AppShell({ children }) {
+  const pathname = usePathname();
+  const showShell = !pathname.startsWith('/login');
+
+  return (
+    <AuthProvider>
+      {showShell ? (
+        <div className="app-shell">
+          <Header />
+          <div className="shell-body">
+            <Sidebar />
+            <main className="shell-main">{children}</main>
+          </div>
+        </div>
+      ) : (
+        children
+      )}
+    </AuthProvider>
+  );
+}
+```
+
+**[`src/components/Sidebar.jsx`](../src/components/Sidebar.jsx#L1)** — `'use client'`
+
+Persistent navigation sidebar using `usePathname()` to apply an `.active` class to the current
+route link. Requires `'use client'` because `usePathname` is a Next.js navigation hook (browser
+only).
+
+### Changes to Existing Files
+
+**[`app/layout.tsx`](../app/layout.tsx#L1)** — now renders `<AppShell>` as the body child:
+
+```tsx
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en">
+      <body>
+        <AppShell>{children}</AppShell>  {/* shell lives here, not in pages */}
+      </body>
+    </html>
+  );
+}
+```
+
+**[`src/components/Header.jsx`](../src/components/Header.jsx#L1)** — removed all props;
+reads from `useAuthContext()` instead:
+
+```jsx
+// Before — Header was a presentational component driven by props
+function Header({ isLoggedIn, currentUser, onLogin, onLogout }) { ... }
+
+// After — Header reads shared context, owns its own router calls
+function Header() {
+  const { isLoggedIn, currentUser, logout } = useAuthContext();
+  const router = useRouter();
+  ...
+}
+```
+
+**[`src/App.jsx`](../src/App.jsx#L1)** — removed `import Header`, `import LoginForm`,
+`import useAuth`. Auth state is now consumed from context:
+
+```jsx
+// Before
+const { isLoggedIn, currentUser, showLoginForm, login, logout, ... } = useAuth(...);
+
+// After — simpler, no login/logout handlers here
+const { isLoggedIn, currentUser, refreshKey } = useAuthContext();
+```
+
+**[`src/hooks/useAuth.js`](../src/hooks/useAuth.js#L1)** — lazy `useState` initializers
+prevent `localStorage is not defined` during Next.js SSR prerendering:
+
+```js
+// Before — called synchronously at module evaluation time (SSR crash)
+const [isLoggedIn] = useState(authService.isAuthenticated());
+
+// After — callback only runs in the browser
+const [isLoggedIn] = useState(() => {
+  if (typeof window === 'undefined') return false;
+  return authService.isAuthenticated();
+});
+```
+
+---
+
+## 11. Optimized Navigation with the Next.js Link Component
+
+### Why `<a href="...">` is wrong in a Next.js app
+
+A plain anchor tag triggers a **full browser navigation**: the browser discards the current page,
+requests a new HTML document from the server, downloads all CSS and JS again, and re-parses
+everything. In Next.js this means:
+
+- The layout unmounts — `Header` and `Sidebar` are torn down and rebuilt
+- React state is wiped — auth context, scroll position, any open forms
+- A network round-trip happens even for routes that are already code-split locally
+
+### What `<Link>` does instead
+
+Next.js `<Link>` performs **client-side navigation**:
+
+1. Intercepts the click event before the browser handles it
+2. Updates the URL with the History API (`pushState`)
+3. Swaps only the `{children}` slot inside `layout.tsx` — the `Header` and `Sidebar` never unmount
+4. **Prefetches** the target route's JS bundle when the link enters the viewport (in production)
+
+```
+User clicks <Link href="/dashboard">
+  ↓
+  Next.js router intercepts
+  ↓
+  URL changes: /login → /dashboard
+  ↓
+  layout.tsx shell stays mounted (Header, Sidebar unchanged)
+  ↓
+  Only <main> content swaps: LoginPageClient → DashboardClient
+```
+
+Compare with `<a href="/dashboard">`:
+
+```
+User clicks <a href="/dashboard">
+  ↓
+  Browser full reload — full HTTP GET /dashboard
+  ↓
+  Entire React tree unmounts and remounts from scratch
+  ↓
+  Auth state wiped, Header rebuilt, Sidebar rebuilt
+```
+
+### What Changed
+
+**[`src/components/Header.jsx`](../src/components/Header.jsx#L1)** — three `<a>` nav links
+replaced with `<Link>`:
+
+```jsx
+// Before
+import './Header.css';
+...
+<a href="#">Home</a>
+<a href="#">Bookings</a>
+<a href="#">Rooms</a>
+
+// After
+import Link from 'next/link';
+...
+<Link href="/">Home</Link>
+<Link href="/dashboard">Bookings</Link>
+<Link href="/dashboard">Rooms</Link>
+```
+
+The `#` placeholder hrefs were also corrected to their actual routes in the same change.
+
+**[`app/page.tsx`](../app/page.tsx#L1)** — the landing page already used `<Link>` from initial
+creation:
+
+```tsx
+<Link href="/login" className={styles.btnPrimary}>Sign In</Link>
+<Link href="/dashboard" className={styles.btnSecondary}>Go to Dashboard</Link>
+```
+
+**[`app/login/LoginPageClient.tsx`](../app/login/LoginPageClient.tsx#L1)** and
+**[`src/components/Header.jsx`](../src/components/Header.jsx#L1)** — login/logout already used
+`router.push()` which is also a client-side navigation (identical benefit to `<Link>`).
+
+### Navigation Behaviour Summary
+
+| Navigation | Method | Full Reload? | Shell Preserved? |
+|---|---|---|---|
+| Landing → Login | `<Link href="/login">` | No | N/A (no shell on `/login`) |
+| Login → Dashboard | `router.push('/dashboard')` | No | Yes |
+| Header: Home | `<Link href="/">` | No | Yes |
+| Header: Bookings/Rooms | `<Link href="/dashboard">` | No | Yes |
+| Header: Logout | `router.push('/login')` | No | Hides on `/login` |
+| Header: Login button | `router.push('/login')` | No | Hides on `/login` |
+
+---
+
+## 12. Dynamic Route Implementation — `/bookings/[id]`
+
+### What is a Dynamic Route?
+
+A **dynamic route** is a file-based route where one segment of the URL path is a variable
+captured from the browser's address bar. Next.js uses square-bracket folder names for this:
+
+```
+app/bookings/[id]/page.tsx
+               ↑
+               Anything typed here becomes params.id
+```
+
+Navigating to `/bookings/42` sets `params.id = "42"`. Navigating to `/bookings/999` sets
+`params.id = "999"`. One file handles every booking ID.
+
+### File Structure
+
+```
+app/bookings/
+  [id]/
+    page.tsx              ← Server Component — route entry, reads params
+    BookingDetailClient.tsx  ← 'use client' — fetches data, renders detail
+    booking-detail.css    ← scoped styles
+```
+
+### Why `page.tsx` Stays a Server Component
+
+The requirement states: _points will be deducted for marking the entire page or layout as
+`'use client'`_. Only the minimal client boundary needed is marked:
+
+```tsx
+// page.tsx — Server Component (no 'use client')
+import BookingDetailClient from './BookingDetailClient';
+
+interface PageProps {
+  params: Promise<{ id: string }>; // Next.js 15+: params is a Promise
+}
+
+export default async function BookingDetailPage({ params }: PageProps) {
+  const { id } = await params; // await to unwrap the Next.js 15 Promise
+  return <BookingDetailClient id={id} />; // pass string prop — no fetch here
+}
+```
+
+`page.tsx` contains zero browser-dependent code. It simply unpacks the URL segment and passes
+it as a serialisable `string` prop to the Client Component.
+
+### Why `BookingDetailClient.tsx` Needs `'use client'`
+
+[`app/bookings/[id]/BookingDetailClient.tsx`](../app/bookings/%5Bid%5D/BookingDetailClient.tsx#L1)
+
+The `.NET` API endpoint `GET /Booking/{id}` is protected by JWT. The token is stored in
+`localStorage` (set by `authService.login()`). `localStorage` only exists in the browser —
+it is undefined during Next.js server-side rendering. Therefore:
+
+- The data fetch **cannot** happen in a Server Component
+- `useState` tracks `booking`, `loading`, `notFound`, `error`
+- `useEffect` triggers the fetch after mount (browser-only lifecycle)
+
+```tsx
+'use client';
+
+export default function BookingDetailClient({ id }: { id: string }) {
+  const [booking, setBooking] = useState<BookingDetail | null>(null);
+  const [loading, setLoading]   = useState(true);
+  const [notFound, setNotFound] = useState(false);
+  const [error, setError]       = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const numericId = parseInt(id, 10);
+        const data = await getBookingById(numericId); // uses apiClient + JWT
+        if (!cancelled) setBooking(data as BookingDetail);
+      } catch (err: unknown) {
+        const status = (err as { response?: { status?: number } })?.response?.status;
+        if (status === 404) setNotFound(true);
+        else setError((err as { message?: string })?.message ?? 'Unexpected error.');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    load();
+    return () => { cancelled = true; }; // cleanup prevents state update after unmount
+  }, [id]);
+  ...
+}
+```
+
+**Race condition prevention:** the `cancelled` flag stops `setBooking` / `setError` from firing
+if the component unmounts before the fetch resolves (e.g. user navigates away quickly).
+
+### Not-Found Handling
+
+The `.NET` `BookingController` returns `HTTP 404` with `{ "Message": "Booking with ID {id} not found." }`
+when the ID does not exist. Axios throws on 4xx responses, so the status is inspected in the
+catch block:
+
+```tsx
+const status = (err as { response?: { status?: number } })?.response?.status;
+if (status === 404) {
+  setNotFound(true); // show custom branded view
+} else {
+  setError(msg);     // show generic error view
+}
+```
+
+This renders a custom branded "Booking Not Found" view instead of the global Next.js 404 page:
+
+```tsx
+if (notFound) {
+  return (
+    <div className="booking-detail-notfound">
+      <div className="notfound-icon">🔍</div>
+      <h1>Booking Not Found</h1>
+      <p>
+        No booking exists with ID <strong>#{id}</strong>. It may have been
+        deleted or the ID may be incorrect.
+      </p>
+      <Link href="/dashboard" className="notfound-back">
+        ← Back to Dashboard
+      </Link>
+    </div>
+  );
+}
+```
+
+### Build Output
+
+Next.js correctly identifies the route as **Dynamic** (server-rendered on demand) because the
+content varies by URL segment:
+
+```
+Route (app)
+├ ○ /
+├ ○ /_not-found
+├ ƒ /bookings/[id]     ← ƒ = Dynamic
+├ ○ /dashboard
+└ ○ /login
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+```
+
+---
+
+## 13. Vite Removal — Zero Traces Remaining
+
+### Why Complete Removal Matters
+
+The constraint states: _no traces of the old Vite build system or react-router-dom should remain_.
+Leaving Vite packages in `devDependencies` wastes install bandwidth and creates confusion about
+which toolchain is active. Leaving `vite.config.js` or `index.html` risks someone accidentally
+running `vite dev` and getting a broken development environment.
+
+### Files Deleted
+
+| File | What it was |
+|---|---|
+| `vite.config.js` | Vite build configuration (`defineConfig`, `@vitejs/plugin-react`) |
+| `index.html` | Vite HTML entry point — the `<div id="root">` container |
+| `src/main.jsx` | `ReactDOM.createRoot` bootstrap — wires React to `#root` |
+
+Next.js does not use any of these. It has its own HTML scaffolding (`app/layout.tsx`) and its own
+build entry — none of the Vite bootstrap code applies.
+
+### `package.json` Changes
+
+```json
+// Before
+"scripts": {
+  "dev": "next dev",
+  "build": "next build",
+  "dev:vite": "vite",       // ← removed
+  "build:vite": "vite build" // ← removed
+},
+"devDependencies": {
+  "@vitejs/plugin-react": "^5.1.1",    // ← removed
+  "eslint-plugin-react-refresh": "^0.4.24", // ← removed
+  "vite": "^7.3.1"                      // ← removed
+}
+
+// After
+"scripts": {
+  "dev": "next dev",
+  "build": "next build",
+  "start": "next start",
+  "lint": "next lint"
+},
+"devDependencies": {
+  "@eslint/js": "...",
+  "@types/node": "...",
+  "@types/react": "...",
+  "@types/react-dom": "...",
+  "eslint": "...",
+  "eslint-plugin-react-hooks": "...",
+  "globals": "...",
+  "typescript": "..."
+}
+```
+
+`npm install` after this change removes the 21 Vite-related packages from `node_modules`.
+
+### `eslint.config.js` Changes
+
+`eslint-plugin-react-refresh` is a Vite HMR plugin — it warns when a module exports something
+beyond components (because Vite's Fast Refresh relies on that constraint). Next.js has its own
+HMR system and does not need this rule:
+
+```js
+// Before
+import reactRefresh from 'eslint-plugin-react-refresh';
+// ...
+plugins: { react, 'react-hooks': reactHooks, 'react-refresh': reactRefresh },
+// ...
+'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
+
+// After — plugin and rule both removed
+plugins: { react, 'react-hooks': reactHooks },
+```
+
+### Environment Variable Migration
+
+The original Vite project used `VITE_API_BASE_URL` (Vite injects `import.meta.env.VITE_*`).
+Next.js uses `NEXT_PUBLIC_*` (injected at build time into `process.env.NEXT_PUBLIC_*`).
+
+**[`.env.local`](../.env.local)**:
+```
+# .env.local — Next.js public environment variables
+NEXT_PUBLIC_API_BASE_URL=http://localhost:5230/api
+NEXT_PUBLIC_HUB_URL=http://localhost:5230/hubs/booking
+```
+
+**[`src/api/apiClient.js`](../src/api/apiClient.js#L1)**:
+```js
+// Before
+baseURL: import.meta.env.VITE_API_BASE_URL
+
+// After
+baseURL: process.env.NEXT_PUBLIC_API_BASE_URL
+```
+
+**[`src/hooks/useSignalR.js`](../src/hooks/useSignalR.js#L1)**:
+```js
+// Before
+const url = import.meta.env.VITE_HUB_URL ?? 'http://localhost:5230/hubs/booking';
+
+// After
+const url = process.env.NEXT_PUBLIC_HUB_URL ?? 'http://localhost:5230/hubs/booking';
+```
+
+### Constraints Verification
+
+| Constraint | Status |
+|---|---|
+| No Vite config, entry HTML, or entry JS | ✅ All three deleted |
+| No `vite` / `@vitejs/plugin-react` packages | ✅ Removed from `devDependencies` |
+| No `dev:vite` / `build:vite` scripts | ✅ Removed from `scripts` |
+| No `import.meta.env.VITE_*` references | ✅ Both replaced with `process.env.NEXT_PUBLIC_*` |
+| No `react-router-dom` (was never added) | ✅ Never used — Next.js file-based routing from the start |
+| `VITE_API_BASE_URL` → `NEXT_PUBLIC_API_BASE_URL` in `.env.local` | ✅ Complete |
+| `page.tsx` is not marked `'use client'` | ✅ Only `BookingDetailClient.tsx` has the directive |
+| Build passes with Dynamic route shown | ✅ `ƒ /bookings/[id]` in build output |

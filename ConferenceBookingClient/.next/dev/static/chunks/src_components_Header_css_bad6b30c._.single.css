@@ -1,0 +1,162 @@
+/* [project]/src/components/Header.css [app-client] (css) */
+header {
+  color: #fff;
+  background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+  border-bottom: 3px solid #3498db;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 30px;
+  margin-bottom: 30px;
+  padding: 20px 40px;
+  display: flex;
+  box-shadow: 0 4px 6px #0000001a;
+}
+
+.header-left {
+  flex: 1;
+  min-width: 250px;
+}
+
+header h1 {
+  background: linear-gradient(90deg, #fff 0%, #3498db 100%);
+  -webkit-text-fill-color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text;
+  margin: 0 0 8px;
+  font-size: 1.8rem;
+}
+
+.header-left p {
+  color: #bdc3c7;
+  margin: 0;
+  font-size: .9rem;
+}
+
+header nav {
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  display: flex;
+}
+
+header nav a {
+  color: #fff;
+  background-color: #ffffff0d;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: .95rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all .3s;
+}
+
+header nav a:hover {
+  background-color: #3498db4d;
+  transform: translateY(-2px);
+}
+
+header nav a.nav-active {
+  background-color: #3498db73;
+  border-bottom: 2px solid #3498db;
+}
+
+.header-right {
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 20px;
+  display: flex;
+}
+
+.header-actions {
+  align-items: center;
+  gap: 12px;
+  display: flex;
+}
+
+.header-auth {
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  display: flex;
+}
+
+.header-user-info {
+  color: #ecf0f1;
+  font-size: 14px;
+}
+
+.header-user-role {
+  color: #95a5a6;
+  margin-left: 5px;
+  font-size: 12px;
+}
+
+.btn-header {
+  cursor: pointer;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 18px;
+  font-size: .9rem;
+  font-weight: 600;
+  transition: background .2s, transform .1s;
+}
+
+.btn-login {
+  color: #fff;
+  background-color: #3498db;
+}
+
+.btn-login:hover {
+  background-color: #2980b9;
+  transform: translateY(-1px);
+}
+
+.btn-logout {
+  color: #fff;
+  background-color: #ffffff26;
+  border: 1px solid #ffffff4d;
+}
+
+.btn-logout:hover {
+  background-color: #e74c3ccc;
+  transform: translateY(-1px);
+}
+
+@media (max-width: 1024px) {
+  header {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 20px;
+  }
+
+  .header-left, .header-right {
+    width: 100%;
+  }
+
+  .header-right {
+    justify-content: space-between;
+  }
+
+  header nav {
+    border-top: 1px solid #ffffff1a;
+    order: 3;
+    justify-content: center;
+    width: 100%;
+    margin-top: 15px;
+    padding-top: 15px;
+  }
+}
+
+@media (max-width: 640px) {
+  .header-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .header-actions button {
+    width: 100%;
+  }
+}
+
+/*# sourceMappingURL=src_components_Header_css_bad6b30c._.single.css.map*/

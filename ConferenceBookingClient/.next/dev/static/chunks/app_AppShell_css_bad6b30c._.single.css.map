@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 1, "column": 0}, "map": {"version":3,"sources":["turbopack:///[project]/app/AppShell.css"],"sourcesContent":["/* AppShell.css — Layout for the persistent application shell */\r\n\r\n.app-shell {\r\n  display: flex;\r\n  flex-direction: column;\r\n  min-height: 100vh;\r\n}\r\n\r\n.shell-body {\r\n  display: flex;\r\n  flex: 1;\r\n  overflow: hidden;\r\n}\r\n\r\n.shell-main {\r\n  flex: 1;\r\n  overflow-y: auto;\r\n  padding: 0;\r\n}\r\n"],"names":[],"mappings":"AAEA;;;;;;AAMA;;;;;;AAMA"}}]
+}

@@ -1,0 +1,935 @@
+(globalThis.TURBOPACK || (globalThis.TURBOPACK = [])).push([typeof document === "object" ? document.currentScript : undefined,
+"[project]/src/api/apiClient.js [app-client] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "default",
+    ()=>__TURBOPACK__default__export__
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$polyfills$2f$process$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = /*#__PURE__*/ __turbopack_context__.i("[project]/node_modules/next/dist/build/polyfills/process.js [app-client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$axios$2f$lib$2f$axios$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/axios/lib/axios.js [app-client] (ecmascript)");
+;
+/**
+ * Singleton Axios instance.
+ * - baseURL is read from NEXT_PUBLIC_API_BASE_URL (.env.local)
+ * - Every request times out after 5 seconds automatically.
+ * - Content-Type is set to application/json for all requests.
+ *
+ * Import this instance wherever HTTP calls are needed.
+ * Never call axios.create() or fetch() directly in components or hooks.
+ */ const apiClient = __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$axios$2f$lib$2f$axios$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].create({
+    baseURL: ("TURBOPACK compile-time value", "http://localhost:5230/api"),
+    timeout: 5000,
+    headers: {
+        'Content-Type': 'application/json'
+    }
+});
+// ── Request Interceptor ───────────────────────────────────────────────────────
+// 1. Attaches the JWT token from localStorage (if present) so every protected
+//    endpoint receives the Authorization header automatically.
+// 2. Logs every outgoing request — method + full URL — to the console.
+apiClient.interceptors.request.use((config)=>{
+    const token = localStorage.getItem('token');
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    const fullUrl = `${config.baseURL ?? ''}${config.url}`;
+    console.log(`Sending ${config.method?.toUpperCase()} to ${fullUrl}`);
+    return config;
+});
+// ── Response Interceptor ──────────────────────────────────────────────────────
+// Success: unwrap the Axios envelope once here so no consuming code ever
+//          needs to write `.data` chains.
+// Failure: log the error then re-throw so callers can still handle it.
+apiClient.interceptors.response.use((response)=>response.data, (error)=>{
+    console.log(`Request failed: ${error.message}`);
+    // If the server rejects our token as invalid/expired, wipe it so the
+    // app starts fresh instead of looping on 401s with a dead token.
+    if (error.response?.status === 401) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('user');
+        // Req 8: Notify the app globally so it can redirect to login.
+        // Using a CustomEvent decouples the interceptor from React state.
+        window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+    }
+    return Promise.reject(error);
+});
+const __TURBOPACK__default__export__ = apiClient;
+if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelpers !== null) {
+    __turbopack_context__.k.registerExports(__turbopack_context__.m, globalThis.$RefreshHelpers$);
+}
+}),
+"[project]/src/services/authService.js [app-client] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "authService",
+    ()=>authService
+]);
+// authService.js - Authentication API calls
+var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$api$2f$apiClient$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/src/api/apiClient.js [app-client] (ecmascript)");
+;
+const authService = {
+    /**
+   * Login user and receive JWT token
+   * @param {string} username 
+   * @param {string} password 
+   * @returns {Promise<{token: string, refreshToken: string, user: object}>}
+   */ async login (username, password) {
+        const response = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$api$2f$apiClient$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].post('/auth/login', {
+            username,
+            password
+        });
+        // Interceptor already unwraps response.data → response IS the payload
+        if (response.token) {
+            localStorage.setItem('token', response.token);
+            if (response.refreshToken) {
+                localStorage.setItem('refreshToken', response.refreshToken);
+            }
+            if (response.user) {
+                localStorage.setItem('user', JSON.stringify(response.user));
+            }
+        }
+        return response;
+    },
+    /**
+   * Logout and revoke session
+   */ async logout () {
+        try {
+            await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$api$2f$apiClient$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].post('/auth/logout');
+        } catch (error) {
+            console.error('Logout error:', error);
+        } finally{
+            // Clear local storage regardless of API call success
+            localStorage.removeItem('token');
+            localStorage.removeItem('refreshToken');
+            localStorage.removeItem('user');
+        }
+    },
+    /**
+   * Get current user from localStorage
+   */ getCurrentUser () {
+        const userStr = localStorage.getItem('user');
+        return userStr ? JSON.parse(userStr) : null;
+    },
+    /**
+   * Check if user is logged in
+   */ isAuthenticated () {
+        return !!localStorage.getItem('token');
+    }
+};
+if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelpers !== null) {
+    __turbopack_context__.k.registerExports(__turbopack_context__.m, globalThis.$RefreshHelpers$);
+}
+}),
+"[project]/src/hooks/useAuth.js [app-client] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "default",
+    ()=>__TURBOPACK__default__export__
+]);
+// useAuth.js — Custom Hook: Authentication state and logic.
+//
+// Hook Discipline constraint: all auth business logic and API calls are
+// extracted here so App.jsx and components only consume state/actions,
+// never interact with authService or localStorage directly.
+//
+// Manages:
+//   - isLoggedIn / currentUser state
+//   - showLoginForm UI flag
+//   - refreshKey counter (forces data re-fetch after silent re-login)
+//   - 401 "auth:unauthorized" global event → clears state, surfaces login form
+//   - login()  → POST /auth/login via authService (all HTTP through apiClient)
+//   - logout() → POST /auth/logout via authService
+//
+// @param {{ onSessionExpired?: () => void }} options
+//   onSessionExpired — optional callback fired when a 401 wipes the session,
+//   allowing the parent to show a toast without coupling the hook to UI logic.
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/compiled/react/index.js [app-client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$services$2f$authService$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/src/services/authService.js [app-client] (ecmascript)");
+var _s = __turbopack_context__.k.signature();
+;
+;
+function useAuth({ onSessionExpired } = {}) {
+    _s();
+    // Always start with logged-out state on both server and client so the
+    // first render is identical (prevents SSR/hydration HTML mismatches).
+    // A useEffect below reads localStorage after mount and updates state —
+    // that runs only in the browser so there is no "localStorage is not
+    // defined" server error either.
+    const [isLoggedIn, setIsLoggedIn] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(false);
+    const [currentUser, setCurrentUser] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(null);
+    const [showLoginForm, setShowLoginForm] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(false);
+    // Incrementing refreshKey forces the data-fetch effect in App to re-run
+    // even when isLoggedIn was already true (stale-token / DB-reset scenario).
+    const [refreshKey, setRefreshKey] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(0);
+    // ── Hydrate from localStorage after mount ───────────────────────────────────
+    // Runs once on the client after the first paint. Restores the session that
+    // was persisted in localStorage by a previous login.
+    (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
+        "useAuth.useEffect": ()=>{
+            setIsLoggedIn(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$services$2f$authService$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["authService"].isAuthenticated());
+            setCurrentUser(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$services$2f$authService$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["authService"].getCurrentUser());
+        }
+    }["useAuth.useEffect"], []);
+    // ── Req 8 / Response Interceptor ────────────────────────────────────────────
+    // Listen for the CustomEvent dispatched by apiClient's 401 response interceptor.
+    // Clears all auth state and opens the login form without a full page reload.
+    (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
+        "useAuth.useEffect": ()=>{
+            const handleUnauthorized = {
+                "useAuth.useEffect.handleUnauthorized": ()=>{
+                    setIsLoggedIn(false);
+                    setCurrentUser(null);
+                    setShowLoginForm(true);
+                    onSessionExpired?.(); // Let the caller (App) show a toast or any UI feedback
+                }
+            }["useAuth.useEffect.handleUnauthorized"];
+            window.addEventListener('auth:unauthorized', handleUnauthorized);
+            return ({
+                "useAuth.useEffect": ()=>window.removeEventListener('auth:unauthorized', handleUnauthorized)
+            })["useAuth.useEffect"];
+        }
+    }["useAuth.useEffect"], [
+        onSessionExpired
+    ]);
+    // ── login ────────────────────────────────────────────────────────────────────
+    // Posts credentials to the .NET Auth endpoint via authService (which uses
+    // the apiClient singleton — no raw fetch/axios calls).
+    // Stores the returned JWT in localStorage inside authService.login().
+    // Re-throws on failure so LoginForm can display the error message.
+    //
+    // @param {string} username
+    // @param {string} password
+    // @returns {Promise<{ token: string, user: object }>}
+    const login = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useCallback"])({
+        "useAuth.useCallback[login]": async (username, password)=>{
+            const result = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$services$2f$authService$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["authService"].login(username, password); // throws on 400/401
+            setIsLoggedIn(true);
+            setCurrentUser(result.user);
+            setShowLoginForm(false);
+            setRefreshKey({
+                "useAuth.useCallback[login]": (k)=>k + 1
+            }["useAuth.useCallback[login]"]); // Trigger data re-fetch in App
+            return result;
+        }
+    }["useAuth.useCallback[login]"], []);
+    // ── logout ───────────────────────────────────────────────────────────────────
+    // Calls authService.logout() which POSTs to /auth/logout and clears localStorage.
+    const logout = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useCallback"])({
+        "useAuth.useCallback[logout]": async ()=>{
+            await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$services$2f$authService$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["authService"].logout();
+            setIsLoggedIn(false);
+            setCurrentUser(null);
+        }
+    }["useAuth.useCallback[logout]"], []);
+    return {
+        isLoggedIn,
+        currentUser,
+        showLoginForm,
+        setShowLoginForm,
+        refreshKey,
+        login,
+        logout
+    };
+}
+_s(useAuth, "m80nnHcMno3LBKRyD2dVgSLRp78=");
+const __TURBOPACK__default__export__ = useAuth;
+if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelpers !== null) {
+    __turbopack_context__.k.registerExports(__turbopack_context__.m, globalThis.$RefreshHelpers$);
+}
+}),
+"[project]/src/context/AuthContext.jsx [app-client] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "AuthProvider",
+    ()=>AuthProvider,
+    "useAuthContext",
+    ()=>useAuthContext
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/compiled/react/jsx-dev-runtime.js [app-client] (ecmascript)");
+// AuthContext.jsx — Shared authentication state for the entire application.
+//
+// Wraps useAuth in a React Context so that layout-level components (Header,
+// rendered inside app/AppShell.tsx) and page-level components (App.jsx) can
+// both read the same auth state instance without prop-drilling through the
+// Next.js layout → page → component tree.
+//
+// Usage:
+//   - Wrap the tree: <AuthProvider>{children}</AuthProvider>
+//   - Consume state:  const { isLoggedIn, currentUser, login, logout } = useAuthContext()
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/compiled/react/index.js [app-client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$hooks$2f$useAuth$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/src/hooks/useAuth.js [app-client] (ecmascript)");
+;
+var _s = __turbopack_context__.k.signature(), _s1 = __turbopack_context__.k.signature();
+'use client';
+;
+;
+const AuthContext = /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["createContext"])(null);
+function AuthProvider({ children }) {
+    _s();
+    // useAuth is called once here. Every component in the tree that calls
+    // useAuthContext() reads from this single instance — no state divergence.
+    const auth = (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$hooks$2f$useAuth$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"])();
+    return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(AuthContext.Provider, {
+        value: auth,
+        children: children
+    }, void 0, false, {
+        fileName: "[project]/src/context/AuthContext.jsx",
+        lineNumber: 22,
+        columnNumber: 10
+    }, this);
+}
+_s(AuthProvider, "YuJWYXaKIY31b1y7U6yy3IXSxQA=", false, function() {
+    return [
+        __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$hooks$2f$useAuth$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"]
+    ];
+});
+_c = AuthProvider;
+function useAuthContext() {
+    _s1();
+    const ctx = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useContext"])(AuthContext);
+    if (!ctx) throw new Error('useAuthContext must be used inside <AuthProvider>');
+    return ctx;
+}
+_s1(useAuthContext, "/dMy7t63NXD4eYACoT93CePwGrg=");
+var _c;
+__turbopack_context__.k.register(_c, "AuthProvider");
+if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelpers !== null) {
+    __turbopack_context__.k.registerExports(__turbopack_context__.m, globalThis.$RefreshHelpers$);
+}
+}),
+"[project]/src/components/UserInfo.jsx [app-client] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+// UserInfo.jsx — Displays the logged-in user's information
+// Works with both mock user {name, role} and real API user {username, roles[]}
+__turbopack_context__.s([
+    "default",
+    ()=>__TURBOPACK__default__export__
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/compiled/react/jsx-dev-runtime.js [app-client] (ecmascript)");
+;
+;
+function UserInfo({ user }) {
+    if (!user) return null;
+    // Support both mock {name, role} and real API {username, roles[]}
+    const displayName = user.username || user.name || 'User';
+    const displayRole = user.roles ? user.roles.join(', ') : user.role || 'Unknown';
+    const initials = displayName.split(/[@.\s]/).filter(Boolean).map((n)=>n[0]).join('').toUpperCase().slice(0, 2);
+    return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+        className: "user-info",
+        children: [
+            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                className: "user-details",
+                children: [
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                        className: "user-name",
+                        children: displayName
+                    }, void 0, false, {
+                        fileName: "[project]/src/components/UserInfo.jsx",
+                        lineNumber: 17,
+                        columnNumber: 9
+                    }, this),
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                        className: "user-role",
+                        children: displayRole
+                    }, void 0, false, {
+                        fileName: "[project]/src/components/UserInfo.jsx",
+                        lineNumber: 18,
+                        columnNumber: 9
+                    }, this)
+                ]
+            }, void 0, true, {
+                fileName: "[project]/src/components/UserInfo.jsx",
+                lineNumber: 16,
+                columnNumber: 7
+            }, this),
+            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                className: "user-avatar",
+                children: initials
+            }, void 0, false, {
+                fileName: "[project]/src/components/UserInfo.jsx",
+                lineNumber: 20,
+                columnNumber: 7
+            }, this)
+        ]
+    }, void 0, true, {
+        fileName: "[project]/src/components/UserInfo.jsx",
+        lineNumber: 15,
+        columnNumber: 5
+    }, this);
+}
+_c = UserInfo;
+const __TURBOPACK__default__export__ = UserInfo;
+var _c;
+__turbopack_context__.k.register(_c, "UserInfo");
+if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelpers !== null) {
+    __turbopack_context__.k.registerExports(__turbopack_context__.m, globalThis.$RefreshHelpers$);
+}
+}),
+"[project]/src/components/CreateUserButton.jsx [app-client] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "default",
+    ()=>__TURBOPACK__default__export__
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/compiled/react/jsx-dev-runtime.js [app-client] (ecmascript)");
+'use client';
+;
+;
+function CreateUserButton() {
+    const handleCreateUser = ()=>{
+        // TODO: In a real app, this would:
+        // 1. Navigate to user creation page
+        // 2. Or open a modal with user creation form
+        alert("Create User clicked! (Not implemented yet)");
+    };
+    return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+        className: "create-user-button",
+        onClick: handleCreateUser,
+        children: [
+            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("svg", {
+                className: "create-user-icon",
+                xmlns: "http://www.w3.org/2000/svg",
+                viewBox: "0 0 24 24",
+                fill: "none",
+                stroke: "currentColor",
+                strokeWidth: "2",
+                children: [
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("path", {
+                        d: "M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"
+                    }, void 0, false, {
+                        fileName: "[project]/src/components/CreateUserButton.jsx",
+                        lineNumber: 27,
+                        columnNumber: 9
+                    }, this),
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("circle", {
+                        cx: "8.5",
+                        cy: "7",
+                        r: "4"
+                    }, void 0, false, {
+                        fileName: "[project]/src/components/CreateUserButton.jsx",
+                        lineNumber: 28,
+                        columnNumber: 9
+                    }, this),
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("line", {
+                        x1: "20",
+                        y1: "8",
+                        x2: "20",
+                        y2: "14"
+                    }, void 0, false, {
+                        fileName: "[project]/src/components/CreateUserButton.jsx",
+                        lineNumber: 29,
+                        columnNumber: 9
+                    }, this),
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("line", {
+                        x1: "23",
+                        y1: "11",
+                        x2: "17",
+                        y2: "11"
+                    }, void 0, false, {
+                        fileName: "[project]/src/components/CreateUserButton.jsx",
+                        lineNumber: 30,
+                        columnNumber: 9
+                    }, this)
+                ]
+            }, void 0, true, {
+                fileName: "[project]/src/components/CreateUserButton.jsx",
+                lineNumber: 19,
+                columnNumber: 7
+            }, this),
+            "Create New User"
+        ]
+    }, void 0, true, {
+        fileName: "[project]/src/components/CreateUserButton.jsx",
+        lineNumber: 18,
+        columnNumber: 5
+    }, this);
+}
+_c = CreateUserButton;
+const __TURBOPACK__default__export__ = CreateUserButton;
+var _c;
+__turbopack_context__.k.register(_c, "CreateUserButton");
+if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelpers !== null) {
+    __turbopack_context__.k.registerExports(__turbopack_context__.m, globalThis.$RefreshHelpers$);
+}
+}),
+"[project]/src/components/ConnectionStatus.jsx [app-client] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "default",
+    ()=>__TURBOPACK__default__export__
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/compiled/react/jsx-dev-runtime.js [app-client] (ecmascript)");
+// 'use client': uses useState to track online/offline/checking status and
+// useEffect to run the ping interval — both require the browser runtime.
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/compiled/react/index.js [app-client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$api$2f$apiClient$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/src/api/apiClient.js [app-client] (ecmascript)");
+;
+var _s = __turbopack_context__.k.signature();
+// ConnectionStatus.jsx — Pings the backend /health endpoint and displays
+// "Connected" (green) or "Backend Offline" (red) in the Header.
+'use client';
+;
+;
+;
+function ConnectionStatus() {
+    _s();
+    const [status, setStatus] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])('checking'); // 'checking' | 'online' | 'offline'
+    const ping = async ()=>{
+        try {
+            await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$api$2f$apiClient$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get('/health', {
+                timeout: 4000
+            });
+            setStatus('online');
+        } catch  {
+            setStatus('offline');
+        }
+    };
+    (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useEffect"])({
+        "ConnectionStatus.useEffect": ()=>{
+            ping();
+            // Re-ping every 30 seconds
+            const interval = setInterval(ping, 30000);
+            return ({
+                "ConnectionStatus.useEffect": ()=>clearInterval(interval)
+            })["ConnectionStatus.useEffect"];
+        }
+    }["ConnectionStatus.useEffect"], []);
+    if (status === 'checking') {
+        return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+            className: "connection-status checking",
+            children: "● Connecting…"
+        }, void 0, false, {
+            fileName: "[project]/src/components/ConnectionStatus.jsx",
+            lineNumber: 32,
+            columnNumber: 12
+        }, this);
+    }
+    return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+        className: `connection-status ${status === 'online' ? 'online' : 'offline'}`,
+        children: [
+            "● ",
+            status === 'online' ? 'Connected' : 'Backend Offline'
+        ]
+    }, void 0, true, {
+        fileName: "[project]/src/components/ConnectionStatus.jsx",
+        lineNumber: 36,
+        columnNumber: 5
+    }, this);
+}
+_s(ConnectionStatus, "rV8qZJOarktnP8Z/XRg6pxCOGnI=");
+_c = ConnectionStatus;
+const __TURBOPACK__default__export__ = ConnectionStatus;
+var _c;
+__turbopack_context__.k.register(_c, "ConnectionStatus");
+if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelpers !== null) {
+    __turbopack_context__.k.registerExports(__turbopack_context__.m, globalThis.$RefreshHelpers$);
+}
+}),
+"[project]/src/components/Header.jsx [app-client] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "default",
+    ()=>__TURBOPACK__default__export__
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/compiled/react/jsx-dev-runtime.js [app-client] (ecmascript)");
+// Header.jsx — Persistent app shell header, rendered by app/AppShell.tsx.
+//
+// Auth state is consumed from AuthContext instead of props. This allows the
+// Header to live in the root layout independently of any page-level component,
+// so it never unmounts or re-renders during route transitions.
+//
+// 'use client': uses useRouter (Next.js navigation hook) and useAuthContext
+// (React context hook). Both are browser-only operations.
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$client$2f$app$2d$dir$2f$link$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/client/app-dir/link.js [app-client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/navigation.js [app-client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$context$2f$AuthContext$2e$jsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/src/context/AuthContext.jsx [app-client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$UserInfo$2e$jsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/src/components/UserInfo.jsx [app-client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$CreateUserButton$2e$jsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/src/components/CreateUserButton.jsx [app-client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ConnectionStatus$2e$jsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/src/components/ConnectionStatus.jsx [app-client] (ecmascript)");
+;
+var _s = __turbopack_context__.k.signature();
+'use client';
+;
+;
+;
+;
+;
+;
+;
+function Header() {
+    _s();
+    const router = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRouter"])();
+    const pathname = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["usePathname"])();
+    const { isLoggedIn, currentUser, logout } = (0, __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$context$2f$AuthContext$2e$jsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useAuthContext"])();
+    const handleLogout = async ()=>{
+        await logout();
+        router.push('/login');
+    };
+    return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("header", {
+        children: [
+            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                className: "header-left",
+                children: [
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h1", {
+                        children: "Conference Booking Dashboard"
+                    }, void 0, false, {
+                        fileName: "[project]/src/components/Header.jsx",
+                        lineNumber: 32,
+                        columnNumber: 9
+                    }, this),
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                        children: "Manage conference room bookings and availability"
+                    }, void 0, false, {
+                        fileName: "[project]/src/components/Header.jsx",
+                        lineNumber: 33,
+                        columnNumber: 9
+                    }, this),
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$ConnectionStatus$2e$jsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {}, void 0, false, {
+                        fileName: "[project]/src/components/Header.jsx",
+                        lineNumber: 34,
+                        columnNumber: 9
+                    }, this)
+                ]
+            }, void 0, true, {
+                fileName: "[project]/src/components/Header.jsx",
+                lineNumber: 31,
+                columnNumber: 7
+            }, this),
+            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                className: "header-right",
+                children: [
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("nav", {
+                        children: [
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$client$2f$app$2d$dir$2f$link$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {
+                                href: "/",
+                                className: pathname === '/' ? 'nav-active' : '',
+                                children: "Home"
+                            }, void 0, false, {
+                                fileName: "[project]/src/components/Header.jsx",
+                                lineNumber: 39,
+                                columnNumber: 11
+                            }, this),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$client$2f$app$2d$dir$2f$link$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {
+                                href: "/dashboard/bookings",
+                                className: pathname.startsWith('/dashboard/bookings') ? 'nav-active' : '',
+                                children: "Bookings"
+                            }, void 0, false, {
+                                fileName: "[project]/src/components/Header.jsx",
+                                lineNumber: 40,
+                                columnNumber: 11
+                            }, this),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$client$2f$app$2d$dir$2f$link$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {
+                                href: "/dashboard/rooms",
+                                className: pathname.startsWith('/dashboard/rooms') ? 'nav-active' : '',
+                                children: "Rooms"
+                            }, void 0, false, {
+                                fileName: "[project]/src/components/Header.jsx",
+                                lineNumber: 41,
+                                columnNumber: 11
+                            }, this)
+                        ]
+                    }, void 0, true, {
+                        fileName: "[project]/src/components/Header.jsx",
+                        lineNumber: 38,
+                        columnNumber: 9
+                    }, this),
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                        className: "header-actions",
+                        children: [
+                            isLoggedIn && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Fragment"], {
+                                children: [
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$UserInfo$2e$jsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {
+                                        user: currentUser
+                                    }, void 0, false, {
+                                        fileName: "[project]/src/components/Header.jsx",
+                                        lineNumber: 47,
+                                        columnNumber: 15
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$CreateUserButton$2e$jsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {}, void 0, false, {
+                                        fileName: "[project]/src/components/Header.jsx",
+                                        lineNumber: 48,
+                                        columnNumber: 15
+                                    }, this)
+                                ]
+                            }, void 0, true),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                className: "header-auth",
+                                children: isLoggedIn ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                    className: "btn-header btn-logout",
+                                    onClick: handleLogout,
+                                    children: "Logout"
+                                }, void 0, false, {
+                                    fileName: "[project]/src/components/Header.jsx",
+                                    lineNumber: 54,
+                                    columnNumber: 15
+                                }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                                    className: "btn-header btn-login",
+                                    onClick: ()=>router.push('/login'),
+                                    children: "Login"
+                                }, void 0, false, {
+                                    fileName: "[project]/src/components/Header.jsx",
+                                    lineNumber: 58,
+                                    columnNumber: 15
+                                }, this)
+                            }, void 0, false, {
+                                fileName: "[project]/src/components/Header.jsx",
+                                lineNumber: 52,
+                                columnNumber: 11
+                            }, this)
+                        ]
+                    }, void 0, true, {
+                        fileName: "[project]/src/components/Header.jsx",
+                        lineNumber: 44,
+                        columnNumber: 9
+                    }, this)
+                ]
+            }, void 0, true, {
+                fileName: "[project]/src/components/Header.jsx",
+                lineNumber: 37,
+                columnNumber: 7
+            }, this)
+        ]
+    }, void 0, true, {
+        fileName: "[project]/src/components/Header.jsx",
+        lineNumber: 30,
+        columnNumber: 5
+    }, this);
+}
+_s(Header, "0eqos4/E+8YvtlQTYG/sJwkjeQ0=", false, function() {
+    return [
+        __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useRouter"],
+        __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["usePathname"],
+        __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$context$2f$AuthContext$2e$jsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useAuthContext"]
+    ];
+});
+_c = Header;
+const __TURBOPACK__default__export__ = Header;
+var _c;
+__turbopack_context__.k.register(_c, "Header");
+if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelpers !== null) {
+    __turbopack_context__.k.registerExports(__turbopack_context__.m, globalThis.$RefreshHelpers$);
+}
+}),
+"[project]/src/components/Sidebar.jsx [app-client] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "default",
+    ()=>__TURBOPACK__default__export__
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/compiled/react/jsx-dev-runtime.js [app-client] (ecmascript)");
+// Sidebar.jsx — Persistent navigation sidebar, part of the app shell.
+//
+// 'use client': uses usePathname from next/navigation to highlight the
+// currently active route. usePathname is a Next.js hook that reads the
+// router — a browser-only operation.
+//
+// Rendered by app/AppShell.tsx so it persists across all page transitions
+// without unmounting or re-rendering.
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/navigation.js [app-client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$client$2f$app$2d$dir$2f$link$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/client/app-dir/link.js [app-client] (ecmascript)");
+;
+var _s = __turbopack_context__.k.signature();
+'use client';
+;
+;
+;
+const NAV_ITEMS = [
+    {
+        href: '/',
+        label: 'Home',
+        icon: '🏠'
+    },
+    {
+        href: '/dashboard',
+        label: 'Dashboard',
+        icon: '📊'
+    },
+    {
+        href: '/dashboard/bookings',
+        label: 'Bookings',
+        icon: '📅'
+    },
+    {
+        href: '/dashboard/rooms',
+        label: 'Rooms',
+        icon: '🏢'
+    }
+];
+function Sidebar() {
+    _s();
+    const pathname = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["usePathname"])();
+    return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("aside", {
+        className: "sidebar",
+        children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("nav", {
+            "aria-label": "Main navigation",
+            children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("ul", {
+                className: "sidebar-nav",
+                children: NAV_ITEMS.map(({ href, label, icon })=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("li", {
+                        className: pathname === href ? 'sidebar-item active' : 'sidebar-item',
+                        children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$client$2f$app$2d$dir$2f$link$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {
+                            href: href,
+                            className: "sidebar-link",
+                            children: [
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                    className: "sidebar-icon",
+                                    "aria-hidden": "true",
+                                    children: icon
+                                }, void 0, false, {
+                                    fileName: "[project]/src/components/Sidebar.jsx",
+                                    lineNumber: 35,
+                                    columnNumber: 17
+                                }, this),
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                    className: "sidebar-label",
+                                    children: label
+                                }, void 0, false, {
+                                    fileName: "[project]/src/components/Sidebar.jsx",
+                                    lineNumber: 36,
+                                    columnNumber: 17
+                                }, this)
+                            ]
+                        }, void 0, true, {
+                            fileName: "[project]/src/components/Sidebar.jsx",
+                            lineNumber: 34,
+                            columnNumber: 15
+                        }, this)
+                    }, href, false, {
+                        fileName: "[project]/src/components/Sidebar.jsx",
+                        lineNumber: 30,
+                        columnNumber: 13
+                    }, this))
+            }, void 0, false, {
+                fileName: "[project]/src/components/Sidebar.jsx",
+                lineNumber: 28,
+                columnNumber: 9
+            }, this)
+        }, void 0, false, {
+            fileName: "[project]/src/components/Sidebar.jsx",
+            lineNumber: 27,
+            columnNumber: 7
+        }, this)
+    }, void 0, false, {
+        fileName: "[project]/src/components/Sidebar.jsx",
+        lineNumber: 26,
+        columnNumber: 5
+    }, this);
+}
+_s(Sidebar, "xbyQPtUVMO7MNj7WjJlpdWqRcTo=", false, function() {
+    return [
+        __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["usePathname"]
+    ];
+});
+_c = Sidebar;
+const __TURBOPACK__default__export__ = Sidebar;
+var _c;
+__turbopack_context__.k.register(_c, "Sidebar");
+if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelpers !== null) {
+    __turbopack_context__.k.registerExports(__turbopack_context__.m, globalThis.$RefreshHelpers$);
+}
+}),
+"[project]/app/AppShell.tsx [app-client] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "default",
+    ()=>AppShell
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/compiled/react/jsx-dev-runtime.js [app-client] (ecmascript)");
+// AppShell.tsx — Root application shell (Client Component).
+//
+// Responsibilities:
+//   1. Wraps the entire app in <AuthProvider> so every component in the
+//      tree (layout components AND page components) shares one auth state.
+//   2. Renders the persistent Header and Sidebar on every route except /login,
+//      which needs a clean, shell-free layout for the authentication UI.
+//
+// Why 'use client':
+//   - usePathname is a Next.js hook (browser-only) used to detect the current
+//     route so the shell is conditionally hidden on the /login page.
+//   - <AuthProvider> contains useAuth which uses useState/useEffect.
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/navigation.js [app-client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$context$2f$AuthContext$2e$jsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/src/context/AuthContext.jsx [app-client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$Header$2e$jsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/src/components/Header.jsx [app-client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$Sidebar$2e$jsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/src/components/Sidebar.jsx [app-client] (ecmascript)");
+;
+var _s = __turbopack_context__.k.signature();
+'use client';
+;
+;
+;
+;
+;
+function AppShell({ children }) {
+    _s();
+    const pathname = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["usePathname"])();
+    // Hide the shell (Header + Sidebar) on the /login page so the
+    // authentication UI has a clean, full-viewport layout.
+    const showShell = !pathname.startsWith('/login');
+    return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$context$2f$AuthContext$2e$jsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["AuthProvider"], {
+        children: showShell ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+            className: "app-shell",
+            children: [
+                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$Header$2e$jsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {}, void 0, false, {
+                    fileName: "[project]/app/AppShell.tsx",
+                    lineNumber: 31,
+                    columnNumber: 11
+                }, this),
+                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                    className: "shell-body",
+                    children: [
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$Sidebar$2e$jsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {}, void 0, false, {
+                            fileName: "[project]/app/AppShell.tsx",
+                            lineNumber: 33,
+                            columnNumber: 13
+                        }, this),
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("main", {
+                            className: "shell-main",
+                            children: children
+                        }, void 0, false, {
+                            fileName: "[project]/app/AppShell.tsx",
+                            lineNumber: 34,
+                            columnNumber: 13
+                        }, this)
+                    ]
+                }, void 0, true, {
+                    fileName: "[project]/app/AppShell.tsx",
+                    lineNumber: 32,
+                    columnNumber: 11
+                }, this)
+            ]
+        }, void 0, true, {
+            fileName: "[project]/app/AppShell.tsx",
+            lineNumber: 30,
+            columnNumber: 9
+        }, this) : children
+    }, void 0, false, {
+        fileName: "[project]/app/AppShell.tsx",
+        lineNumber: 28,
+        columnNumber: 5
+    }, this);
+}
+_s(AppShell, "xbyQPtUVMO7MNj7WjJlpdWqRcTo=", false, function() {
+    return [
+        __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["usePathname"]
+    ];
+});
+_c = AppShell;
+var _c;
+__turbopack_context__.k.register(_c, "AppShell");
+if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelpers !== null) {
+    __turbopack_context__.k.registerExports(__turbopack_context__.m, globalThis.$RefreshHelpers$);
+}
+}),
+]);
+
+//# sourceMappingURL=_3ad0a6c8._.js.map

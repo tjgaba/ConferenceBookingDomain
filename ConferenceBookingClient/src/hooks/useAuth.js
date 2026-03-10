@@ -20,22 +20,25 @@ import { useState, useEffect, useCallback } from 'react';
 import { authService } from '../services/authService';
 
 function useAuth({ onSessionExpired } = {}) {
-  // Lazy initializers: the callback form of useState is only called once on
-  // mount, and only in the browser. During Next.js SSR prerendering
-  // `typeof window === 'undefined'`, so localStorage is never accessed on
-  // the server — preventing "localStorage is not defined" build errors.
-  const [isLoggedIn, setIsLoggedIn] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    return authService.isAuthenticated();
-  });
-  const [currentUser, setCurrentUser] = useState(() => {
-    if (typeof window === 'undefined') return null;
-    return authService.getCurrentUser();
-  });
+  // Always start with logged-out state on both server and client so the
+  // first render is identical (prevents SSR/hydration HTML mismatches).
+  // A useEffect below reads localStorage after mount and updates state —
+  // that runs only in the browser so there is no "localStorage is not
+  // defined" server error either.
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
   const [showLoginForm, setShowLoginForm] = useState(false);
   // Incrementing refreshKey forces the data-fetch effect in App to re-run
   // even when isLoggedIn was already true (stale-token / DB-reset scenario).
   const [refreshKey, setRefreshKey]     = useState(0);
+
+  // ── Hydrate from localStorage after mount ───────────────────────────────────
+  // Runs once on the client after the first paint. Restores the session that
+  // was persisted in localStorage by a previous login.
+  useEffect(() => {
+    setIsLoggedIn(authService.isAuthenticated());
+    setCurrentUser(authService.getCurrentUser());
+  }, []);
 
   // ── Req 8 / Response Interceptor ────────────────────────────────────────────
   // Listen for the CustomEvent dispatched by apiClient's 401 response interceptor.

@@ -1,0 +1,110 @@
+/* [project]/src/components/Toast.css [app-client] (css) */
+.toast {
+  z-index: 10000;
+  border-radius: 8px;
+  align-items: center;
+  gap: 12px;
+  min-width: 300px;
+  max-width: 500px;
+  padding: 16px 20px;
+  animation: .3s ease-out slideInFromTop;
+  display: flex;
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  box-shadow: 0 4px 12px #00000026;
+}
+
+@keyframes slideInFromTop {
+  from {
+    opacity: 0;
+    transform: translateY(-100px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.toast-success {
+  color: #fff;
+  background: #10b981;
+}
+
+.toast-error {
+  color: #fff;
+  background: #ef4444;
+}
+
+.toast-info {
+  color: #fff;
+  background: #3b82f6;
+}
+
+.toast-warning {
+  color: #fff;
+  background: #f97316;
+}
+
+.toast-remote {
+  top: 90px;
+}
+
+.toast-icon {
+  background: #fff3;
+  border-radius: 50%;
+  flex-shrink: 0;
+  justify-content: center;
+  align-items: center;
+  width: 32px;
+  height: 32px;
+  font-size: 24px;
+  font-weight: bold;
+  display: flex;
+}
+
+.toast-message {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.toast-close {
+  color: #fff;
+  cursor: pointer;
+  opacity: .8;
+  background: none;
+  border: none;
+  flex-shrink: 0;
+  justify-content: center;
+  align-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  font-size: 28px;
+  line-height: 1;
+  transition: opacity .2s;
+  display: flex;
+}
+
+.toast-close:hover {
+  opacity: 1;
+}
+
+.toast-close:focus {
+  outline-offset: 2px;
+  border-radius: 2px;
+  outline: 2px solid #ffffff80;
+}
+
+@media (max-width: 768px) {
+  .toast {
+    min-width: auto;
+    max-width: none;
+    left: 10px;
+    right: 10px;
+  }
+}
+
+/*# sourceMappingURL=src_components_Toast_css_bad6b30c._.single.css.map*/
