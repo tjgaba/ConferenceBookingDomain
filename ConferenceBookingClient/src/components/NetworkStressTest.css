@@ -1,0 +1,147 @@
+/* NetworkStressTest.css — Styles for the Requirement 4 stress test panel */
+
+.stress-test {
+  margin: 2rem 0;
+  padding: 1.5rem 2rem;
+  border: 2px dashed #6366f1;
+  border-radius: 12px;
+  background: #0f0f1a;
+}
+
+.stress-test__header {
+  margin-bottom: 1.25rem;
+}
+
+.stress-test__title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #a5b4fc;
+  margin: 0 0 0.4rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.stress-test__subtitle {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ── Buttons ──────────────────────────────────────────────────────────────── */
+
+.stress-test__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-bottom: 1.25rem;
+}
+
+.stress-btn {
+  padding: 0.45rem 1rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: #fff;
+  transition: opacity 0.15s, transform 0.1s;
+}
+
+.stress-btn:hover:not(:disabled) {
+  opacity: 0.85;
+  transform: translateY(-1px);
+}
+
+.stress-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.stress-btn--loading {
+  animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}
+
+.btn-timeout   { background: #b45309; }
+.btn-network   { background: #7c3aed; }
+.btn-auth      { background: #b91c1c; }
+.btn-notfound  { background: #0369a1; }
+.btn-cancel    { background: #374151; }
+.btn-reset     { background: #1f2937; border: 1px solid #4b5563; }
+
+/* ── Result box ───────────────────────────────────────────────────────────── */
+
+.stress-test__result {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  margin-bottom: 0.75rem;
+}
+
+.stress-test__result--loading {
+  background: #1e293b;
+  color: #94a3b8;
+  border-left: 4px solid #475569;
+}
+
+.stress-test__result--error {
+  background: #1c0a0a;
+  color: #fca5a5;
+  border-left: 4px solid #ef4444;
+}
+
+.stress-test__result--cancelled {
+  background: #0c1a0c;
+  color: #86efac;
+  border-left: 4px solid #22c55e;
+}
+
+.stress-test__result--success {
+  background: #0c1a10;
+  color: #6ee7b7;
+  border-left: 4px solid #10b981;
+}
+
+.stress-test__result-badge {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  align-self: center;
+}
+
+.stress-test__error-msg {
+  margin: 0;
+  font-family: 'Courier New', monospace;
+}
+
+.stress-test__cancelled {
+  margin: 0;
+}
+
+/* ── Test description ─────────────────────────────────────────────────────── */
+
+.stress-test__description {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin: 0;
+  padding-top: 0.25rem;
+  border-top: 1px solid #1e293b;
+}
+
+.stress-test__description strong {
+  color: #94a3b8;
+}

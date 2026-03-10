@@ -1,0 +1,158 @@
+### User Management API Endpoints
+### Base URL
+@baseUrl = http://localhost:5000/api
+@adminToken = YOUR_JWT_TOKEN_HERE
+
+###############################################
+# Available Endpoints:
+# 1. Login - Get JWT token
+# 2. GET All Users (paginated)
+# 3. GET Active Users (dedicated endpoint)
+# 4. GET Inactive Users (dedicated endpoint)
+# 5-7. GET Users - With various filters
+# 8. GET Single User
+# 9. POST Create User
+# 10. PUT Update User
+# 11. DELETE Soft Delete (via DELETE method)
+# 12. POST Reactivate User
+# 13. PATCH Change User Status (Activate/Deactivate)
+# 14. GET User Status History
+###############################################
+
+### 1. Login as Admin (to get access token)
+POST {{baseUrl}}/Auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@domain.com",
+  "password": "Admin123!"
+}
+
+### 2. Get All Users (Active and Inactive)
+GET {{baseUrl}}/UserManagement/fetch?PageNumber=1&PageSize=50
+Authorization: Bearer {{adminToken}}
+
+### 3. Get All Active Users (Dedicated Endpoint)
+GET {{baseUrl}}/UserManagement/fetch/true?PageNumber=1&PageSize=50
+Authorization: Bearer {{adminToken}}
+
+### 4. Get All Inactive Users (Dedicated Endpoint)
+GET {{baseUrl}}/UserManagement/fetch/false?PageNumber=1&PageSize=50
+Authorization: Bearer {{adminToken}}
+
+### 5. Get All Active Users (Using Query Parameter - Alternative)
+GET {{baseUrl}}/UserManagement/fetch?IsActive=true&PageNumber=1&PageSize=50
+Authorization: Bearer {{adminToken}}
+
+### 6. Get All Inactive Users (Using Query Parameter - Alternative)
+GET {{baseUrl}}/UserManagement/fetch?IsActive=false&PageNumber=1&PageSize=50
+Authorization: Bearer {{adminToken}}
+
+### 7. Get Users by Role (e.g., Employee)
+GET {{baseUrl}}/UserManagement/fetch?Role=Employee&PageNumber=1&PageSize=50
+Authorization: Bearer {{adminToken}}
+
+### 8. Get Users by Department
+GET {{baseUrl}}/UserManagement/fetch?Department=Sales&PageNumber=1&PageSize=50
+Authorization: Bearer {{adminToken}}
+
+### 9. Get Specific User by ID
+GET {{baseUrl}}/UserManagement/USER_ID_HERE
+Authorization: Bearer {{adminToken}}
+
+### 10. Create New User
+POST {{baseUrl}}/UserManagement/create
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "firstName": "Alice",
+  "lastName": "Williams",
+  "email": "alice.williams@domain.com",
+  "phoneNumber": "+27123456789",
+  "password": "Alice123!",
+  "role": "Employee",
+  "department": "Marketing",
+  "employeeNumber": "EMP006",
+  "primaryLocation": "London",
+  "preferredLocation": "London",
+  "notificationPreferences": "Email"
+}
+
+### 11. Update User
+PUT {{baseUrl}}/UserManagement/USER_ID_HERE/update
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "userId": "USER_ID_HERE",
+  "firstName": "Alice",
+  "lastName": "Johnson",
+  "email": "alice.johnson@domain.com",
+  "phoneNumber": "+27987654321",
+  "department": "Sales",
+  "primaryLocation": "CapeTown",
+  "notificationPreferences": "Both"
+}
+
+### 12. Soft Delete User (Mark as Inactive)
+DELETE {{baseUrl}}/UserManagement/USER_ID_HERE/deactivate
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "reason": "Employee resigned"
+}
+
+### 13. Reactivate Soft-Deleted User
+POST {{baseUrl}}/UserManagement/USER_ID_HERE/reactivate
+Authorization: Bearer {{adminToken}}
+
+### 14. Change User Active Status (Activate or Deactivate)
+PATCH {{baseUrl}}/UserManagement/USER_ID_HERE/status
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "userId": "USER_ID_HERE",
+  "isActive": true,
+  "reason": "Employee returned from leave"
+}
+
+### 14b. Deactivate User (Alternative to DELETE)
+PATCH {{baseUrl}}/UserManagement/USER_ID_HERE/status
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "userId": "USER_ID_HERE",
+  "isActive": false,
+  "reason": "Employee on long-term leave"
+}
+
+### 15. Get User Status Change History
+GET {{baseUrl}}/UserManagement/USER_ID_HERE/history
+Authorization: Bearer {{adminToken}}
+
+### 16. Get All Status Changes (All Users)
+GET {{baseUrl}}/UserManagement/history/all?pageNumber=1&pageSize=50
+Authorization: Bearer {{adminToken}}
+
+### RoomLocation Values (use string names)
+# - London
+# - CapeTown
+# - Johannesburg
+# - Bloemfontein
+# - Durban
+
+### Available Roles
+# - Admin
+# - FacilityManager
+# - Receptionist
+# - Employee
+
+### NotificationPreferences Options
+# - Email
+# - SMS
+# - Both
+# - None

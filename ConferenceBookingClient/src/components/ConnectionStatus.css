@@ -1,0 +1,31 @@
+/* ConnectionStatus.css — Styles for the API connection indicator */
+
+.connection-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 12px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.connection-status.online {
+  color: #27ae60;
+  background: rgba(39, 174, 96, 0.12);
+  border: 1px solid rgba(39, 174, 96, 0.35);
+}
+
+.connection-status.offline {
+  color: #e74c3c;
+  background: rgba(231, 76, 60, 0.12);
+  border: 1px solid rgba(231, 76, 60, 0.35);
+}
+
+.connection-status.checking {
+  color: #f39c12;
+  background: rgba(243, 156, 18, 0.12);
+  border: 1px solid rgba(243, 156, 18, 0.35);
+}

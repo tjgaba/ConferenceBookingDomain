@@ -1,0 +1,51 @@
+/* Sidebar.css — Navigation sidebar styles */
+
+.sidebar {
+  width: 220px;
+  min-height: 100%;
+  background: #1e293b;
+  padding: 1.5rem 0;
+  flex-shrink: 0;
+}
+
+.sidebar-nav {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sidebar-item {
+  margin: 0;
+}
+
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.25rem;
+  color: #cbd5e1;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+  border-left: 3px solid transparent;
+}
+
+.sidebar-link:hover {
+  background: #334155;
+  color: #f1f5f9;
+}
+
+.sidebar-item.active .sidebar-link {
+  background: #334155;
+  color: #38bdf8;
+  border-left-color: #38bdf8;
+}
+
+.sidebar-icon {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.sidebar-label {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
