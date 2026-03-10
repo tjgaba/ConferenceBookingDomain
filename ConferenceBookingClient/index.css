@@ -1,4 +1,5 @@
 /* Global styles for the Conference Booking application */
+@import "tailwindcss";
 
 /* Hide the Next.js dev error overlay (the red popup panel) */
 nextjs-portal {

@@ -2,7 +2,9 @@
   "/_global-error/page": "/_global-error",
   "/_not-found/page": "/_not-found",
   "/bookings/[id]/page": "/bookings/[id]",
+  "/dashboard/bookings/page": "/dashboard/bookings",
   "/dashboard/page": "/dashboard",
+  "/dashboard/rooms/page": "/dashboard/rooms",
   "/login/page": "/login",
   "/page": "/"
 }
