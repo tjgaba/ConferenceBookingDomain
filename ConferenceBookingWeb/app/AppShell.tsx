@@ -1,3 +1,4 @@
+// NOTE: AppShell is a Client Component that wraps AuthProvider and other client-only logic, following the common Next.js pattern of keeping providers out of the root Server Component (layout.tsx) for optimal performance and separation of concerns.
 'use client';
 // AppShell.tsx — Root application shell (Client Component).
 //

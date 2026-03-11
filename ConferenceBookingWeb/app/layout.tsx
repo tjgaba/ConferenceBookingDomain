@@ -1,5 +1,7 @@
 // app/layout.tsx — Root Layout (Server Component)
 //
+
+//
 // Wraps every route in the application. <AppShell> (a Client Component) is
 // rendered here to provide the persistent Header + Sidebar shell and the
 // global AuthProvider context tree.
@@ -25,3 +27,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     </html>
   );
 }
+/* NOTE: In Next.js App Router, it is common to keep layout.tsx as a Server Component for 
+performance and security, and use a Client Component (like AppShell) to wrap client-
+only providers (such as AuthProvider) and UI that needs React state or browser APIs. 
+This pattern keeps server-rendered code fast and minimal, while still allowing global 
+client-side state where needed.*/

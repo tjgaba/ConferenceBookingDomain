@@ -30,3 +30,5 @@ export function useAuthContext() {
 
 // Convenience alias: const { user, token, login, logout } = useAuth()
 export const useAuth = useAuthContext;
+
+// NOTE: useAuth is exported as a convenience alias for useAuthContext, so you can use: const { user, token, login, logout } = useAuth()

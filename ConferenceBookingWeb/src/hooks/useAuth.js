@@ -100,3 +100,5 @@ function useAuth({ onSessionExpired } = {}) {
 }
 
 export default useAuth;
+
+// NOTE: The hook returns both `token` and `user` (alias for currentUser) so components can use: const { user, token } = useAuth()
