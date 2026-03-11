@@ -26,6 +26,7 @@ function useAuth({ onSessionExpired } = {}) {
   // that runs only in the browser so there is no "localStorage is not
   // defined" server error either.
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [token, setToken] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
   const [showLoginForm, setShowLoginForm] = useState(false);
   // Incrementing refreshKey forces the data-fetch effect in App to re-run
@@ -36,7 +37,9 @@ function useAuth({ onSessionExpired } = {}) {
   // Runs once on the client after the first paint. Restores the session that
   // was persisted in localStorage by a previous login.
   useEffect(() => {
-    setIsLoggedIn(authService.isAuthenticated());
+    const storedToken = localStorage.getItem('token');
+    setToken(storedToken);
+    setIsLoggedIn(!!storedToken);
     setCurrentUser(authService.getCurrentUser());
   }, []);
 
@@ -45,6 +48,7 @@ function useAuth({ onSessionExpired } = {}) {
   // Clears all auth state and opens the login form without a full page reload.
   useEffect(() => {
     const handleUnauthorized = () => {
+      setToken(null);
       setIsLoggedIn(false);
       setCurrentUser(null);
       setShowLoginForm(true);
@@ -65,6 +69,7 @@ function useAuth({ onSessionExpired } = {}) {
   // @returns {Promise<{ token: string, user: object }>}
   const login = useCallback(async (username, password) => {
     const result = await authService.login(username, password); // throws on 400/401
+    setToken(result.token);
     setIsLoggedIn(true);
     setCurrentUser(result.user);
     setShowLoginForm(false);
@@ -76,12 +81,15 @@ function useAuth({ onSessionExpired } = {}) {
   // Calls authService.logout() which POSTs to /auth/logout and clears localStorage.
   const logout = useCallback(async () => {
     await authService.logout();
+    setToken(null);
     setIsLoggedIn(false);
     setCurrentUser(null);
   }, []);
 
   return {
     isLoggedIn,
+    token,
+    user: currentUser,
     currentUser,
     showLoginForm,
     setShowLoginForm,

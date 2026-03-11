@@ -27,3 +27,6 @@ export function useAuthContext() {
   if (!ctx) throw new Error('useAuthContext must be used inside <AuthProvider>');
   return ctx;
 }
+
+// Convenience alias: const { user, token, login, logout } = useAuth()
+export const useAuth = useAuthContext;
