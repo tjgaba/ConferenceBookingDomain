@@ -1,8 +1,9 @@
-// app/dashboard/rooms/page.tsx — Rooms management route (Server Component)
+'use client';
+// app/dashboard/rooms/page.tsx — Rooms management route
 //
 // URL: /dashboard/rooms
-// next/dynamic with { ssr: false } prevents RoomsPageClient from running
-// during the server pre-render pass (it reads JWT from localStorage).
+// 'use client' is required because next/dynamic with { ssr: false } must be
+// called from a Client Component (Next.js 16 Turbopack enforces this).
 
 import dynamic from 'next/dynamic';
 

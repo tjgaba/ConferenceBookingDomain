@@ -79,6 +79,20 @@ export const createRoom = async (roomData) => {
 };
 
 /**
+ * Fetch all rooms including inactive ones — for management views.
+ * @returns {Promise<Array>} Array of all room objects
+ */
+export const fetchAllRoomsManagement = async () => {
+  try {
+    const response = await apiClient.get('/Room', { params: { page: 1, pageSize: 200 } });
+    return response.data || [];
+  } catch (error) {
+    console.error('❌ Failed to fetch rooms (management):', error);
+    throw error;
+  }
+};
+
+/**
  * Update an existing room on the server
  * @param {number} roomId - ID of room to update
  * @param {Object} roomData - Updated room fields

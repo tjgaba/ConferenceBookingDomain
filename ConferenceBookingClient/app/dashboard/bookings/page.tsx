@@ -1,8 +1,9 @@
-// app/dashboard/bookings/page.tsx — Bookings management route (Server Component)
+'use client';
+// app/dashboard/bookings/page.tsx — Bookings management route
 //
 // URL: /dashboard/bookings
-// next/dynamic with { ssr: false } prevents BookingsPageClient from running
-// during the server pre-render pass (it reads JWT from localStorage).
+// 'use client' is required because next/dynamic with { ssr: false } must be
+// called from a Client Component (Next.js 16 Turbopack enforces this).
 
 import dynamic from 'next/dynamic';
 

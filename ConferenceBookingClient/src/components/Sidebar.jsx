@@ -10,23 +10,33 @@
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
+import { useAuthContext } from '../context/AuthContext';
 import './Sidebar.css';
 
-const NAV_ITEMS = [
-  { href: '/', label: 'Home', icon: '🏠' },
-  { href: '/dashboard', label: 'Dashboard', icon: '📊' },
-  { href: '/dashboard/bookings', label: 'Bookings', icon: '📅' },
-  { href: '/dashboard/rooms', label: 'Rooms', icon: '🏢' },
+// roles: [] means visible to everyone.
+// roles: ['...'] means the user must have at least one of those roles.
+const ALL_NAV_ITEMS = [
+  { href: '/',                          label: 'Home',            icon: '🏠', roles: [] },
+  { href: '/dashboard',                 label: 'Dashboard',       icon: '📊', roles: ['Admin', 'FacilityManager'] },
+  { href: '/dashboard/bookings',        label: 'Bookings',        icon: '📅', roles: ['Admin', 'FacilityManager', 'Receptionist', 'Employee'] },
+  { href: '/dashboard/rooms',           label: 'Rooms',           icon: '🏢', roles: ['Admin', 'FacilityManager'] },
+  { href: '/dashboard/room-management', label: 'Room Management', icon: '⚙️', roles: ['FacilityManager', 'Admin'] },
 ];
 
 function Sidebar() {
   const pathname = usePathname();
+  const { currentUser } = useAuthContext();
+  const userRoles = currentUser?.roles ?? [];
+
+  const navItems = ALL_NAV_ITEMS.filter(
+    item => item.roles.length === 0 || item.roles.some(r => userRoles.includes(r))
+  );
 
   return (
     <aside className="sidebar">
       <nav aria-label="Main navigation">
         <ul className="sidebar-nav">
-          {NAV_ITEMS.map(({ href, label, icon }) => (
+          {navItems.map(({ href, label, icon }) => (
             <li
               key={href}
               className={pathname === href ? 'sidebar-item active' : 'sidebar-item'}

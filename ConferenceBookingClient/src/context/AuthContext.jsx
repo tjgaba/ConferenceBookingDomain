@@ -11,14 +11,14 @@
 //   - Consume state:  const { isLoggedIn, currentUser, login, logout } = useAuthContext()
 
 import { createContext, useContext } from 'react';
-import useAuth from '../hooks/useAuth';
+import useAuthState from '../hooks/useAuth';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  // useAuth is called once here. Every component in the tree that calls
+  // useAuthState is called once here. Every component in the tree that calls
   // useAuthContext() reads from this single instance — no state divergence.
-  const auth = useAuth();
+  const auth = useAuthState();
   return <AuthContext.Provider value={auth}>{children}</AuthContext.Provider>;
 }
 
@@ -31,4 +31,5 @@ export function useAuthContext() {
 // Convenience alias: const { user, token, login, logout } = useAuth()
 export const useAuth = useAuthContext;
 
-// NOTE: useAuth is exported as a convenience alias for useAuthContext, so you can use: const { user, token, login, logout } = useAuth()
+/* NOTE: useAuth is exported as a convenience alias for useAuthContext, 
+so you can use: const { user, token, login, logout } = useAuth()*/

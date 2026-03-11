@@ -1,8 +1,9 @@
-// app/dashboard/page.tsx — Dashboard overview, route: /dashboard  (Server Component)
+'use client';
+// app/dashboard/page.tsx — Dashboard overview, route: /dashboard
 //
-// Server-side entry point. next/dynamic with { ssr: false } prevents
-// DashboardHomeClient from running during the server pre-render pass, because
-// it reads JWT state from localStorage which does not exist on the server.
+// 'use client' is required because next/dynamic with { ssr: false } must be
+// called from a Client Component (Next.js 16 Turbopack enforces this).
+// DashboardHomeClient reads JWT from localStorage, which is browser-only.
 
 import dynamic from 'next/dynamic';
 
