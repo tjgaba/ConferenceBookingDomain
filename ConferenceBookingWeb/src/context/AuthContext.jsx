@@ -11,15 +11,15 @@
 //   - Consume state:  const { isLoggedIn, currentUser, login, logout } = useAuthContext()
 
 import { createContext, useContext, useEffect } from 'react';
-import useAuth from '../hooks/useAuth';
+import useAuthState from '../hooks/useAuth'; // renamed to avoid collision with exported useAuth alias
 import { configureApiClient } from '../api/apiClient';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  // useAuth is called once here. Every component in the tree that calls
+  // useAuthState is called once here. Every component in the tree that calls
   // useAuthContext() reads from this single instance — no state divergence.
-  const auth = useAuth();
+  const auth = useAuthState();
 
   // ── Axios Interceptor Integration ──────────────────────────────────────────
   // Wire the live Context token and logout() into the Axios singleton so:

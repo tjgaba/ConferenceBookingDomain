@@ -56,6 +56,10 @@ export default function DashboardHomeClient() {
   const [editingRoom, setEditingRoom] = useState<unknown>(null);
   const [showStressTest, setShowStressTest] = useState(false);
 
+  // ── Expand/collapse state ─────────────────────────────────────────────────────
+  const [bookingsOpen, setBookingsOpen] = useState(false);
+  const [roomsOpen, setRoomsOpen]       = useState(false);
+
   const { isLoggedIn, refreshKey } = useAuthContext();
 
   // ── SignalR — booking and room events ────────────────────────────────────────
@@ -318,90 +322,98 @@ export default function DashboardHomeClient() {
         </div>
       </div>
 
-      {/* Booking filters */}
-      <div className="filter-section">
-        <div className="filter-group">
-          <label htmlFor="category-filter">Filter by Category:</label>
-          <select id="category-filter" value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} className="filter-select">
-            <option value="All">All Bookings</option>
-            <option value="Pending">Pending</option>
-            <option value="Confirmed">Confirmed</option>
-            <option value="Cancelled">Cancelled</option>
-            <option value="By Location">Sorted by Location</option>
-          </select>
-        </div>
-        <div className="filter-group">
-          <label htmlFor="location-filter">Filter by Location:</label>
-          <select id="location-filter" value={locationFilter} onChange={e => setLocationFilter(e.target.value)} className="filter-select">
-            <option value="All">All Locations</option>
-            {uniqueLocations.map(loc => <option key={loc} value={loc}>{loc}</option>)}
-          </select>
-        </div>
-      </div>
-
       {/* Bookings section */}
       <section className="section">
-        <div className="section-header">
-          <h2>Bookings Management</h2>
-          <Button
-            label={showBookingForm ? 'Hide Form' : 'New Booking'}
-            variant="primary"
-            onClick={() => { setShowBookingForm(s => !s); setEditingBooking(null); }}
-            disabled={isSubmitting}
-          />
+        <div className="section-header collapsible-header" onClick={() => setBookingsOpen(o => !o)} style={{ cursor: 'pointer', userSelect: 'none' }}>
+          <h2>Bookings Management <span className="collapse-icon">{bookingsOpen ? '▲' : '▼'}</span></h2>
+          {bookingsOpen && (
+            <Button
+              label={showBookingForm ? 'Hide Form' : 'New Booking'}
+              variant="primary"
+              onClick={e => { e.stopPropagation(); setShowBookingForm(s => !s); setEditingBooking(null); }}
+              disabled={isSubmitting}
+            />
+          )}
         </div>
-        {showBookingForm && (
-          <BookingForm
-            onSubmit={handleBookingSubmit}
-            onCancel={() => { setShowBookingForm(false); setEditingBooking(null); setBookingFormErrors({}); }}
-            rooms={allRooms}
-            initialData={editingBooking}
-            serverErrors={bookingFormErrors}
-          />
+        {bookingsOpen && (
+          <>
+            <div className="filter-section">
+              <div className="filter-group">
+                <label htmlFor="category-filter">Filter by Category:</label>
+                <select id="category-filter" value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} className="filter-select">
+                  <option value="All">All Bookings</option>
+                  <option value="Pending">Pending</option>
+                  <option value="Confirmed">Confirmed</option>
+                  <option value="Cancelled">Cancelled</option>
+                  <option value="By Location">Sorted by Location</option>
+                </select>
+              </div>
+              <div className="filter-group">
+                <label htmlFor="location-filter">Filter by Location:</label>
+                <select id="location-filter" value={locationFilter} onChange={e => setLocationFilter(e.target.value)} className="filter-select">
+                  <option value="All">All Locations</option>
+                  {uniqueLocations.map(loc => <option key={loc} value={loc}>{loc}</option>)}
+                </select>
+              </div>
+            </div>
+            {showBookingForm && (
+              <BookingForm
+                onSubmit={handleBookingSubmit}
+                onCancel={() => { setShowBookingForm(false); setEditingBooking(null); setBookingFormErrors({}); }}
+                rooms={allRooms}
+                initialData={editingBooking}
+                serverErrors={bookingFormErrors}
+              />
+            )}
+            <BookingList bookings={filteredBookings} onEdit={handleEditBooking} onDelete={handleDeleteBooking} />
+          </>
         )}
-        <BookingList bookings={filteredBookings} onEdit={handleEditBooking} onDelete={handleDeleteBooking} />
       </section>
 
       {/* Rooms section */}
       <section className="section">
-        <div className="section-header">
-          <h2>Rooms Management</h2>
-          <Button
-            label={showRoomForm ? 'Hide Form' : 'Add Room'}
-            variant="success"
-            onClick={() => { setShowRoomForm(s => !s); setEditingRoom(null); }}
-            disabled={isSubmitting}
-          />
+        <div className="section-header collapsible-header" onClick={() => setRoomsOpen(o => !o)} style={{ cursor: 'pointer', userSelect: 'none' }}>
+          <h2>Rooms Management <span className="collapse-icon">{roomsOpen ? '▲' : '▼'}</span></h2>
+          {roomsOpen && (
+            <Button
+              label={showRoomForm ? 'Hide Form' : 'Add Room'}
+              variant="success"
+              onClick={e => { e.stopPropagation(); setShowRoomForm(s => !s); setEditingRoom(null); }}
+              disabled={isSubmitting}
+            />
+          )}
         </div>
-
-        <div className="filter-section">
-          <div className="filter-group">
-            <label htmlFor="room-capacity-filter">Filter by Capacity:</label>
-            <select id="room-capacity-filter" value={roomCapacityFilter} onChange={e => setRoomCapacityFilter(e.target.value)} className="filter-select">
-              <option value="All">All Capacities</option>
-              <option value="Small">Small (&lt; 10)</option>
-              <option value="Medium">Medium (10–15)</option>
-              <option value="Large">Large (&gt; 15)</option>
-              <option value="By Capacity">Sorted by Capacity</option>
-            </select>
-          </div>
-          <div className="filter-group">
-            <label htmlFor="room-location-filter">Filter by Location:</label>
-            <select id="room-location-filter" value={roomLocationFilter} onChange={e => setRoomLocationFilter(e.target.value)} className="filter-select">
-              <option value="All">All Locations</option>
-              {uniqueRoomLocations.map(loc => <option key={loc} value={loc}>{loc}</option>)}
-            </select>
-          </div>
-        </div>
-
-        {showRoomForm && (
-          <RoomForm
-            onSubmit={handleRoomSubmit}
-            onCancel={() => { setShowRoomForm(false); setEditingRoom(null); }}
-            initialData={editingRoom}
-          />
+        {roomsOpen && (
+          <>
+            <div className="filter-section">
+              <div className="filter-group">
+                <label htmlFor="room-capacity-filter">Filter by Capacity:</label>
+                <select id="room-capacity-filter" value={roomCapacityFilter} onChange={e => setRoomCapacityFilter(e.target.value)} className="filter-select">
+                  <option value="All">All Capacities</option>
+                  <option value="Small">Small (&lt; 10)</option>
+                  <option value="Medium">Medium (10–15)</option>
+                  <option value="Large">Large (&gt; 15)</option>
+                  <option value="By Capacity">Sorted by Capacity</option>
+                </select>
+              </div>
+              <div className="filter-group">
+                <label htmlFor="room-location-filter">Filter by Location:</label>
+                <select id="room-location-filter" value={roomLocationFilter} onChange={e => setRoomLocationFilter(e.target.value)} className="filter-select">
+                  <option value="All">All Locations</option>
+                  {uniqueRoomLocations.map(loc => <option key={loc} value={loc}>{loc}</option>)}
+                </select>
+              </div>
+            </div>
+            {showRoomForm && (
+              <RoomForm
+                onSubmit={handleRoomSubmit}
+                onCancel={() => { setShowRoomForm(false); setEditingRoom(null); }}
+                initialData={editingRoom}
+              />
+            )}
+            <RoomList rooms={filteredRooms} onEdit={handleEditRoom} onDelete={handleDeleteRoom} />
+          </>
         )}
-        <RoomList rooms={filteredRooms} onEdit={handleEditRoom} onDelete={handleDeleteRoom} />
       </section>
 
       {/* Network stress test */}

@@ -17,9 +17,9 @@ import './Sidebar.css';
 // roles: ['...'] means the user must have at least one of those roles.
 const ALL_NAV_ITEMS = [
   { href: '/',                          label: 'Home',            icon: '🏠', roles: [] },
-  { href: '/dashboard',                 label: 'Dashboard',      icon: '📊', roles: ['Admin', 'FacilityManager'] },
+  { href: '/dashboard',                 label: 'Dashboard',       icon: '📊', roles: ['Admin', 'FacilityManager', 'Receptionist', 'Employee'] },
   { href: '/dashboard/bookings',        label: 'Bookings',        icon: '📅', roles: ['Admin', 'FacilityManager', 'Receptionist', 'Employee'] },
-  { href: '/dashboard/rooms',           label: 'Rooms',           icon: '🏢', roles: ['Admin', 'FacilityManager'] },
+  { href: '/dashboard/rooms',           label: 'Rooms',           icon: '🏢', roles: ['Admin', 'FacilityManager', 'Receptionist', 'Employee'] },
   { href: '/dashboard/room-management', label: 'Room Management', icon: '⚙️', roles: ['FacilityManager'] },
 ];
 

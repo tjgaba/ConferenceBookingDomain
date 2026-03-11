@@ -100,7 +100,7 @@ ConferenceBookingDomain/
 │   ├── Services/                          # Business logic services
 │   └── Program.cs
 │
-├── ConferenceBookingClient/          # Next.js 16 frontend — primary (port 3000)
+├── ConferenceBookingWeb/             # Next.js 16 frontend — primary (port 3000)
 │   ├── app/
 │   │   ├── layout.tsx                     # Server Component root layout
 │   │   ├── AppShell.tsx                   # 'use client' shell — holds AuthProvider
@@ -132,8 +132,7 @@ ConferenceBookingDomain/
 │       ├── services/                      # bookingService.js, roomService.js, authService.js
 │       └── dto/                           # Frontend DTO builders
 │
-├── ConferenceBookingWeb/             # Next.js 16 frontend — secondary
-│   └── (mirrors ConferenceBookingClient structure)
+├── ConferenceBookingClient/          # Next.js 16 frontend — legacy (superseded by Web)
 │
 ├── docker-compose.yml                # PostgreSQL container
 ├── Dockerfile
@@ -155,7 +154,7 @@ ConferenceBookingDomain/
 | SignalR | 8 | Real-time push notifications |
 | Swagger / OpenAPI | — | Interactive API docs |
 
-### Frontend (ConferenceBookingClient)
+### Frontend (ConferenceBookingWeb)
 | Technology | Version | Purpose |
 |---|---|---|
 | Next.js | 16.1.6 | React framework (App Router, Turbopack) |
@@ -525,10 +524,11 @@ dotnet run --project API/API.csproj
 ### 3. Run the Frontend
 
 ```bash
-cd ConferenceBookingClient
+cd ConferenceBookingWeb
 npm install
-# Create .env.local with:
+# .env.local is already in place:
 # NEXT_PUBLIC_API_BASE_URL=http://localhost:5230/api
+# NEXT_PUBLIC_HUB_URL=http://localhost:5230/hubs/booking
 npm run dev
 # App available at http://localhost:3000
 ```

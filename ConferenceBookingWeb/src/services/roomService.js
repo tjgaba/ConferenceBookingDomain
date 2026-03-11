@@ -33,9 +33,10 @@ export const fetchAllRooms = async (params = {}) => {
     };
     
     const response = await apiClient.get('/Room', { params: queryParams });
-    console.log('✓ API: Fetched rooms', response.data?.length || 0);
-    // Interceptor already unwraps response.data → response is the pagination envelope
-    return response.data || [];
+    // Interceptor already unwraps response.data → response IS the payload object.
+    const items = response?.data ?? response;
+    console.log('✓ API: Fetched rooms', Array.isArray(items) ? items.length : 0);
+    return items ?? [];
   } catch (error) {
     console.error('❌ Failed to fetch rooms:', error);
     throw error;
@@ -146,8 +147,9 @@ export const fetchAllRoomsManagement = async () => {
       apiClient.get('/Room', { params: { page: 1, pageSize: 100, isActive: true } }),
       apiClient.get('/Room', { params: { page: 1, pageSize: 100, isActive: false } }),
     ]);
-    const active   = activeRes.data   || [];
-    const inactive = inactiveRes.data || [];
+    // Interceptor already unwraps response.data → response IS the payload.
+    const active   = activeRes?.data   ?? activeRes   ?? [];
+    const inactive = inactiveRes?.data ?? inactiveRes ?? [];
     console.log(`✓ API: Fetched rooms for management — active: ${active.length}, inactive: ${inactive.length}`);
     return [...active, ...inactive];
   } catch (error) {
