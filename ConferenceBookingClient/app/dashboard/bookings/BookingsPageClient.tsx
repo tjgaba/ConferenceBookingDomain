@@ -5,7 +5,7 @@
 // Contains all booking-specific state, handlers, SignalR subscription and JSX.
 // Replaces the old pattern of delegating to the monolithic src/App.jsx.
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import BookingList from '../../../src/components/BookingList';
 import BookingForm from '../../../src/components/BookingForm';
 import Button from '../../../src/components/Button';
@@ -48,6 +48,9 @@ export default function BookingsPageClient() {
   const [editingBooking, setEditingBooking] = useState<unknown>(null);
 
   const { isLoggedIn, refreshKey } = useAuthContext();
+
+  // ── Expand/collapse state ─────────────────────────────────────────────────────
+  const [sectionOpen, setSectionOpen] = useState(false);
 
   // ── SignalR — booking events only ────────────────────────────────────────────
   useSignalR({
@@ -254,25 +257,31 @@ export default function BookingsPageClient() {
       </div>
 
       <section className="section">
-        <div className="section-header">
-          <h2>Bookings Management</h2>
-          <Button
-            label={showBookingForm ? 'Hide Form' : 'New Booking'}
-            variant="primary"
-            onClick={() => { setShowBookingForm(s => !s); setEditingBooking(null); }}
-            disabled={isSubmitting}
-          />
+        <div className="section-header collapsible-header" onClick={() => setSectionOpen(o => !o)} style={{ cursor: 'pointer', userSelect: 'none' }}>
+          <h2>Bookings Management <span className="collapse-icon">{sectionOpen ? '▲' : '▼'}</span></h2>
+          {sectionOpen && (
+            <Button
+              label={showBookingForm ? 'Hide Form' : 'New Booking'}
+              variant="primary"
+              onClick={e => { e.stopPropagation(); setShowBookingForm(s => !s); setEditingBooking(null); }}
+              disabled={isSubmitting}
+            />
+          )}
         </div>
-        {showBookingForm && (
-          <BookingForm
-            onSubmit={handleBookingSubmit}
-            onCancel={() => { setShowBookingForm(false); setEditingBooking(null); setBookingFormErrors({}); }}
-            rooms={allRooms}
-            initialData={editingBooking}
-            serverErrors={bookingFormErrors}
-          />
+        {sectionOpen && (
+          <>
+            {showBookingForm && (
+              <BookingForm
+                onSubmit={handleBookingSubmit}
+                onCancel={() => { setShowBookingForm(false); setEditingBooking(null); setBookingFormErrors({}); }}
+                rooms={allRooms}
+                initialData={editingBooking}
+                serverErrors={bookingFormErrors}
+              />
+            )}
+            <BookingList bookings={filteredBookings} onEdit={handleEditBooking} onDelete={handleDeleteBooking} />
+          </>
         )}
-        <BookingList bookings={filteredBookings} onEdit={handleEditBooking} onDelete={handleDeleteBooking} />
       </section>
 
       <Footer />

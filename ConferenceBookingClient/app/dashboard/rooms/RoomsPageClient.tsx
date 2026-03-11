@@ -5,7 +5,7 @@
 // Contains all room-specific state, handlers, SignalR subscription and JSX.
 // Replaces the old pattern of delegating to the monolithic src/App.jsx.
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import RoomList from '../../../src/components/RoomList';
 import RoomForm from '../../../src/components/RoomForm';
 import Button from '../../../src/components/Button';
@@ -44,6 +44,9 @@ export default function RoomsPageClient() {
   const [editingRoom, setEditingRoom] = useState<unknown>(null);
 
   const { isLoggedIn, refreshKey } = useAuthContext();
+
+  // ── Expand/collapse state ─────────────────────────────────────────────────────
+  const [sectionOpen, setSectionOpen] = useState(false);
 
   // ── SignalR — room events only ───────────────────────────────────────────────
   useSignalR({
@@ -187,44 +190,50 @@ export default function RoomsPageClient() {
       </div>
 
       <section className="section">
-        <div className="section-header">
-          <h2>Rooms Management</h2>
-          <Button
-            label={showRoomForm ? 'Hide Form' : 'Add Room'}
-            variant="success"
-            onClick={() => { setShowRoomForm(s => !s); setEditingRoom(null); }}
-            disabled={isSubmitting}
-          />
+        <div className="section-header collapsible-header" onClick={() => setSectionOpen(o => !o)} style={{ cursor: 'pointer', userSelect: 'none' }}>
+          <h2>Rooms Management <span className="collapse-icon">{sectionOpen ? '▲' : '▼'}</span></h2>
+          {sectionOpen && (
+            <Button
+              label={showRoomForm ? 'Hide Form' : 'Add Room'}
+              variant="success"
+              onClick={e => { e.stopPropagation(); setShowRoomForm(s => !s); setEditingRoom(null); }}
+              disabled={isSubmitting}
+            />
+          )}
         </div>
 
-        <div className="filter-section">
-          <div className="filter-group">
-            <label htmlFor="room-capacity-filter">Filter by Capacity:</label>
-            <select id="room-capacity-filter" value={roomCapacityFilter} onChange={e => setRoomCapacityFilter(e.target.value)} className="filter-select">
-              <option value="All">All Capacities</option>
-              <option value="Small">Small (&lt; 10)</option>
-              <option value="Medium">Medium (10–15)</option>
-              <option value="Large">Large (&gt; 15)</option>
-              <option value="By Capacity">Sorted by Capacity</option>
-            </select>
-          </div>
-          <div className="filter-group">
-            <label htmlFor="room-location-filter">Filter by Location:</label>
-            <select id="room-location-filter" value={roomLocationFilter} onChange={e => setRoomLocationFilter(e.target.value)} className="filter-select">
-              <option value="All">All Locations</option>
-              {uniqueRoomLocations.map(loc => <option key={loc} value={loc}>{loc}</option>)}
-            </select>
-          </div>
-        </div>
+        {sectionOpen && (
+          <>
+            <div className="filter-section">
+              <div className="filter-group">
+                <label htmlFor="room-capacity-filter">Filter by Capacity:</label>
+                <select id="room-capacity-filter" value={roomCapacityFilter} onChange={e => setRoomCapacityFilter(e.target.value)} className="filter-select">
+                  <option value="All">All Capacities</option>
+                  <option value="Small">Small (&lt; 10)</option>
+                  <option value="Medium">Medium (10–15)</option>
+                  <option value="Large">Large (&gt; 15)</option>
+                  <option value="By Capacity">Sorted by Capacity</option>
+                </select>
+              </div>
+              <div className="filter-group">
+                <label htmlFor="room-location-filter">Filter by Location:</label>
+                <select id="room-location-filter" value={roomLocationFilter} onChange={e => setRoomLocationFilter(e.target.value)} className="filter-select">
+                  <option value="All">All Locations</option>
+                  {uniqueRoomLocations.map(loc => <option key={loc} value={loc}>{loc}</option>)}
+                </select>
+              </div>
+            </div>
 
-        {showRoomForm && (
-          <RoomForm
-            onSubmit={handleRoomSubmit}
-            onCancel={() => { setShowRoomForm(false); setEditingRoom(null); }}
-            initialData={editingRoom}
-          />
+            {showRoomForm && (
+              <RoomForm
+                onSubmit={handleRoomSubmit}
+                onCancel={() => { setShowRoomForm(false); setEditingRoom(null); }}
+                initialData={editingRoom}
+              />
+            )}
+            <RoomList rooms={filteredRooms} onEdit={handleEditRoom} onDelete={handleDeleteRoom} />
+          </>
         )}
-        <RoomList rooms={filteredRooms} onEdit={handleEditRoom} onDelete={handleDeleteRoom} />
       </section>
 
       <Footer />

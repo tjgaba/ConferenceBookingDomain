@@ -43,21 +43,6 @@ function useAuth({ onSessionExpired } = {}) {
     setCurrentUser(authService.getCurrentUser());
   }, []);
 
-  // ── Req 8 / Response Interceptor ────────────────────────────────────────────
-  // Listen for the CustomEvent dispatched by apiClient's 401 response interceptor.
-  // Clears all auth state and opens the login form without a full page reload.
-  useEffect(() => {
-    const handleUnauthorized = () => {
-      setToken(null);
-      setIsLoggedIn(false);
-      setCurrentUser(null);
-      setShowLoginForm(true);
-      onSessionExpired?.(); // Let the caller (App) show a toast or any UI feedback
-    };
-    window.addEventListener('auth:unauthorized', handleUnauthorized);
-    return () => window.removeEventListener('auth:unauthorized', handleUnauthorized);
-  }, [onSessionExpired]);
-
   // ── login ────────────────────────────────────────────────────────────────────
   // Posts credentials to the .NET Auth endpoint via authService (which uses
   // the apiClient singleton — no raw fetch/axios calls).

@@ -53,7 +53,7 @@ export default function RoomManagementPageClient() {
   // ── Auth ─────────────────────────────────────────────────────────────────────
   const { isLoggedIn, currentUser, refreshKey, login } = useAuthContext();
   const userRoles: string[] = (currentUser as { roles?: string[] })?.roles ?? [];
-  const isFacilityManager = userRoles.includes('FacilityManager') || userRoles.includes('Admin');
+  const isFacilityManager = userRoles.includes('FacilityManager');
   const isAdmin = isFacilityManager;
   const canManage = isFacilityManager;
 
@@ -76,6 +76,10 @@ export default function RoomManagementPageClient() {
   const [statusFilter, setStatusFilter]     = useState<'all' | 'active' | 'inactive'>('all');
   const [locationFilter, setLocationFilter] = useState('All');
   const [search, setSearch]                 = useState('');
+
+  // ── Pagination state ──────────────────────────────────────────────────────────
+  const PAGE_SIZE = 5;
+  const [currentPage, setCurrentPage] = useState(1);
 
   // ── SignalR — react to real-time room events ─────────────────────────────────
   useSignalR({
@@ -185,10 +189,15 @@ export default function RoomManagementPageClient() {
   };
 
   // ── Derived list ─────────────────────────────────────────────────────────────
-  const visibleRooms = rooms
+  const filteredRooms = rooms
     .filter(r => statusFilter === 'all' ? true : statusFilter === 'active' ? r.isActive : !r.isActive)
     .filter(r => locationFilter === 'All' || r.location === locationFilter)
     .filter(r => !search || r.name.toLowerCase().includes(search.toLowerCase()) || String(r.number).includes(search));
+
+  const totalPages  = Math.max(1, Math.ceil(filteredRooms.length / PAGE_SIZE));
+  // Reset to page 1 when filters change would be handled by the filter onChange calling setCurrentPage(1)
+  const safePage    = Math.min(currentPage, totalPages);
+  const visibleRooms = filteredRooms.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   const activeCount   = rooms.filter(r => r.isActive).length;
   const inactiveCount = rooms.filter(r => !r.isActive).length;
@@ -254,11 +263,11 @@ export default function RoomManagementPageClient() {
         <div className="filter-section">
           <div className="filter-group">
             <label htmlFor="rm-search">Search:</label>
-            <input id="rm-search" type="text" className="filter-select" placeholder="Name or room number…" value={search} onChange={e => setSearch(e.target.value)} />
+            <input id="rm-search" type="text" className="filter-select" placeholder="Name or room number…" value={search} onChange={e => { setSearch(e.target.value); setCurrentPage(1); }} />
           </div>
           <div className="filter-group">
             <label htmlFor="rm-status">Status:</label>
-            <select id="rm-status" className="filter-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value as 'all' | 'active' | 'inactive')}>
+            <select id="rm-status" className="filter-select" value={statusFilter} onChange={e => { setStatusFilter(e.target.value as 'all' | 'active' | 'inactive'); setCurrentPage(1); }}>
               <option value="all">All</option>
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
@@ -266,46 +275,55 @@ export default function RoomManagementPageClient() {
           </div>
           <div className="filter-group">
             <label htmlFor="rm-location">Location:</label>
-            <select id="rm-location" className="filter-select" value={locationFilter} onChange={e => setLocationFilter(e.target.value)}>
+            <select id="rm-location" className="filter-select" value={locationFilter} onChange={e => { setLocationFilter(e.target.value); setCurrentPage(1); }}>
               <option value="All">All Locations</option>
               {LOCATIONS.map(loc => <option key={loc} value={loc}>{loc}</option>)}
             </select>
           </div>
         </div>
 
-        {visibleRooms.length === 0 ? (
+        {filteredRooms.length === 0 ? (
           <p className="empty-message">No rooms match the current filters.</p>
         ) : (
-          <div className="rm-table-wrapper">
-            <table className="rm-table">
-              <thead>
-                <tr>
-                  <th>ID</th><th>Name</th><th>Room #</th><th>Capacity</th><th>Location</th><th>Status</th><th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {visibleRooms.map(room => (
-                  <tr key={room.id} className={room.isActive ? '' : 'rm-row-inactive'}>
-                    <td>{room.id}</td>
-                    <td>{room.name}</td>
-                    <td>{room.number}</td>
-                    <td>{room.capacity}</td>
-                    <td>{room.location}</td>
-                    <td><span className={`rm-badge ${room.isActive ? 'rm-badge-active' : 'rm-badge-inactive'}`}>{room.isActive ? 'Active' : 'Inactive'}</span></td>
-                    <td className="rm-actions">
-                      <button className="rm-btn rm-btn-edit" onClick={() => openEditModal(room)} disabled={isSubmitting}>Edit</button>
-                      <button className={`rm-btn ${room.isActive ? 'rm-btn-warning' : 'rm-btn-success'}`} onClick={() => handleToggleStatus(room)} disabled={isSubmitting}>
-                        {room.isActive ? 'Deactivate' : 'Activate'}
-                      </button>
-                      {room.isActive && (
-                        <button className="rm-btn rm-btn-danger" onClick={() => handleDeactivate(room)} disabled={isSubmitting}>Remove</button>
-                      )}
-                    </td>
+          <>
+            <div className="rm-table-wrapper">
+              <table className="rm-table">
+                <thead>
+                  <tr>
+                    <th>ID</th><th>Name</th><th>Room #</th><th>Capacity</th><th>Location</th><th>Status</th><th>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {visibleRooms.map(room => (
+                    <tr key={room.id} className={room.isActive ? '' : 'rm-row-inactive'}>
+                      <td>{room.id}</td>
+                      <td>{room.name}</td>
+                      <td>{room.number}</td>
+                      <td>{room.capacity}</td>
+                      <td>{room.location}</td>
+                      <td><span className={`rm-badge ${room.isActive ? 'rm-badge-active' : 'rm-badge-inactive'}`}>{room.isActive ? 'Active' : 'Inactive'}</span></td>
+                      <td className="rm-actions">
+                        <button className="rm-btn rm-btn-edit" onClick={() => openEditModal(room)} disabled={isSubmitting}>Edit</button>
+                        <button className={`rm-btn ${room.isActive ? 'rm-btn-warning' : 'rm-btn-success'}`} onClick={() => handleToggleStatus(room)} disabled={isSubmitting}>
+                          {room.isActive ? 'Deactivate' : 'Activate'}
+                        </button>
+                        {room.isActive && (
+                          <button className="rm-btn rm-btn-danger" onClick={() => handleDeactivate(room)} disabled={isSubmitting}>Remove</button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {totalPages > 1 && (
+              <div className="rm-pagination">
+                <button className="rm-btn rm-btn-secondary" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={safePage === 1}>← Prev</button>
+                <span className="rm-page-info">Page {safePage} of {totalPages} ({filteredRooms.length} rooms)</span>
+                <button className="rm-btn rm-btn-secondary" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={safePage === totalPages}>Next →</button>
+              </div>
+            )}
+          </>
         )}
       </section>
 

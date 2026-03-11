@@ -33,9 +33,10 @@ export const fetchAllRooms = async (params = {}) => {
     };
     
     const response = await apiClient.get('/Room', { params: queryParams });
-    console.log('✓ API: Fetched rooms', response.data?.length || 0);
-    // Interceptor already unwraps response.data → response is the pagination envelope
-    return response.data || [];
+    // Interceptor already unwraps response.data → response IS the pagination envelope
+    const items = response?.data ?? response;
+    console.log('✓ API: Fetched rooms', Array.isArray(items) ? items.length : 0);
+    return items ?? [];
   } catch (error) {
     console.error('❌ Failed to fetch rooms:', error);
     throw error;
@@ -84,8 +85,9 @@ export const createRoom = async (roomData) => {
  */
 export const fetchAllRoomsManagement = async () => {
   try {
+    // Interceptor already unwraps response.data → response IS the payload object.
     const response = await apiClient.get('/Room', { params: { page: 1, pageSize: 200 } });
-    return response.data || [];
+    return response.data ?? response ?? [];
   } catch (error) {
     console.error('❌ Failed to fetch rooms (management):', error);
     throw error;
@@ -139,7 +141,8 @@ export const updateRoomStatus = async (roomId, isActive) => {
   // Build a payload that exactly matches UpdateRoomStatusDTO (src/dto/UpdateRoomStatusDTO.js)
   const payload = updateRoomStatusDTO(Boolean(isActive));
   try {
-    const response = await apiClient.patch(`/RoomManagement/status/${roomId}`, payload);
+    // Backend route: PATCH /api/RoomManagement/{id}/status
+    const response = await apiClient.patch(`/RoomManagement/${roomId}/status`, payload);
     console.log('✓ API: Updated room status', roomId, isActive);
     return response;
   } catch (error) {

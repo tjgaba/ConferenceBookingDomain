@@ -20,7 +20,7 @@ const ALL_NAV_ITEMS = [
   { href: '/dashboard',                 label: 'Dashboard',       icon: '📊', roles: ['Admin', 'FacilityManager'] },
   { href: '/dashboard/bookings',        label: 'Bookings',        icon: '📅', roles: ['Admin', 'FacilityManager', 'Receptionist', 'Employee'] },
   { href: '/dashboard/rooms',           label: 'Rooms',           icon: '🏢', roles: ['Admin', 'FacilityManager'] },
-  { href: '/dashboard/room-management', label: 'Room Management', icon: '⚙️', roles: ['FacilityManager', 'Admin'] },
+  { href: '/dashboard/room-management', label: 'Room Management', icon: '⚙️', roles: ['FacilityManager'] },
 ];
 
 function Sidebar() {

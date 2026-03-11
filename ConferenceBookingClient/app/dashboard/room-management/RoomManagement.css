@@ -60,3 +60,12 @@
 .rm-form-checkbox input[type='checkbox'] { width: 16px; height: 16px; cursor: pointer; }
 .required { color: #ef4444; margin-left: 2px; }
 .rm-modal-footer { display: flex; justify-content: flex-end; gap: 0.6rem; padding-top: 0.5rem; border-top: 1px solid #f1f5f9; }
+
+/* Pagination */
+.rm-pagination { display: flex; align-items: center; justify-content: center; gap: 1rem; padding: 0.85rem 0 0.25rem; }
+.rm-page-info { font-size: 0.85rem; color: #6b7280; }
+
+/* Collapsible section header */
+.collapsible-header { transition: background 0.15s; }
+.collapsible-header:hover { background: #f1f5f9; border-radius: 6px; }
+.collapse-icon { font-size: 0.7rem; margin-left: 0.4rem; color: #9ca3af; }

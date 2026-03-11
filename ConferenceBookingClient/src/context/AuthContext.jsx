@@ -10,8 +10,9 @@
 //   - Wrap the tree: <AuthProvider>{children}</AuthProvider>
 //   - Consume state:  const { isLoggedIn, currentUser, login, logout } = useAuthContext()
 
-import { createContext, useContext } from 'react';
+import { createContext, useContext, useEffect } from 'react';
 import useAuthState from '../hooks/useAuth';
+import { configureApiClient } from '../api/apiClient';
 
 const AuthContext = createContext(null);
 
@@ -19,6 +20,19 @@ export function AuthProvider({ children }) {
   // useAuthState is called once here. Every component in the tree that calls
   // useAuthContext() reads from this single instance — no state divergence.
   const auth = useAuthState();
+
+  // ── Axios Interceptor Integration ──────────────────────────────────────────
+  // Wire the live Context token and logout() into the Axios singleton so:
+  //   • Request interceptor reads the token directly from Context state.
+  //   • 401 response interceptor calls logout() from Context (not CustomEvent).
+  // Re-runs whenever token or logout reference changes.
+  useEffect(() => {
+    configureApiClient({
+      getToken: () => auth.token,
+      onUnauthorized: auth.logout,
+    });
+  }, [auth.token, auth.logout]);
+
   return <AuthContext.Provider value={auth}>{children}</AuthContext.Provider>;
 }
 

@@ -110,6 +110,10 @@
   border-left: 4px solid #3498db;
 }
 
+.collapsible-header { transition: background 0.15s; }
+.collapsible-header:hover { background: linear-gradient(135deg, #eef2f7 0%, #dde3ec 100%); }
+.collapse-icon { font-size: 0.65rem; margin-left: 0.45rem; color: #9ca3af; vertical-align: middle; }
+
 .section-header h2 {
   margin: 0;
   color: #2c3e50;
