@@ -87,8 +87,8 @@ export default function BookingDetailClient({ id }: { id: string }) {
           No booking exists with ID <strong>#{id}</strong>. It may have been
           deleted or the ID may be incorrect.
         </p>
-        <Link href="/dashboard" className="notfound-back">
-          ← Back to Dashboard
+        <Link href="/dashboard/bookings" className="notfound-back">
+          ← Back to Bookings
         </Link>
       </div>
     );
@@ -101,8 +101,8 @@ export default function BookingDetailClient({ id }: { id: string }) {
         <div className="notfound-icon" aria-hidden="true">⚠️</div>
         <h1>Something Went Wrong</h1>
         <p>{error}</p>
-        <Link href="/dashboard" className="notfound-back">
-          ← Back to Dashboard
+        <Link href="/dashboard/bookings" className="notfound-back">
+          ← Back to Bookings
         </Link>
       </div>
     );
@@ -117,7 +117,7 @@ export default function BookingDetailClient({ id }: { id: string }) {
   return (
     <div className="booking-detail">
       <div className="booking-detail-header">
-        <Link href="/dashboard" className="back-link">← Back to Dashboard</Link>
+        <Link href="/dashboard/bookings" className="back-link">← Back to Bookings</Link>
         <div className="booking-detail-title">
           <h1>Booking <span className="booking-id">#{booking.bookingId}</span></h1>
           <span className={statusClass}>{booking.status}</span>

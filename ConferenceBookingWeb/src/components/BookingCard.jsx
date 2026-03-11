@@ -4,6 +4,7 @@
 // 'use client': renders <Button onClick={() => onEdit(booking)}> —
 // inline arrow functions as event handlers require the browser.
 
+import Link from "next/link";
 import Button from "./Button";
 import "./BookingCard.css";
 
@@ -28,6 +29,10 @@ function BookingCard({ booking, onEdit, onDelete }) {
         </span>
       </p>
       <div className="booking-card-actions">
+        {/* Navigate to the booking detail page */}
+        <Link href={`/bookings/${booking.bookingId || booking.id}`} className="btn-view-details">
+          View Details
+        </Link>
         {/* Event Handler: Call onEdit when clicked */}
         <Button 
           label="Edit" 

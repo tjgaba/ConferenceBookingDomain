@@ -54,4 +54,22 @@
   border-top: 1px solid #eee;
   display: flex;
   gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.btn-view-details {
+  display: inline-block;
+  padding: 8px 16px;
+  background-color: #3b82f6;
+  color: #fff;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color 0.2s;
+}
+
+.btn-view-details:hover {
+  background-color: #2563eb;
 }

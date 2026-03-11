@@ -20,7 +20,7 @@ namespace ConferenceBooking.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = "Admin,Employee")]
+    [Authorize(Roles = "Admin,Employee,FacilityManager,Receptionist")]
     public class BookingController : ControllerBase
     {
         private readonly ApplicationDbContext _dbContext;

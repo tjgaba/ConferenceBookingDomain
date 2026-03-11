@@ -9,7 +9,7 @@
 
 import type { Metadata } from 'next';
 import AppShell from './AppShell';
-import '../index.css';
+import '../Global.css';
 
 export const metadata: Metadata = {
   title: 'Conference Booking System',
