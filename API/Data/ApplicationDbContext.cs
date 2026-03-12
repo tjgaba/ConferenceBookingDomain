@@ -4,6 +4,21 @@ using ConferenceBooking.API.Auth;
 using ConferenceBooking.API.Models;
 using ConferenceBooking.API.Entities;
 
+/*to add a migration and update the database, you can follow these steps:
+1. Open the terminal and navigate to the project directory(where the .csproj file is located).
+2. Run the following command to add a new migration:
+   ```
+   dotnet ef migrations add InitialCreate
+   ```
+   This will create a new migration file in the Migrations folder. 
+
+3. Run the following command to update the database with the new migration:
+   ```
+   dotnet ef database update
+   ```
+   This will apply the migration and create the necessary database schema.*/
+   
+
 public class ApplicationDbContext : IdentityDbContext
 {
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)

@@ -43,7 +43,8 @@ export default function RoomsPageClient() {
   const [showRoomForm, setShowRoomForm] = useState(false);
   const [editingRoom, setEditingRoom] = useState<unknown>(null);
 
-  const { isLoggedIn, refreshKey } = useAuthContext();
+  const { isLoggedIn, refreshKey, currentUser } = useAuthContext();
+  const isFacilityManager = (currentUser as { roles?: string[] })?.roles?.includes('FacilityManager') ?? false;
 
   // ── Expand/collapse state ─────────────────────────────────────────────────────
   const [sectionOpen, setSectionOpen] = useState(false);
@@ -192,7 +193,7 @@ export default function RoomsPageClient() {
       <section className="section">
         <div className="section-header collapsible-header" onClick={() => setSectionOpen(o => !o)} style={{ cursor: 'pointer', userSelect: 'none' }}>
           <h2>Rooms Management <span className="collapse-icon">{sectionOpen ? '▲' : '▼'}</span></h2>
-          {sectionOpen && (
+          {sectionOpen && isFacilityManager && (
             <Button
               label={showRoomForm ? 'Hide Form' : 'Add Room'}
               variant="success"
@@ -231,7 +232,7 @@ export default function RoomsPageClient() {
                 initialData={editingRoom}
               />
             )}
-            <RoomList rooms={filteredRooms} onEdit={handleEditRoom} onDelete={handleDeleteRoom} />
+            <RoomList rooms={filteredRooms} onEdit={isFacilityManager ? handleEditRoom : undefined} onDelete={isFacilityManager ? handleDeleteRoom : undefined} />
           </>
         )}
       </section>

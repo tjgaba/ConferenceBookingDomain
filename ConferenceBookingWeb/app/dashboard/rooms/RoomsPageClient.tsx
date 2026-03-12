@@ -43,7 +43,8 @@ export default function RoomsPageClient() {
   const [showRoomForm, setShowRoomForm] = useState(false);
   const [editingRoom, setEditingRoom] = useState<unknown>(null);
 
-  const { isLoggedIn, refreshKey } = useAuthContext();
+  const { isLoggedIn, refreshKey, currentUser } = useAuthContext();
+  const isFacilityManager = (currentUser as { roles?: string[] })?.roles?.includes('FacilityManager') ?? false;
 
   // ── SignalR — room events only ───────────────────────────────────────────────
   useSignalR({
@@ -189,12 +190,14 @@ export default function RoomsPageClient() {
       <section className="section">
         <div className="section-header">
           <h2>Rooms Management</h2>
-          <Button
-            label={showRoomForm ? 'Hide Form' : 'Add Room'}
-            variant="success"
-            onClick={() => { setShowRoomForm(s => !s); setEditingRoom(null); }}
-            disabled={isSubmitting}
-          />
+          {isFacilityManager && (
+            <Button
+              label={showRoomForm ? 'Hide Form' : 'Add Room'}
+              variant="success"
+              onClick={() => { setShowRoomForm(s => !s); setEditingRoom(null); }}
+              disabled={isSubmitting}
+            />
+          )}
         </div>
 
         <div className="filter-section">
@@ -224,7 +227,7 @@ export default function RoomsPageClient() {
             initialData={editingRoom}
           />
         )}
-        <RoomList rooms={filteredRooms} onEdit={handleEditRoom} onDelete={handleDeleteRoom} />
+            <RoomList rooms={filteredRooms} onEdit={isFacilityManager ? handleEditRoom : undefined} onDelete={isFacilityManager ? handleDeleteRoom : undefined} />
       </section>
 
       <Footer />

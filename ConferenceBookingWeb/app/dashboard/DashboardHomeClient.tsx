@@ -60,7 +60,8 @@ export default function DashboardHomeClient() {
   const [bookingsOpen, setBookingsOpen] = useState(false);
   const [roomsOpen, setRoomsOpen]       = useState(false);
 
-  const { isLoggedIn, refreshKey } = useAuthContext();
+  const { isLoggedIn, refreshKey, currentUser } = useAuthContext();
+  const isFacilityManager = (currentUser as { roles?: string[] })?.roles?.includes('FacilityManager') ?? false;
 
   // ── SignalR — booking and room events ────────────────────────────────────────
   useSignalR({
@@ -374,7 +375,7 @@ export default function DashboardHomeClient() {
       <section className="section">
         <div className="section-header collapsible-header" onClick={() => setRoomsOpen(o => !o)} style={{ cursor: 'pointer', userSelect: 'none' }}>
           <h2>Rooms Management <span className="collapse-icon">{roomsOpen ? '▲' : '▼'}</span></h2>
-          {roomsOpen && (
+          {roomsOpen && isFacilityManager && (
             <Button
               label={showRoomForm ? 'Hide Form' : 'Add Room'}
               variant="success"
@@ -411,7 +412,7 @@ export default function DashboardHomeClient() {
                 initialData={editingRoom}
               />
             )}
-            <RoomList rooms={filteredRooms} onEdit={handleEditRoom} onDelete={handleDeleteRoom} />
+            <RoomList rooms={filteredRooms} onEdit={isFacilityManager ? handleEditRoom : undefined} onDelete={isFacilityManager ? handleDeleteRoom : undefined} />
           </>
         )}
       </section>

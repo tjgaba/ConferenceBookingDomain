@@ -22,20 +22,24 @@ function RoomCard({ room, onEdit, onDelete }) {
       <p>
         <strong>Capacity:</strong> {room.capacity} people
       </p>
-      <div className="room-card-actions">
-        {/* Event Handler: Call onEdit when clicked */}
-        <Button 
-          label="Edit" 
-          variant="primary"
-          onClick={() => onEdit(room)}
-        />
-        {/* Event Handler: Call onDelete when clicked */}
-        <Button 
-          label="Delete" 
-          variant="danger"
-          onClick={() => onDelete(room.id)}
-        />
-      </div>
+      {(onEdit || onDelete) && (
+        <div className="room-card-actions">
+          {onEdit && (
+            <Button 
+              label="Edit" 
+              variant="primary"
+              onClick={() => onEdit(room)}
+            />
+          )}
+          {onDelete && (
+            <Button 
+              label="Delete" 
+              variant="danger"
+              onClick={() => onDelete(room.id)}
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 }
