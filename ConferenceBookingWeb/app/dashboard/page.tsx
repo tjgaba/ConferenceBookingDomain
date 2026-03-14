@@ -6,14 +6,12 @@
 // DashboardHomeClient reads JWT from localStorage, which is browser-only.
 
 import dynamic from 'next/dynamic';
+import DashboardLoading from './loading';
 
 const DashboardHomeClient = dynamic(() => import('./DashboardHomeClient'), {
   ssr: false,
-  loading: () => (
-    <div style={{ padding: '4rem', textAlign: 'center', color: '#666' }}>
-      Loading dashboard…
-    </div>
-  ),
+  // Skeleton shown while the client bundle loads
+  loading: () => <DashboardLoading />,
 });
 
 export default function DashboardPage() {

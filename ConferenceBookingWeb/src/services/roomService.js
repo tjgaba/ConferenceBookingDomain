@@ -17,6 +17,20 @@ import { updateRoomStatusDTO } from '../dto/UpdateRoomStatusDTO';
 // ==================== ROOM API FUNCTIONS ====================
 
 /**
+ * Search rooms by name via the API (used for debounced search input)
+ * @param {string} name - Partial name to search for
+ * @param {number} pageSize - Max items to return
+ * @returns {Promise<Array>} Matching room objects
+ */
+export const searchRooms = async (name, pageSize = 100) => {
+  const response = await apiClient.get('/Room', {
+    params: { name, pageSize, isActive: true },
+  });
+  const items = response?.data ?? response;
+  return Array.isArray(items) ? items : [];
+};
+
+/**
  * Fetch all rooms from the server with optional filtering and pagination
  * @param {Object} params - Query parameters { location, isActive, page, pageSize }
  * @returns {Promise<Array>} Array of room objects

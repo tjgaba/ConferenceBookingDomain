@@ -44,11 +44,17 @@ export default function DashboardHomeClient() {
   const [roomCapacityFilter, setRoomCapacityFilter] = useState('All');
   const [roomLocationFilter, setRoomLocationFilter] = useState('All');
 
-  // ── Search state (debounced API search) ──────────────────────────────────────
+  // ── Booking search state (debounced API search) ──────────────────────────────
   const [searchTerm, setSearchTerm] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<unknown[] | null>(null);
   const searchTermRef = useRef('');
+
+  // ── Room search state (debounced API search) ──────────────────────────────────
+  const [roomSearchTerm, setRoomSearchTerm] = useState('');
+  const [isRoomSearching, setIsRoomSearching] = useState(false);
+  const [roomSearchResults, setRoomSearchResults] = useState<unknown[] | null>(null);
+  const roomSearchTermRef = useRef('');
 
   // ── Loading / error / submit ─────────────────────────────────────────────────
   const [isLoading, setIsLoading] = useState(true);
@@ -73,11 +79,36 @@ export default function DashboardHomeClient() {
 
   const { isLoggedIn, refreshKey, currentUser } = useAuthContext();
   const isFacilityManager = (currentUser as { roles?: string[] })?.roles?.includes('FacilityManager') ?? false;
-  // Keep ref in sync so the stable useCallback below can read the latest value
+  // Keep refs in sync so stable useCallback closures can read the latest values
   useEffect(() => { searchTermRef.current = searchTerm; }, [searchTerm]);
+  useEffect(() => { roomSearchTermRef.current = roomSearchTerm; }, [roomSearchTerm]);
 
-  // ── Debounced search: fires a GET /Booking/filter request 400ms after typing ─
+  // ── Debounced booking search: fires GET /Booking/filter 400ms after typing ───
   const debouncedSearch = useDebounce(searchTerm, 400);
+
+  // ── Debounced room search: fires GET /Room?name=… 400ms after typing ─────────
+  const debouncedRoomSearch = useDebounce(roomSearchTerm, 400);
+
+  useEffect(() => {
+    const term = debouncedRoomSearch.trim();
+    if (!term) {
+      setRoomSearchResults(null);
+      return;
+    }
+    let mounted = true;
+    (async () => {
+      try {
+        setIsRoomSearching(true);
+        const results = await roomService.searchRooms(term);
+        if (mounted) setRoomSearchResults(results);
+      } catch {
+        // silently keep previous results on transient error
+      } finally {
+        if (mounted) setIsRoomSearching(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [debouncedRoomSearch]);
 
   useEffect(() => {
     const term = debouncedSearch.trim();
@@ -121,8 +152,14 @@ export default function DashboardHomeClient() {
       setToastRemote({ show: true, message: templates[eventName] ?? `Bookings updated by "${actor}".`, type: 'warning' });
     }, []),
     onRoomChange: useCallback(async (eventName: string, payload: unknown) => {
-      const rooms = await roomService.fetchAllRooms();
-      setAllRooms(rooms);
+      const currentRoomSearch = roomSearchTermRef.current.trim();
+      if (currentRoomSearch) {
+        const results = await roomService.searchRooms(currentRoomSearch);
+        setRoomSearchResults(results);
+      } else {
+        const rooms = await roomService.fetchAllRooms();
+        setAllRooms(rooms);
+      }
       const actor = (payload as Record<string, string>)?.by ?? (payload as Record<string, string>)?.By ?? 'Unknown';
       const templates: Record<string, string> = {
         RoomCreated: `A new room was added by "${actor}".`,
@@ -197,14 +234,14 @@ export default function DashboardHomeClient() {
   }, [categoryFilter, locationFilter, allBookings, searchResults]);
 
   const filteredRooms = useMemo(() => {
-    let result = allRooms as { capacity?: number; location?: string }[];
+    let result = (roomSearchResults ?? allRooms) as { capacity?: number; location?: string }[];
     if (roomCapacityFilter === 'Small')        result = result.filter(r => (r.capacity ?? 0) < 10);
     else if (roomCapacityFilter === 'Medium')  result = result.filter(r => (r.capacity ?? 0) >= 10 && (r.capacity ?? 0) <= 15);
     else if (roomCapacityFilter === 'Large')   result = result.filter(r => (r.capacity ?? 0) > 15);
     else if (roomCapacityFilter === 'By Capacity') result = [...result].sort((a, b) => (a.capacity ?? 0) - (b.capacity ?? 0));
     if (roomLocationFilter !== 'All') result = result.filter(r => r.location === roomLocationFilter);
     return result;
-  }, [roomCapacityFilter, roomLocationFilter, allRooms]);
+  }, [roomCapacityFilter, roomLocationFilter, allRooms, roomSearchResults]);
 
   // ── Booking CRUD handlers ─────────────────────────────────────────────────
   const handleBookingSubmit = useCallback(async (bookingData: Record<string, unknown>) => {
@@ -431,6 +468,18 @@ export default function DashboardHomeClient() {
         {roomsOpen && (
           <>
             <div className="filter-section">
+              <div className="filter-group search-group">
+                <label htmlFor="room-search-home">Search by Name:</label>
+                <input
+                  id="room-search-home"
+                  type="search"
+                  className="filter-select"
+                  placeholder="Type a room name…"
+                  value={roomSearchTerm}
+                  onChange={e => setRoomSearchTerm(e.target.value)}
+                />
+                {isRoomSearching && <span className="search-indicator">Searching…</span>}
+              </div>
               <div className="filter-group">
                 <label htmlFor="room-capacity-filter">Filter by Capacity:</label>
                 <select id="room-capacity-filter" value={roomCapacityFilter} onChange={e => setRoomCapacityFilter(e.target.value)} className="filter-select">

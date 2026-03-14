@@ -5,7 +5,7 @@
 // Contains all room-specific state, handlers, SignalR subscription and JSX.
 // Replaces the old pattern of delegating to the monolithic src/App.jsx.
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import RoomList from '../../../src/components/RoomList';
 import RoomForm from '../../../src/components/RoomForm';
 import Button from '../../../src/components/Button';
@@ -16,6 +16,7 @@ import Toast from '../../../src/components/Toast';
 import * as roomService from '../../../src/services/roomService';
 import { useAuthContext } from '../../../src/context/AuthContext';
 import useSignalR from '../../../src/hooks/useSignalR';
+import useDebounce from '../../../src/hooks/useDebounce';
 import '../../../src/App.css';
 
 const Spinner = LoadingSpinner as unknown as React.FC<{ overlay?: boolean; message?: string }>;
@@ -24,11 +25,16 @@ const ErrMsg   = ErrorMessage  as unknown as React.FC<{ error: unknown; onRetry?
 export default function RoomsPageClient() {
   // ── Data state ───────────────────────────────────────────────────────────────
   const [allRooms, setAllRooms] = useState<unknown[]>([]);
-  const [filteredRooms, setFilteredRooms] = useState<unknown[]>([]);
 
   // ── Filter state ─────────────────────────────────────────────────────────────
   const [roomCapacityFilter, setRoomCapacityFilter] = useState('All');
   const [roomLocationFilter, setRoomLocationFilter] = useState('All');
+
+  // ── Search state (debounced API search) ──────────────────────────────────────
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState<unknown[] | null>(null);
+  const searchTermRef = useRef('');
 
   // ── Loading / error / submit ─────────────────────────────────────────────────
   const [isLoading, setIsLoading] = useState(true);
@@ -46,12 +52,44 @@ export default function RoomsPageClient() {
   const { isLoggedIn, refreshKey, currentUser } = useAuthContext();
   const isFacilityManager = (currentUser as { roles?: string[] })?.roles?.includes('FacilityManager') ?? false;
 
+  // Keep ref in sync so stable SignalR callback can read latest search term
+  useEffect(() => { searchTermRef.current = searchTerm; }, [searchTerm]);
+
+  // ── Debounced search: fires GET /Room?name=… 400ms after typing ───────────────
+  const debouncedSearch = useDebounce(searchTerm, 400);
+
+  useEffect(() => {
+    const term = debouncedSearch.trim();
+    if (!term) {
+      setSearchResults(null);
+      return;
+    }
+    let mounted = true;
+    (async () => {
+      try {
+        setIsSearching(true);
+        const results = await roomService.searchRooms(term);
+        if (mounted) setSearchResults(results);
+      } catch {
+        // silently keep previous results on transient error
+      } finally {
+        if (mounted) setIsSearching(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [debouncedSearch]);
+
   // ── SignalR — room events only ───────────────────────────────────────────────
   useSignalR({
     onRoomChange: useCallback(async (eventName: string, payload: unknown) => {
-      const rooms = await roomService.fetchAllRooms();
-      setAllRooms(rooms);
-      setFilteredRooms(rooms);
+      const currentSearch = searchTermRef.current.trim();
+      if (currentSearch) {
+        const results = await roomService.searchRooms(currentSearch);
+        setSearchResults(results);
+      } else {
+        const rooms = await roomService.fetchAllRooms();
+        setAllRooms(rooms);
+      }
       const actor = (payload as Record<string, string>)?.by ?? (payload as Record<string, string>)?.By ?? 'Unknown';
       const templates: Record<string, string> = {
         RoomCreated: `A new room was added by "${actor}".`,
@@ -81,7 +119,6 @@ export default function RoomsPageClient() {
         const data = await roomService.fetchAllRooms();
         if (mounted && !controller.signal.aborted) {
           setAllRooms(data);
-          setFilteredRooms(data);
           setToast({ show: true, message: `Loaded ${(data as unknown[]).length} rooms.`, type: 'success' });
         }
       } catch (err) {
@@ -100,16 +137,18 @@ export default function RoomsPageClient() {
     return [...new Set(locs)].sort();
   }, [allRooms]);
 
-  // ── Cascading filter effect ───────────────────────────────────────────────────
-  useEffect(() => {
-    let result = allRooms as { capacity?: number; location?: string }[];
+  // ── Derived filtered rooms ────────────────────────────────────────────────────
+  // When a search is active, filter ON TOP of the server search results;
+  // otherwise filter the full allRooms list.
+  const filteredRooms = useMemo(() => {
+    let result = (searchResults ?? allRooms) as { capacity?: number; location?: string }[];
     if (roomCapacityFilter === 'Small')       result = result.filter(r => (r.capacity ?? 0) < 10);
     else if (roomCapacityFilter === 'Medium') result = result.filter(r => (r.capacity ?? 0) >= 10 && (r.capacity ?? 0) <= 15);
     else if (roomCapacityFilter === 'Large')  result = result.filter(r => (r.capacity ?? 0) > 15);
     else if (roomCapacityFilter === 'By Capacity') result = [...result].sort((a, b) => (a.capacity ?? 0) - (b.capacity ?? 0));
     if (roomLocationFilter !== 'All') result = result.filter(r => r.location === roomLocationFilter);
-    setFilteredRooms(result);
-  }, [roomCapacityFilter, roomLocationFilter, allRooms]);
+    return result;
+  }, [roomCapacityFilter, roomLocationFilter, allRooms, searchResults]);
 
   // ── Room CRUD handlers ────────────────────────────────────────────────────────
   const handleRoomSubmit = async (roomData: Record<string, unknown>) => {
@@ -201,6 +240,18 @@ export default function RoomsPageClient() {
         </div>
 
         <div className="filter-section">
+          <div className="filter-group search-group">
+            <label htmlFor="room-search">Search by Name:</label>
+            <input
+              id="room-search"
+              type="search"
+              className="filter-select"
+              placeholder="Type a room name…"
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+            />
+            {isSearching && <span className="search-indicator">Searching…</span>}
+          </div>
           <div className="filter-group">
             <label htmlFor="room-capacity-filter">Filter by Capacity:</label>
             <select id="room-capacity-filter" value={roomCapacityFilter} onChange={e => setRoomCapacityFilter(e.target.value)} className="filter-select">

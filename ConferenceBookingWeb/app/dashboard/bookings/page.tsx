@@ -6,14 +6,13 @@
 // BookingsPageClient reads JWT from localStorage — browser-only.
 
 import dynamic from 'next/dynamic';
+import BookingsLoading from './loading';
 
 const BookingsPageClient = dynamic(() => import('./BookingsPageClient'), {
   ssr: false,
-  loading: () => (
-    <div style={{ padding: '4rem', textAlign: 'center', color: '#666' }}>
-      Loading bookings…
-    </div>
-  ),
+  // Skeleton shown while the client bundle loads — mirrors the real layout
+  // so there is no content-shift when the component mounts.
+  loading: () => <BookingsLoading />,
 });
 
 export default function BookingsPage() {

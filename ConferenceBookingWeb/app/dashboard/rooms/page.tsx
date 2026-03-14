@@ -6,14 +6,12 @@
 // RoomsPageClient reads JWT from localStorage — browser-only.
 
 import dynamic from 'next/dynamic';
+import RoomsLoading from './loading';
 
 const RoomsPageClient = dynamic(() => import('./RoomsPageClient'), {
   ssr: false,
-  loading: () => (
-    <div style={{ padding: '4rem', textAlign: 'center', color: '#666' }}>
-      Loading rooms…
-    </div>
-  ),
+  // Skeleton shown while the client bundle loads
+  loading: () => <RoomsLoading />,
 });
 
 export default function RoomsPage() {
