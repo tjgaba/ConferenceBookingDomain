@@ -17,8 +17,12 @@ dist-ssr
 out/
 
 # Environment variables
-.env
+# .env.local        — real dev secrets, NEVER commit
+# .env.*.local      — any per-environment local overrides, NEVER commit
+# .env.production   — committed (placeholder values only, no real secrets)
+# .env.local.example — committed (safe template for onboarding)
 .env.local
+.env.*.local
 
 # Editor directories and files
 .vscode/*
