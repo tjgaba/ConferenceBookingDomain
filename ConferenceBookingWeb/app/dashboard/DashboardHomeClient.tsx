@@ -26,12 +26,16 @@ import '../../src/App.css';
 const Spinner = LoadingSpinner as unknown as React.FC<{ overlay?: boolean; message?: string }>;
 const ErrMsg   = ErrorMessage  as unknown as React.FC<{ error: unknown; onRetry?: () => void; onDismiss?: () => void }>
 
+const formatDateTimeForInput = (dt: string | null | undefined) => {
+  if (!dt) return '';
+  const d = new Date(dt);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}T${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+};
+
 export default function DashboardHomeClient() {
   // ── Data state ───────────────────────────────────────────────────────────────
   const [allBookings, setAllBookings] = useState<unknown[]>([]);
-  const [filteredBookings, setFilteredBookings] = useState<unknown[]>([]);
   const [allRooms, setAllRooms] = useState<unknown[]>([]);
-  const [filteredRooms, setFilteredRooms] = useState<unknown[]>([]);
 
   // ── Filter state ─────────────────────────────────────────────────────────────
   const [categoryFilter, setCategoryFilter] = useState('All');
@@ -68,7 +72,6 @@ export default function DashboardHomeClient() {
     onBookingChange: useCallback(async (eventName: string, payload: unknown) => {
       const bookings = await bookingService.fetchAllBookings();
       setAllBookings(bookings);
-      setFilteredBookings(bookings);
       const actor = (payload as Record<string, string>)?.by ?? (payload as Record<string, string>)?.By ?? 'Unknown';
       const templates: Record<string, string> = {
         BookingCreated:   `A new booking was created by "${actor}".`,
@@ -81,7 +84,6 @@ export default function DashboardHomeClient() {
     onRoomChange: useCallback(async (eventName: string, payload: unknown) => {
       const rooms = await roomService.fetchAllRooms();
       setAllRooms(rooms);
-      setFilteredRooms(rooms);
       const actor = (payload as Record<string, string>)?.by ?? (payload as Record<string, string>)?.By ?? 'Unknown';
       const templates: Record<string, string> = {
         RoomCreated: `A new room was added by "${actor}".`,
@@ -98,8 +100,6 @@ export default function DashboardHomeClient() {
       setIsLoading(false);
       setAllBookings([]);
       setAllRooms([]);
-      setFilteredBookings([]);
-      setFilteredRooms([]);
       return;
     }
 
@@ -116,9 +116,7 @@ export default function DashboardHomeClient() {
         ]);
         if (mounted && !controller.signal.aborted) {
           setAllBookings(bookingsData);
-          setFilteredBookings(bookingsData);
           setAllRooms(roomsData);
-          setFilteredRooms(roomsData);
           setToast({
             show: true,
             message: `Loaded ${(bookingsData as unknown[]).length} bookings and ${(roomsData as unknown[]).length} rooms.`,
@@ -146,36 +144,29 @@ export default function DashboardHomeClient() {
     return [...new Set(locs)].sort();
   }, [allRooms]);
 
-  // ── Cascading filter effects ──────────────────────────────────────────────────
-  useEffect(() => {
+  // ── Derived filtered data (useMemo eliminates extra render cycles) ───────────
+  const filteredBookings = useMemo(() => {
     let result = allBookings as { status?: string; location?: string }[];
     if (categoryFilter === 'Pending')        result = result.filter(b => b.status === 'Pending');
     else if (categoryFilter === 'Confirmed') result = result.filter(b => b.status === 'Confirmed');
     else if (categoryFilter === 'Cancelled') result = result.filter(b => b.status === 'Cancelled');
     else if (categoryFilter === 'By Location') result = [...result].sort((a, b) => (a.location ?? '').localeCompare(b.location ?? ''));
     if (locationFilter !== 'All') result = result.filter(b => b.location === locationFilter);
-    setFilteredBookings(result);
+    return result;
   }, [categoryFilter, locationFilter, allBookings]);
 
-  useEffect(() => {
+  const filteredRooms = useMemo(() => {
     let result = allRooms as { capacity?: number; location?: string }[];
     if (roomCapacityFilter === 'Small')        result = result.filter(r => (r.capacity ?? 0) < 10);
     else if (roomCapacityFilter === 'Medium')  result = result.filter(r => (r.capacity ?? 0) >= 10 && (r.capacity ?? 0) <= 15);
     else if (roomCapacityFilter === 'Large')   result = result.filter(r => (r.capacity ?? 0) > 15);
     else if (roomCapacityFilter === 'By Capacity') result = [...result].sort((a, b) => (a.capacity ?? 0) - (b.capacity ?? 0));
     if (roomLocationFilter !== 'All') result = result.filter(r => r.location === roomLocationFilter);
-    setFilteredRooms(result);
+    return result;
   }, [roomCapacityFilter, roomLocationFilter, allRooms]);
 
-  // ── Helpers ──────────────────────────────────────────────────────────────────
-  const formatDateTimeForInput = (dt: string | null | undefined) => {
-    if (!dt) return '';
-    const d = new Date(dt);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}T${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-  };
-
-  // ── Booking CRUD handlers ─────────────────────────────────────────────────────
-  const handleBookingSubmit = async (bookingData: Record<string, unknown>) => {
+  // ── Booking CRUD handlers ─────────────────────────────────────────────────
+  const handleBookingSubmit = useCallback(async (bookingData: Record<string, unknown>) => {
     setBookingFormErrors({});
     try {
       setIsSubmitting(true);
@@ -218,9 +209,9 @@ export default function DashboardHomeClient() {
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [editingBooking]);
 
-  const handleDeleteBooking = async (bookingId: unknown) => {
+  const handleDeleteBooking = useCallback(async (bookingId: unknown) => {
     if (!confirm('Are you sure you want to delete this booking?')) return;
     try {
       setError(null);
@@ -228,9 +219,9 @@ export default function DashboardHomeClient() {
       setAllBookings(prev => (prev as { bookingId?: unknown; id?: unknown }[]).filter(b => (b.bookingId || b.id) !== bookingId));
       setToast({ show: true, message: 'Booking deleted successfully!', type: 'success' });
     } catch (err) { setError(err); }
-  };
+  }, []);
 
-  const handleEditBooking = async (booking: Record<string, unknown>) => {
+  const handleEditBooking = useCallback(async (booking: Record<string, unknown>) => {
     try {
       let fullBooking = booking;
       if (!booking.startTime && booking.bookingId) {
@@ -245,10 +236,10 @@ export default function DashboardHomeClient() {
       });
       setShowBookingForm(true);
     } catch { alert('Failed to load booking details'); }
-  };
+  }, []);
 
-  // ── Room CRUD handlers ────────────────────────────────────────────────────────
-  const handleRoomSubmit = async (roomData: Record<string, unknown>) => {
+  // ── Room CRUD handlers ────────────────────────────────────────────────────
+  const handleRoomSubmit = useCallback(async (roomData: Record<string, unknown>) => {
     try {
       setIsSubmitting(true);
       setError(null);
@@ -266,9 +257,9 @@ export default function DashboardHomeClient() {
       }
     } catch (err) { setError(err); }
     finally { setIsSubmitting(false); }
-  };
+  }, [editingRoom]);
 
-  const handleDeleteRoom = async (roomId: unknown) => {
+  const handleDeleteRoom = useCallback(async (roomId: unknown) => {
     if (!confirm('Are you sure you want to delete this room?')) return;
     try {
       setError(null);
@@ -276,9 +267,9 @@ export default function DashboardHomeClient() {
       setAllRooms(prev => (prev as { id: unknown }[]).filter(r => r.id !== roomId));
       setToast({ show: true, message: 'Room deleted successfully!', type: 'success' });
     } catch (err) { setError(err); }
-  };
+  }, []);
 
-  const handleEditRoom = (room: Record<string, unknown>) => {
+  const handleEditRoom = useCallback((room: Record<string, unknown>) => {
     setEditingRoom({
       id:       room.id,
       name:     room.name     || room.Name,
@@ -287,7 +278,7 @@ export default function DashboardHomeClient() {
       number:   room.number   || room.Number,
     });
     setShowRoomForm(true);
-  };
+  }, []);
 
   // ── Render ───────────────────────────────────────────────────────────────────
   if (isLoading) return <Spinner overlay message="Loading dashboard…" />;

@@ -4,10 +4,11 @@
 // 'use client': renders <Button onClick={() => onEdit(room)}> —
 // inline arrow functions as event handlers require the browser.
 
+import { memo } from 'react';
 import Button from "./Button";
 import "./RoomCard.css";
 
-function RoomCard({ room, onEdit, onDelete }) {
+const RoomCard = memo(function RoomCard({ room, onEdit, onDelete }) {
   return (
     <div className="room-card">
       <h3>
@@ -42,6 +43,6 @@ function RoomCard({ room, onEdit, onDelete }) {
       )}
     </div>
   );
-}
+});
 
 export default RoomCard;

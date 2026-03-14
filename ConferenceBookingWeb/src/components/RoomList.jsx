@@ -4,10 +4,11 @@
 // 'use client': accepts onEdit and onDelete function props and forwards them
 // to RoomCard. Functions cannot cross the server/client serialisation boundary.
 
+import { memo } from 'react';
 import RoomCard from "./RoomCard";
 import "./RoomList.css";
 
-function RoomList({ rooms, onEdit, onDelete }) {
+const RoomList = memo(function RoomList({ rooms, onEdit, onDelete }) {
   return (
     <div className="room-list">
       <h2>
@@ -29,6 +30,6 @@ function RoomList({ rooms, onEdit, onDelete }) {
       )}
     </div>
   );
-}
+});
 
 export default RoomList;

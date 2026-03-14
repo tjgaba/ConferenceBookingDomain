@@ -61,7 +61,7 @@ if ($ready) {
 }
 
 # ── 3. Start the React Frontend ───────────────────────────────────────────────
-Write-Host "`n[3/3] Starting React Frontend..." -ForegroundColor Cyan
+Write-Host "`n[3/3] Starting React Frontend (ConferenceBookingWeb)..." -ForegroundColor Cyan
 
 $nodeOk = $null -ne (Get-Command node -ErrorAction SilentlyContinue)
 if (-not $nodeOk) {
@@ -70,16 +70,16 @@ if (-not $nodeOk) {
     Read-Host "`nPress Enter to exit"; exit 1
 }
 
-if (-not (Test-Path "$root\ConferenceBookingClient\node_modules")) {
+if (-not (Test-Path "$root\ConferenceBookingWeb\node_modules")) {
     Write-Host "  Installing frontend dependencies (first run only)..." -ForegroundColor Gray
-    Push-Location "$root\ConferenceBookingClient"
+    Push-Location "$root\ConferenceBookingWeb"
     npm install --silent
     Pop-Location
 }
 
 $frontendProc = Start-Process -FilePath "cmd" `
     -ArgumentList "/c npm run dev" `
-    -WorkingDirectory "$root\ConferenceBookingClient" `
+    -WorkingDirectory "$root\ConferenceBookingWeb" `
     -PassThru `
     -WindowStyle Normal
 
@@ -88,7 +88,7 @@ Start-Sleep -Seconds 2
 Write-Host ""
 Write-Host "─────────────────────────────────────────────" -ForegroundColor DarkGray
 Write-Host "  App is running!" -ForegroundColor Green
-Write-Host "  Frontend  : http://localhost:5173"
+Write-Host "  Frontend  : http://localhost:3000"
 Write-Host "  API       : http://localhost:5230/api"
 Write-Host "  Login     : admin@domain.com / Admin123!"
 Write-Host ""

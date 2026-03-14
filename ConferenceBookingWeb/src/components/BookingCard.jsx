@@ -5,12 +5,19 @@
 // inline arrow functions as event handlers require the browser.
 
 import Link from "next/link";
+import { memo, useMemo } from 'react';
 import Button from "./Button";
 import "./BookingCard.css";
 
-function BookingCard({ booking, onEdit, onDelete }) {
-  const fmt = (iso) =>
-    iso ? new Date(iso).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : '—';
+const BookingCard = memo(function BookingCard({ booking, onEdit, onDelete }) {
+  const formattedStart = useMemo(
+    () => booking.startTime ? new Date(booking.startTime).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : '—',
+    [booking.startTime]
+  );
+  const formattedEnd = useMemo(
+    () => booking.endTime ? new Date(booking.endTime).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : '—',
+    [booking.endTime]
+  );
 
   return (
     <div className="booking-card">
@@ -21,7 +28,7 @@ function BookingCard({ booking, onEdit, onDelete }) {
         <strong>Room:</strong> {booking.roomName} ({booking.location})
       </p>
       <p>
-        <strong>Time:</strong> {fmt(booking.startTime)} to {fmt(booking.endTime)}
+        <strong>Time:</strong> {formattedStart} to {formattedEnd}
       </p>
       <p>
         <span className={`booking-status status-${booking.status.toLowerCase()}`}>
@@ -48,6 +55,6 @@ function BookingCard({ booking, onEdit, onDelete }) {
       </div>
     </div>
   );
-}
+});
 
 export default BookingCard;

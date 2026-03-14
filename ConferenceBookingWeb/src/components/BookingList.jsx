@@ -5,10 +5,11 @@
 // to BookingCard. In Next.js, Server Components cannot accept or pass functions
 // as props — doing so would cross the server/client serialisation boundary.
 
+import { memo } from 'react';
 import BookingCard from "./BookingCard";
 import "./BookingList.css";
 
-function BookingList({ bookings, onEdit, onDelete }) {
+const BookingList = memo(function BookingList({ bookings, onEdit, onDelete }) {
   // Pass both data AND event handlers to child components
   
   return (
@@ -32,6 +33,6 @@ function BookingList({ bookings, onEdit, onDelete }) {
       )}
     </div>
   );
-}
+});
 
 export default BookingList;

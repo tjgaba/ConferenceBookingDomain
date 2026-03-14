@@ -23,10 +23,15 @@ import '../../../src/App.css';
 const Spinner = LoadingSpinner as unknown as React.FC<{ overlay?: boolean; message?: string }>;
 const ErrMsg   = ErrorMessage  as unknown as React.FC<{ error: unknown; onRetry?: () => void; onDismiss?: () => void }>
 
+const formatDateTimeForInput = (dt: string | null | undefined) => {
+  if (!dt) return '';
+  const d = new Date(dt);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}T${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+};
+
 export default function BookingsPageClient() {
   // ── Data state ───────────────────────────────────────────────────────────────
   const [allBookings, setAllBookings] = useState<unknown[]>([]);
-  const [filteredBookings, setFilteredBookings] = useState<unknown[]>([]);
   const [allRooms, setAllRooms] = useState<unknown[]>([]); // needed by BookingForm dropdown
 
   // ── Filter state ─────────────────────────────────────────────────────────────
@@ -54,7 +59,6 @@ export default function BookingsPageClient() {
     onBookingChange: useCallback(async (eventName: string, payload: unknown) => {
       const bookings = await bookingService.fetchAllBookings();
       setAllBookings(bookings);
-      setFilteredBookings(bookings);
       const actor = (payload as Record<string, string>)?.by ?? (payload as Record<string, string>)?.By ?? 'Unknown';
       const templates: Record<string, string> = {
         BookingCreated:   `A new booking was created by "${actor}".`,
@@ -72,7 +76,6 @@ export default function BookingsPageClient() {
       setIsLoading(false);
       setAllBookings([]);
       setAllRooms([]);
-      setFilteredBookings([]);
       return;
     }
 
@@ -89,7 +92,6 @@ export default function BookingsPageClient() {
         ]);
         if (mounted && !controller.signal.aborted) {
           setAllBookings(bookingsData);
-          setFilteredBookings(bookingsData);
           setAllRooms(roomsData);
           setToast({ show: true, message: `Loaded ${(bookingsData as unknown[]).length} bookings.`, type: 'success' });
         }
@@ -109,26 +111,19 @@ export default function BookingsPageClient() {
     return [...new Set(locs)].sort();
   }, [allBookings]);
 
-  // ── Cascading filter effect ───────────────────────────────────────────────────
-  useEffect(() => {
+  // ── Derived filtered bookings (useMemo eliminates extra render cycles) ────────
+  const filteredBookings = useMemo(() => {
     let result = allBookings as { status?: string; location?: string }[];
     if (categoryFilter === 'Pending')       result = result.filter(b => b.status === 'Pending');
     else if (categoryFilter === 'Confirmed') result = result.filter(b => b.status === 'Confirmed');
     else if (categoryFilter === 'Cancelled') result = result.filter(b => b.status === 'Cancelled');
     else if (categoryFilter === 'By Location') result = [...result].sort((a, b) => (a.location ?? '').localeCompare(b.location ?? ''));
     if (locationFilter !== 'All') result = result.filter(b => b.location === locationFilter);
-    setFilteredBookings(result);
+    return result;
   }, [categoryFilter, locationFilter, allBookings]);
 
-  // ── Helpers ──────────────────────────────────────────────────────────────────
-  const formatDateTimeForInput = (dt: string | null | undefined) => {
-    if (!dt) return '';
-    const d = new Date(dt);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}T${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-  };
-
-  // ── Booking CRUD handlers ─────────────────────────────────────────────────────
-  const handleBookingSubmit = async (bookingData: Record<string, unknown>) => {
+  // ── Booking CRUD handlers ─────────────────────────────────────────────────
+  const handleBookingSubmit = useCallback(async (bookingData: Record<string, unknown>) => {
     setBookingFormErrors({});
     try {
       setIsSubmitting(true);
@@ -171,9 +166,9 @@ export default function BookingsPageClient() {
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [editingBooking]);
 
-  const handleDeleteBooking = async (bookingId: unknown) => {
+  const handleDeleteBooking = useCallback(async (bookingId: unknown) => {
     if (!confirm('Are you sure you want to delete this booking?')) return;
     try {
       setError(null);
@@ -183,9 +178,9 @@ export default function BookingsPageClient() {
     } catch (err) {
       setError(err);
     }
-  };
+  }, []);
 
-  const handleEditBooking = async (booking: Record<string, unknown>) => {
+  const handleEditBooking = useCallback(async (booking: Record<string, unknown>) => {
     try {
       let fullBooking = booking;
       if (!booking.startTime && booking.bookingId) {
@@ -202,7 +197,7 @@ export default function BookingsPageClient() {
     } catch {
       alert('Failed to load booking details');
     }
-  };
+  }, []);
 
   // ── Render ───────────────────────────────────────────────────────────────────
   if (isLoading) return <Spinner overlay message="Loading bookings…" />;
