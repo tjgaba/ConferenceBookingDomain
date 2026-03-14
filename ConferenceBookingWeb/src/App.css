@@ -95,6 +95,24 @@
   box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
 }
 
+/* Search indicator — shown next to the search input while a debounced
+   API request is in flight */
+.search-group {
+  position: relative;
+}
+
+.search-indicator {
+  font-size: 0.8rem;
+  color: #3498db;
+  white-space: nowrap;
+  animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
 .section {
   margin-bottom: 40px;
 }

@@ -5,7 +5,7 @@
 // Contains all booking-specific state, handlers, SignalR subscription and JSX.
 // Replaces the old pattern of delegating to the monolithic src/App.jsx.
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import BookingList from '../../../src/components/BookingList';
 import BookingForm from '../../../src/components/BookingForm';
 import Button from '../../../src/components/Button';
@@ -17,6 +17,7 @@ import * as bookingService from '../../../src/services/bookingService';
 import * as roomService from '../../../src/services/roomService';
 import { useAuthContext } from '../../../src/context/AuthContext';
 import useSignalR from '../../../src/hooks/useSignalR';
+import useDebounce from '../../../src/hooks/useDebounce';
 import '../../../src/App.css';
 
 // Cast the JS components to typed variants so TSX props are accepted without errors.
@@ -38,6 +39,12 @@ export default function BookingsPageClient() {
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [locationFilter, setLocationFilter] = useState('All');
 
+  // ── Search state (debounced API search) ──────────────────────────────────────
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState<unknown[] | null>(null);
+  const searchTermRef = useRef('');
+
   // ── Loading / error / submit ─────────────────────────────────────────────────
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -54,11 +61,45 @@ export default function BookingsPageClient() {
 
   const { isLoggedIn, refreshKey } = useAuthContext();
 
+  // Keep ref in sync so the stable useCallback below can read the latest value
+  useEffect(() => { searchTermRef.current = searchTerm; }, [searchTerm]);
+
+  // ── Debounced search: fires a GET /Booking/filter request 400ms after typing ─
+  const debouncedSearch = useDebounce(searchTerm, 400);
+
+  useEffect(() => {
+    const term = debouncedSearch.trim();
+    if (!term) {
+      setSearchResults(null); // cleared → fall back to full allBookings list
+      return;
+    }
+    let mounted = true;
+    (async () => {
+      try {
+        setIsSearching(true);
+        const results = await bookingService.searchBookings(term);
+        if (mounted) setSearchResults(results);
+      } catch {
+        // silently keep previous results on transient error
+      } finally {
+        if (mounted) setIsSearching(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [debouncedSearch]);
+
   // ── SignalR — booking events only ────────────────────────────────────────────
   useSignalR({
     onBookingChange: useCallback(async (eventName: string, payload: unknown) => {
-      const bookings = await bookingService.fetchAllBookings();
-      setAllBookings(bookings);
+      // Refresh either the search results or the full list, depending on what's active
+      const currentSearch = searchTermRef.current.trim();
+      if (currentSearch) {
+        const results = await bookingService.searchBookings(currentSearch);
+        setSearchResults(results);
+      } else {
+        const bookings = await bookingService.fetchAllBookings();
+        setAllBookings(bookings);
+      }
       const actor = (payload as Record<string, string>)?.by ?? (payload as Record<string, string>)?.By ?? 'Unknown';
       const templates: Record<string, string> = {
         BookingCreated:   `A new booking was created by "${actor}".`,
@@ -111,16 +152,18 @@ export default function BookingsPageClient() {
     return [...new Set(locs)].sort();
   }, [allBookings]);
 
-  // ── Derived filtered bookings (useMemo eliminates extra render cycles) ────────
+  // ── Derived filtered bookings ────────────────────────────────────────────────
+  // When a search is active, filter ON TOP of the server search results;
+  // otherwise filter the full allBookings list.
   const filteredBookings = useMemo(() => {
-    let result = allBookings as { status?: string; location?: string }[];
+    let result = (searchResults ?? allBookings) as { status?: string; location?: string }[];
     if (categoryFilter === 'Pending')       result = result.filter(b => b.status === 'Pending');
     else if (categoryFilter === 'Confirmed') result = result.filter(b => b.status === 'Confirmed');
     else if (categoryFilter === 'Cancelled') result = result.filter(b => b.status === 'Cancelled');
     else if (categoryFilter === 'By Location') result = [...result].sort((a, b) => (a.location ?? '').localeCompare(b.location ?? ''));
     if (locationFilter !== 'All') result = result.filter(b => b.location === locationFilter);
     return result;
-  }, [categoryFilter, locationFilter, allBookings]);
+  }, [categoryFilter, locationFilter, allBookings, searchResults]);
 
   // ── Booking CRUD handlers ─────────────────────────────────────────────────
   const handleBookingSubmit = useCallback(async (bookingData: Record<string, unknown>) => {
@@ -229,6 +272,18 @@ export default function BookingsPageClient() {
       </div>
 
       <div className="filter-section">
+        <div className="filter-group search-group">
+          <label htmlFor="booking-search">Search by Room:</label>
+          <input
+            id="booking-search"
+            type="search"
+            className="filter-select"
+            placeholder="Type room name…"
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+          />
+          {isSearching && <span className="search-indicator">Searching…</span>}
+        </div>
         <div className="filter-group">
           <label htmlFor="category-filter">Filter by Category:</label>
           <select id="category-filter" value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} className="filter-select">

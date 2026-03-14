@@ -144,3 +144,26 @@ export const filterBookings = async (filters) => {
   }
 };
 
+/**
+ * Search bookings by room name via the server-side filter endpoint.
+ * Designed for debounced search: one GET request per settled term instead
+ * of one request per keystroke.
+ *
+ * @param {string} roomName - Partial or full room name to search for
+ * @param {number} pageSize - Max results to return (default: 100)
+ * @returns {Promise<Array>} Matching booking summaries
+ * @throws {Error} Network or server errors
+ */
+export const searchBookings = async (roomName, pageSize = 100) => {
+  try {
+    const response = await apiClient.get('/Booking/filter', {
+      params: { roomName, pageSize, sortBy: 'CreatedAt', sortOrder: 'desc' },
+    });
+    console.log('✓ API: Searched bookings', `"${roomName}"`, response.data?.length ?? 0, 'results');
+    return response.data || [];
+  } catch (error) {
+    console.error('❌ Failed to search bookings:', error);
+    throw error;
+  }
+};
+
